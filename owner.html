@@ -396,7 +396,9 @@
 
     .date-controls .input {
       min-height: 40px;
-      width: 160px;
+      width: 210px;
+      min-width: 210px;
+      font-variant-numeric: tabular-nums;
     }
 
     .card {
@@ -915,6 +917,12 @@
 
       .date-controls {
         justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .date-controls .input {
+        width: min(100%, 220px);
+        min-width: 0;
       }
 
       .two-columns,
@@ -1580,7 +1588,7 @@
     (function startOwnerAdmin() {
       "use strict";
 
-      const SCREEN_VERSION = "DAYCARE-8-OWNER-PC-COMPLETE-20260713";
+      const SCREEN_VERSION = "DAYCARE-8-R1-DATE-INPUT-WIDTH-20260713";
       const CONFIG = window.DPRODaycare || window.DPRO_DAYCARE_CONFIG || null;
 
       const $ = (selector) => document.querySelector(selector);
