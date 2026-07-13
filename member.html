@@ -1,0 +1,1671 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17643a">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="DPROデイサービスの家族向け利用者カードです。利用予定、送迎予定、お休み連絡履歴、施設からのお知らせを確認できます。">
+  <title>DPRO デイサービス LINE｜利用者カード</title>
+
+  <style>
+    :root {
+      --bg: #f3f7f4;
+      --surface: #ffffff;
+      --surface-soft: #f8fbf9;
+      --line: #dce8e0;
+      --line-strong: #c4d8cb;
+      --text: #14241a;
+      --muted: #637269;
+      --brand: #17643a;
+      --brand-dark: #0e4c2a;
+      --brand-soft: #eaf7ef;
+      --brand-pale: #f3fbf6;
+      --blue: #245bb8;
+      --blue-soft: #edf4ff;
+      --orange: #9b4d12;
+      --orange-soft: #fff3e8;
+      --red: #b42318;
+      --red-soft: #fff0ee;
+      --gray-soft: #edf2ef;
+      --shadow: 0 14px 40px rgba(20, 36, 26, .08);
+      --shadow-soft: 0 7px 22px rgba(20, 36, 26, .055);
+      --radius-xl: 26px;
+      --radius-lg: 20px;
+      --radius-md: 15px;
+      --radius-sm: 11px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top right, rgba(23,100,58,.07), transparent 30rem),
+        var(--bg);
+      color: var(--text);
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Hiragino Sans",
+        "Yu Gothic UI",
+        "Yu Gothic",
+        Meiryo,
+        sans-serif;
+      line-height: 1.65;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button,
+    a,
+    input {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button,
+    a {
+      touch-action: manipulation;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .page {
+      width: min(760px, calc(100% - 24px));
+      margin: 0 auto;
+      padding: 14px 0 110px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding: 5px 2px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      flex: 0 0 auto;
+      border-radius: 15px;
+      background: linear-gradient(145deg, #21864d, #0d4b29);
+      color: #fff;
+      font-size: 22px;
+      font-weight: 900;
+      box-shadow: 0 9px 22px rgba(23,100,58,.22);
+    }
+
+    .brand-name {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.25;
+    }
+
+    .brand-sub {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .version-badge {
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: var(--gray-soft);
+      color: #526158;
+      font-size: 9px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(20px, 6vw, 32px);
+      border: 1px solid rgba(23,100,58,.14);
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.98), rgba(239,250,244,.96));
+      box-shadow: var(--shadow);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -70px;
+      bottom: -95px;
+      width: 235px;
+      height: 235px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(23,100,58,.13), transparent 67%);
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      margin: 0 0 7px;
+      color: var(--brand);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .08em;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(28px, 7vw, 42px);
+      line-height: 1.25;
+      letter-spacing: -.025em;
+    }
+
+    .hero-copy {
+      margin: 11px 0 0;
+      color: #506057;
+      font-size: 13px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 18px;
+    }
+
+    .section {
+      margin-top: 14px;
+      padding: clamp(18px, 4vw, 24px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .section-kicker {
+      margin: 0 0 2px;
+      color: var(--brand);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .06em;
+    }
+
+    .section h2 {
+      margin: 0;
+      font-size: 21px;
+      line-height: 1.35;
+    }
+
+    .section-description {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 29px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .status-pill::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-neutral {
+      background: var(--gray-soft);
+      color: #526158;
+    }
+
+    .status-ok {
+      background: var(--brand-soft);
+      color: var(--brand);
+    }
+
+    .status-warning {
+      background: var(--orange-soft);
+      color: var(--orange);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 10px 16px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 850;
+      transition:
+        transform .14s ease,
+        box-shadow .14s ease,
+        background .14s ease,
+        border-color .14s ease,
+        opacity .14s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      cursor: wait;
+      opacity: .68;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(23,100,58,.19);
+    }
+
+    .btn-secondary {
+      border-color: var(--line-strong);
+      background: #fff;
+      color: var(--text);
+    }
+
+    .btn-blue {
+      background: var(--blue);
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(36,91,184,.18);
+    }
+
+    .btn-small {
+      min-height: 38px;
+      padding: 8px 11px;
+      font-size: 11px;
+    }
+
+    .verification {
+      display: grid;
+      gap: 13px;
+    }
+
+    .credential-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .input {
+      width: 100%;
+      min-height: 48px;
+      padding: 11px 13px;
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+
+    .input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(36,91,184,.11);
+    }
+
+    .verification-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+
+    .profile {
+      display: none;
+    }
+
+    .profile.is-visible {
+      display: block;
+    }
+
+    .profile-card {
+      padding: 19px;
+      border: 1px solid #cfe5d6;
+      border-radius: 18px;
+      background:
+        linear-gradient(135deg, #f4fcf7, #eef8f2);
+    }
+
+    .profile-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .profile-icon {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      flex: 0 0 auto;
+      border-radius: 19px;
+      background: #fff;
+      box-shadow: 0 8px 20px rgba(23,100,58,.10);
+      font-size: 28px;
+    }
+
+    .profile-name {
+      margin: 0;
+      font-size: 23px;
+      line-height: 1.3;
+    }
+
+    .profile-number {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 9px;
+      margin-top: 15px;
+    }
+
+    .profile-item {
+      padding: 12px;
+      border: 1px solid #d7e8dc;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .profile-label {
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .profile-value {
+      display: block;
+      margin-top: 3px;
+      color: var(--brand-dark);
+      font-size: 12px;
+      font-weight: 900;
+      overflow-wrap: anywhere;
+    }
+
+    .next-card {
+      margin-top: 11px;
+      padding: 15px;
+      border-radius: 15px;
+      background: #fff;
+      border: 1px solid #d7e8dc;
+    }
+
+    .next-card h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .next-card p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .next-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 11px;
+    }
+
+    .next-item {
+      padding: 10px;
+      border-radius: 10px;
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+    }
+
+    .next-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 8px;
+      font-weight: 700;
+    }
+
+    .next-item strong {
+      display: block;
+      margin-top: 2px;
+      color: var(--brand-dark);
+      font-size: 11px;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .schedule-card {
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--surface-soft);
+    }
+
+    .schedule-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .schedule-date {
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .schedule-detail {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .schedule-detail > div {
+      padding: 9px;
+      border-radius: 10px;
+      background: #fff;
+      border: 1px solid #e1e9e4;
+    }
+
+    .schedule-detail span {
+      display: block;
+      color: var(--muted);
+      font-size: 8px;
+    }
+
+    .schedule-detail strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 10px;
+    }
+
+    .request-list,
+    .announcement-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .request-card,
+    .announcement-card {
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--surface-soft);
+    }
+
+    .request-head,
+    .announcement-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .request-card h3,
+    .announcement-card h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .request-card p,
+    .announcement-card p {
+      margin: 6px 0 0;
+      color: #526158;
+      font-size: 10px;
+      white-space: pre-wrap;
+    }
+
+    .request-meta {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 9px;
+    }
+
+    .item-note {
+      padding: 16px;
+      border: 1px solid #e8dfad;
+      border-radius: 16px;
+      background: #fffbed;
+    }
+
+    .item-note h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .item-note p {
+      margin: 7px 0 0;
+      color: #625b31;
+      font-size: 11px;
+      white-space: pre-wrap;
+    }
+
+    .copy-box {
+      margin-top: 12px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface-soft);
+    }
+
+    .copy-box h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .copy-box p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .copy-text {
+      margin-top: 10px;
+      padding: 12px;
+      border: 1px solid #e1e9e4;
+      border-radius: 11px;
+      background: #fff;
+      font-size: 10px;
+      white-space: pre-wrap;
+    }
+
+    .empty {
+      padding: 18px;
+      border: 1px dashed #c9d7ce;
+      border-radius: 14px;
+      background: #fbfdfc;
+      color: var(--muted);
+      text-align: center;
+      font-size: 11px;
+    }
+
+    .support {
+      margin-top: 14px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .support h2 {
+      margin: 0;
+      font-size: 17px;
+    }
+
+    .support p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .support-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 11px;
+      padding: 12px;
+      border-radius: 12px;
+      background: var(--surface-soft);
+    }
+
+    .support-label {
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .support-value {
+      color: var(--brand-dark);
+      font-size: 13px;
+      font-weight: 900;
+      text-align: right;
+    }
+
+    .footer {
+      margin-top: 18px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 9px;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      bottom: max(10px, env(safe-area-inset-bottom));
+      z-index: 50;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      width: min(720px, calc(100% - 20px));
+      padding: 8px;
+      border: 1px solid rgba(196,216,203,.9);
+      border-radius: 18px;
+      background: rgba(255,255,255,.94);
+      box-shadow: 0 16px 36px rgba(20,36,26,.17);
+      backdrop-filter: blur(14px);
+      transform: translateX(-50%);
+    }
+
+    .bottom-nav a,
+    .bottom-nav button {
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      min-height: 49px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: #4f5d55;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .bottom-nav span:first-child {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .bottom-nav .is-active {
+      background: var(--brand-soft);
+      color: var(--brand-dark);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 620px) {
+      .page {
+        width: min(100% - 18px, 760px);
+      }
+
+      .credential-grid,
+      .profile-grid,
+      .next-grid,
+      .schedule-detail {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .hero-actions .btn,
+      .verification-actions .btn {
+        flex: 1 1 145px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .credential-grid,
+      .profile-grid,
+      .next-grid,
+      .schedule-detail {
+        grid-template-columns: 1fr;
+      }
+
+      .version-badge {
+        display: none;
+      }
+    }
+  </style>
+
+  <script src="./config.js?v=daycare-4"></script>
+</head>
+
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">＋</div>
+        <div>
+          <h1 class="brand-name">DPRO デイサービス LINE</h1>
+          <p class="brand-sub">ご家族向け利用者カード</p>
+        </div>
+      </div>
+      <div class="version-badge">STEP DAYCARE-7</div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">利用者カード</p>
+        <h1>利用予定と送迎予定を<br>まとめて確認</h1>
+        <p class="hero-copy">
+          今後の利用予定、お休み・変更希望の履歴、持ち物、施設からのお知らせを確認できます。
+        </p>
+
+        <div class="hero-actions">
+          <a class="btn btn-secondary" id="backToHomeLink" href="./index.html?v=daycare-6">
+            家族向けメニューへ戻る
+          </a>
+          <button class="btn btn-primary" id="refreshButton" type="button">
+            最新情報に更新
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="verificationSection">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker">ご本人確認</p>
+          <h2>登録情報を確認</h2>
+          <p class="section-description">
+            URLから引き継がれていない場合は、電話番号と利用者番号を入力してください。
+          </p>
+        </div>
+        <span class="status-pill status-neutral" id="verificationStatus">
+          未確認
+        </span>
+      </div>
+
+      <div class="verification">
+        <div class="credential-grid">
+          <div class="field">
+            <label for="phoneInput">登録電話番号</label>
+            <input
+              class="input"
+              id="phoneInput"
+              type="tel"
+              inputmode="tel"
+              autocomplete="tel"
+              placeholder="090-9999-1111"
+              maxlength="30"
+            >
+          </div>
+
+          <div class="field">
+            <label for="userNumberInput">利用者番号</label>
+            <input
+              class="input"
+              id="userNumberInput"
+              type="text"
+              autocomplete="off"
+              placeholder="DAY-DEMO-001"
+              maxlength="50"
+            >
+          </div>
+        </div>
+
+        <div class="verification-actions">
+          <button class="btn btn-primary" id="verifyButton" type="button">
+            利用者カードを表示
+          </button>
+          <button class="btn btn-secondary" id="demoFillButton" type="button">
+            デモ情報を入力
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <div class="profile" id="profileArea">
+      <section class="section">
+        <div class="profile-card">
+          <div class="profile-main">
+            <div class="profile-icon" aria-hidden="true">👤</div>
+            <div>
+              <h2 class="profile-name" id="profileName">利用者名</h2>
+              <p class="profile-number" id="profileNumber">利用者番号</p>
+            </div>
+          </div>
+
+          <div class="profile-grid">
+            <div class="profile-item">
+              <span class="profile-label">ご家族</span>
+              <strong class="profile-value" id="familyName">未確認</strong>
+            </div>
+            <div class="profile-item">
+              <span class="profile-label">登録電話番号</span>
+              <strong class="profile-value" id="familyPhone">未確認</strong>
+            </div>
+            <div class="profile-item">
+              <span class="profile-label">通常の送迎方法</span>
+              <strong class="profile-value" id="standardTransport">未確認</strong>
+            </div>
+          </div>
+
+          <div class="next-card">
+            <h3>次回の利用予定</h3>
+            <p id="nextScheduleDescription">次回予定を確認中です。</p>
+
+            <div class="next-grid">
+              <div class="next-item">
+                <span>利用日</span>
+                <strong id="nextDate">未設定</strong>
+              </div>
+              <div class="next-item">
+                <span>利用状況</span>
+                <strong id="nextStatus">未設定</strong>
+              </div>
+              <div class="next-item">
+                <span>お迎え予定</span>
+                <strong id="nextPickup">調整中</strong>
+              </div>
+              <div class="next-item">
+                <span>お帰り予定</span>
+                <strong id="nextDropoff">調整中</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">SCHEDULE</p>
+            <h2>今後の利用予定</h2>
+            <p class="section-description">
+              登録されている今後の予定を日付順に表示します。
+            </p>
+          </div>
+          <span class="status-pill status-neutral" id="scheduleCount">0件</span>
+        </div>
+
+        <div class="timeline" id="scheduleList"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">REQUEST HISTORY</p>
+            <h2>お休み・変更希望の履歴</h2>
+            <p class="section-description">
+              ご家族から送信した連絡と施設の対応状況です。
+            </p>
+          </div>
+          <span class="status-pill status-neutral" id="requestCount">0件</span>
+        </div>
+
+        <div class="request-list" id="requestList"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">ITEMS</p>
+            <h2>持ち物メモ</h2>
+          </div>
+        </div>
+
+        <div class="item-note">
+          <h3 id="itemTitle">施設からの持ち物案内</h3>
+          <p id="itemNote">現在、個別の持ち物案内はありません。</p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">ANNOUNCEMENTS</p>
+            <h2>施設からのお知らせ</h2>
+          </div>
+          <span class="status-pill status-neutral" id="announcementCount">0件</span>
+        </div>
+
+        <div class="announcement-list" id="announcementList"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">MESSAGE COPY</p>
+            <h2>施設への確認文面</h2>
+            <p class="section-description">
+              送迎や予定について施設へ確認したい場合にコピーして使えます。
+            </p>
+          </div>
+        </div>
+
+        <div class="copy-box">
+          <h3>確認文面</h3>
+          <p>利用者名と次回予定を入れた文面を自動作成します。</p>
+          <div class="copy-text" id="copyText">
+            利用者情報を確認すると文面が表示されます。
+          </div>
+          <button class="btn btn-blue btn-small" id="copyMessageButton" type="button">
+            文面をコピー
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <section class="support">
+      <h2>施設へのお問い合わせ</h2>
+      <p>緊急のご連絡や医療判断が必要な場合は、施設へ直接お電話ください。</p>
+
+      <div class="support-line">
+        <span class="support-label">施設名</span>
+        <strong class="support-value" id="supportFacilityName">DPROデイサービス</strong>
+      </div>
+
+      <div class="support-line">
+        <span class="support-label">電話番号</span>
+        <strong class="support-value" id="supportPhone">施設へご確認ください</strong>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>DPRO デイサービス LINE｜STEP DAYCARE-7</div>
+      <div id="footerVersion">DAYCARE-7-MEMBER-CARD</div>
+    </footer>
+  </main>
+
+  <nav class="bottom-nav" aria-label="画面下部メニュー">
+    <a href="./index.html?v=daycare-6">
+      <span aria-hidden="true">🏠</span>
+      <span>ホーム</span>
+    </a>
+    <button type="button" data-scroll-target="scheduleList">
+      <span aria-hidden="true">📅</span>
+      <span>利用予定</span>
+    </button>
+    <button type="button" class="is-active" data-scroll-target="profileArea">
+      <span aria-hidden="true">👤</span>
+      <span>利用者カード</span>
+    </button>
+  </nav>
+
+  <script>
+    (function startMemberCard() {
+      "use strict";
+
+      const SCREEN_VERSION = "DAYCARE-7-MEMBER-CARD-COMPLETE-20260713";
+      const CONFIG = window.DPRODaycare || window.DPRO_DAYCARE_CONFIG || null;
+
+      const $ = (selector) => document.querySelector(selector);
+      const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+      const state = {
+        data: null,
+      };
+
+      const els = {
+        backToHomeLink: $("#backToHomeLink"),
+        refreshButton: $("#refreshButton"),
+        phoneInput: $("#phoneInput"),
+        userNumberInput: $("#userNumberInput"),
+        verifyButton: $("#verifyButton"),
+        demoFillButton: $("#demoFillButton"),
+        verificationStatus: $("#verificationStatus"),
+        profileArea: $("#profileArea"),
+
+        profileName: $("#profileName"),
+        profileNumber: $("#profileNumber"),
+        familyName: $("#familyName"),
+        familyPhone: $("#familyPhone"),
+        standardTransport: $("#standardTransport"),
+
+        nextScheduleDescription: $("#nextScheduleDescription"),
+        nextDate: $("#nextDate"),
+        nextStatus: $("#nextStatus"),
+        nextPickup: $("#nextPickup"),
+        nextDropoff: $("#nextDropoff"),
+
+        scheduleCount: $("#scheduleCount"),
+        scheduleList: $("#scheduleList"),
+
+        requestCount: $("#requestCount"),
+        requestList: $("#requestList"),
+
+        itemTitle: $("#itemTitle"),
+        itemNote: $("#itemNote"),
+
+        announcementCount: $("#announcementCount"),
+        announcementList: $("#announcementList"),
+
+        copyText: $("#copyText"),
+        copyMessageButton: $("#copyMessageButton"),
+
+        supportFacilityName: $("#supportFacilityName"),
+        supportPhone: $("#supportPhone"),
+        footerVersion: $("#footerVersion"),
+      };
+
+      function configRequired() {
+        if (!CONFIG) {
+          throw new Error(
+            "共通設定を読み込めませんでした。ページを再読み込みしてください。"
+          );
+        }
+        return CONFIG;
+      }
+
+      function showSuccess(message) {
+        if (CONFIG?.utils?.showSuccess) {
+          CONFIG.utils.showSuccess(message);
+        } else {
+          window.alert(message);
+        }
+      }
+
+      function showError(error) {
+        const message = typeof error === "string"
+          ? error
+          : error?.message || "処理に失敗しました。";
+
+        if (CONFIG?.utils?.showError) {
+          CONFIG.utils.showError(message);
+        } else {
+          window.alert(message);
+        }
+      }
+
+      function showInfo(message) {
+        if (CONFIG?.utils?.showInfo) {
+          CONFIG.utils.showInfo(message);
+        } else {
+          window.alert(message);
+        }
+      }
+
+      async function withButton(button, loadingText, task) {
+        if (CONFIG?.utils?.runWithButton) {
+          return CONFIG.utils.runWithButton(
+            button,
+            task,
+            { loadingText }
+          );
+        }
+
+        const original = button?.textContent || "";
+        button.disabled = true;
+        button.textContent = loadingText;
+
+        try {
+          return await task();
+        } finally {
+          button.disabled = false;
+          button.textContent = original;
+        }
+      }
+
+      function setStatus(mode, text) {
+        els.verificationStatus.className =
+          `status-pill status-${mode}`;
+        els.verificationStatus.textContent = text;
+      }
+
+      function formatDate(value) {
+        return CONFIG?.utils?.formatDateJa
+          ? CONFIG.utils.formatDateJa(value)
+          : String(value || "未設定");
+      }
+
+      function formatDateTime(value) {
+        return CONFIG?.utils?.formatDateTimeJa
+          ? CONFIG.utils.formatDateTimeJa(value)
+          : String(value || "");
+      }
+
+      function formatTime(value) {
+        return CONFIG?.utils?.formatTimeJa
+          ? CONFIG.utils.formatTimeJa(value, { emptyText: "調整中" })
+          : String(value || "調整中");
+      }
+
+      function formatPhone(value) {
+        return CONFIG?.utils?.formatPhone
+          ? CONFIG.utils.formatPhone(value)
+          : String(value || "");
+      }
+
+      function normalizeText(value) {
+        return CONFIG?.utils?.normalizeNewlines
+          ? CONFIG.utils.normalizeNewlines(value)
+          : String(value || "").trim();
+      }
+
+      function escapeHtml(value) {
+        return CONFIG?.utils?.escapeHtml
+          ? CONFIG.utils.escapeHtml(value)
+          : String(value || "")
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#039;");
+      }
+
+      function credentials() {
+        const phone = els.phoneInput.value.trim();
+        const userNumber = els.userNumberInput.value.trim();
+
+        if (!phone || !userNumber) {
+          throw new Error(
+            "登録電話番号と利用者番号を入力してください。"
+          );
+        }
+
+        return { phone, userNumber };
+      }
+
+      function activeSchedule(schedules) {
+        const today = CONFIG?.utils?.todayJst
+          ? CONFIG.utils.todayJst()
+          : new Date().toISOString().slice(0, 10);
+
+        return (schedules || []).find((schedule) =>
+          schedule.service_date >= today &&
+          !["cancelled", "absent"].includes(schedule.status)
+        ) || (schedules || [])[0] || null;
+      }
+
+      function requestStatusMode(status) {
+        if (status === "resolved") return "ok";
+        if (["new", "acknowledged", "in_progress"].includes(status)) {
+          return "warning";
+        }
+        return "neutral";
+      }
+
+      function updateHomeLink() {
+        const phone = els.phoneInput.value.trim();
+        const userNumber = els.userNumberInput.value.trim();
+
+        const url = new URL(CONFIG.URLS.index);
+        if (phone) url.searchParams.set("phone", phone);
+        if (userNumber) url.searchParams.set("user_number", userNumber);
+        url.searchParams.set("v", "daycare-6");
+
+        els.backToHomeLink.href = url.toString();
+      }
+
+      function renderProfile(data) {
+        const schedule = activeSchedule(data.schedules);
+        const transport = schedule?.transport || {};
+
+        els.profileName.textContent = data.user.full_name;
+        els.profileNumber.textContent =
+          `利用者番号：${data.user.user_number}`;
+
+        els.familyName.textContent =
+          data.family?.full_name || "未登録";
+
+        els.familyPhone.textContent =
+          formatPhone(data.family?.phone);
+
+        els.standardTransport.textContent =
+          CONFIG?.utils?.transportModeLabel(
+            data.user.standard_transport_mode
+          ) || "未設定";
+
+        if (schedule) {
+          els.nextScheduleDescription.textContent =
+            transport.family_notice_note ||
+            "交通状況により予定時間が前後する場合があります。";
+
+          els.nextDate.textContent =
+            formatDate(schedule.service_date);
+
+          els.nextStatus.textContent =
+            CONFIG?.utils?.statusLabel(schedule.status) ||
+            schedule.status;
+
+          els.nextPickup.textContent =
+            formatTime(transport.pickup_planned_at);
+
+          els.nextDropoff.textContent =
+            formatTime(transport.dropoff_planned_at);
+        } else {
+          els.nextScheduleDescription.textContent =
+            "現在、今後の利用予定は登録されていません。";
+          els.nextDate.textContent = "未登録";
+          els.nextStatus.textContent = "未登録";
+          els.nextPickup.textContent = "調整中";
+          els.nextDropoff.textContent = "調整中";
+        }
+
+        els.itemTitle.textContent =
+          `${data.user.full_name}様の持ち物`;
+
+        els.itemNote.textContent =
+          normalizeText(data.user.item_note) ||
+          "現在、個別の持ち物案内はありません。";
+
+        els.supportFacilityName.textContent =
+          data.facility?.facility_name ||
+          CONFIG.APP.facilityName;
+
+        els.supportPhone.textContent =
+          data.facility?.phone ||
+          "施設へご確認ください";
+
+        els.profileArea.classList.add("is-visible");
+      }
+
+      function renderSchedules(schedules) {
+        const rows = schedules || [];
+        els.scheduleCount.textContent = `${rows.length}件`;
+
+        if (!rows.length) {
+          els.scheduleList.innerHTML = `
+            <div class="empty">
+              今後の利用予定はまだ登録されていません。
+            </div>
+          `;
+          return;
+        }
+
+        els.scheduleList.innerHTML = rows.map((schedule) => {
+          const transport = schedule.transport || {};
+
+          return `
+            <article class="schedule-card">
+              <div class="schedule-head">
+                <div class="schedule-date">
+                  ${escapeHtml(formatDate(schedule.service_date))}
+                </div>
+                <span class="status-pill ${
+                  schedule.status === "absent"
+                    ? "status-warning"
+                    : "status-ok"
+                }">
+                  ${escapeHtml(
+                    CONFIG?.utils?.statusLabel(schedule.status) ||
+                    schedule.status
+                  )}
+                </span>
+              </div>
+
+              <div class="schedule-detail">
+                <div>
+                  <span>送迎方法</span>
+                  <strong>${escapeHtml(
+                    CONFIG?.utils?.transportModeLabel(
+                      transport.transport_mode ||
+                      schedule.transport_mode
+                    ) || "未設定"
+                  )}</strong>
+                </div>
+                <div>
+                  <span>お迎え予定</span>
+                  <strong>${escapeHtml(
+                    formatTime(transport.pickup_planned_at)
+                  )}</strong>
+                </div>
+                <div>
+                  <span>お帰り予定</span>
+                  <strong>${escapeHtml(
+                    formatTime(transport.dropoff_planned_at)
+                  )}</strong>
+                </div>
+              </div>
+            </article>
+          `;
+        }).join("");
+      }
+
+      function renderRequests(requests) {
+        const rows = requests || [];
+        els.requestCount.textContent = `${rows.length}件`;
+
+        if (!rows.length) {
+          els.requestList.innerHTML = `
+            <div class="empty">
+              お休み連絡や利用日変更希望の履歴はありません。
+            </div>
+          `;
+          return;
+        }
+
+        els.requestList.innerHTML = rows.map((request) => `
+          <article class="request-card">
+            <div class="request-head">
+              <h3>${escapeHtml(
+                request.subject ||
+                CONFIG?.utils?.requestTypeLabel(request.request_type) ||
+                "家族連絡"
+              )}</h3>
+              <span class="status-pill status-${requestStatusMode(
+                request.request_status
+              )}">
+                ${escapeHtml(
+                  CONFIG?.utils?.requestStatusLabel(
+                    request.request_status
+                  ) || request.request_status
+                )}
+              </span>
+            </div>
+
+            <p>${escapeHtml(
+              normalizeText(request.message) ||
+              "内容はありません。"
+            )}</p>
+
+            ${
+              request.response_message
+                ? `<p><strong>施設からの回答：</strong><br>${escapeHtml(
+                    normalizeText(request.response_message)
+                  )}</p>`
+                : ""
+            }
+
+            <div class="request-meta">
+              受付：${escapeHtml(
+                formatDateTime(request.created_at)
+              )}
+            </div>
+          </article>
+        `).join("");
+      }
+
+      function renderAnnouncements(announcements) {
+        const rows = announcements || [];
+        els.announcementCount.textContent = `${rows.length}件`;
+
+        if (!rows.length) {
+          els.announcementList.innerHTML = `
+            <div class="empty">
+              現在、施設からのお知らせはありません。
+            </div>
+          `;
+          return;
+        }
+
+        els.announcementList.innerHTML = rows.map((announcement) => `
+          <article class="announcement-card">
+            <div class="announcement-head">
+              <h3>${escapeHtml(announcement.title)}</h3>
+              ${
+                announcement.is_pinned
+                  ? '<span class="status-pill status-ok">重要</span>'
+                  : ""
+              }
+            </div>
+            <p>${escapeHtml(
+              normalizeText(announcement.body)
+            )}</p>
+          </article>
+        `).join("");
+      }
+
+      function renderCopyText(data) {
+        const schedule = activeSchedule(data.schedules);
+        const transport = schedule?.transport || {};
+
+        const lines = [
+          `${data.facility?.facility_name || CONFIG.APP.facilityName} 様`,
+          "",
+          `${data.family?.full_name || "家族"}です。`,
+          `${data.user.full_name}の利用予定について確認です。`,
+        ];
+
+        if (schedule) {
+          lines.push(
+            "",
+            `次回利用日：${formatDate(schedule.service_date)}`,
+            `送迎方法：${
+              CONFIG?.utils?.transportModeLabel(
+                transport.transport_mode ||
+                schedule.transport_mode
+              ) || "未設定"
+            }`,
+            `お迎え予定：${formatTime(
+              transport.pickup_planned_at
+            )}`,
+            `お帰り予定：${formatTime(
+              transport.dropoff_planned_at
+            )}`
+          );
+        }
+
+        lines.push(
+          "",
+          "変更や確認事項があれば教えてください。",
+          "よろしくお願いいたします。"
+        );
+
+        els.copyText.textContent = lines.join("\n");
+      }
+
+      function renderAll(data) {
+        state.data = data;
+        renderProfile(data);
+        renderSchedules(data.schedules);
+        renderRequests(data.family_requests);
+        renderAnnouncements(data.announcements);
+        renderCopyText(data);
+        updateHomeLink();
+      }
+
+      async function loadMember(options = {}) {
+        configRequired();
+        const values = credentials();
+
+        return withButton(
+          options.button || els.verifyButton,
+          options.loadingText || "確認中…",
+          async () => {
+            setStatus("warning", "確認中");
+
+            try {
+              const data = await CONFIG.API.get(
+                "memberProfile",
+                {
+                  phone: values.phone,
+                  user_number: values.userNumber,
+                }
+              );
+
+              if (!data?.ok || !data?.user) {
+                throw new Error(
+                  "利用者情報を確認できませんでした。"
+                );
+              }
+
+              renderAll(data);
+              setStatus("ok", "確認済み");
+
+              CONFIG.storage.set(
+                CONFIG.STORAGE_KEYS.lastFamilyPhone,
+                values.phone
+              );
+              CONFIG.storage.set(
+                CONFIG.STORAGE_KEYS.lastUserNumber,
+                values.userNumber
+              );
+
+              if (!options.silent) {
+                showSuccess("利用者カードを表示しました。");
+              }
+
+              return data;
+            } catch (error) {
+              state.data = null;
+              els.profileArea.classList.remove("is-visible");
+              setStatus("warning", "要確認");
+              throw error;
+            }
+          }
+        );
+      }
+
+      function fillDemo() {
+        configRequired();
+        els.phoneInput.value = CONFIG.DEMO.member.phone;
+        els.userNumberInput.value =
+          CONFIG.DEMO.member.userNumber;
+        updateHomeLink();
+        showInfo("デモ利用者情報を入力しました。");
+      }
+
+      async function copyMessage() {
+        configRequired();
+
+        if (!state.data) {
+          throw new Error(
+            "先に利用者カードを表示してください。"
+          );
+        }
+
+        await withButton(
+          els.copyMessageButton,
+          "コピー中…",
+          async () => {
+            await CONFIG.utils.copyText(
+              els.copyText.textContent
+            );
+            showSuccess("施設への確認文面をコピーしました。");
+          }
+        );
+      }
+
+      function loadInitialCredentials() {
+        configRequired();
+
+        const query = CONFIG.utils.getQueryParams();
+        els.phoneInput.value =
+          query.phone ||
+          CONFIG.storage.get(
+            CONFIG.STORAGE_KEYS.lastFamilyPhone,
+            ""
+          );
+
+        els.userNumberInput.value =
+          query.user_number ||
+          CONFIG.storage.get(
+            CONFIG.STORAGE_KEYS.lastUserNumber,
+            ""
+          );
+
+        updateHomeLink();
+
+        return Boolean(
+          els.phoneInput.value &&
+          els.userNumberInput.value
+        );
+      }
+
+      function attachEvents() {
+        els.verifyButton.addEventListener(
+          "click",
+          () => loadMember().catch(showError)
+        );
+
+        els.refreshButton.addEventListener(
+          "click",
+          () => loadMember({
+            button: els.refreshButton,
+            loadingText: "更新中…",
+          }).catch(showError)
+        );
+
+        els.demoFillButton.addEventListener(
+          "click",
+          fillDemo
+        );
+
+        els.copyMessageButton.addEventListener(
+          "click",
+          () => copyMessage().catch(showError)
+        );
+
+        [els.phoneInput, els.userNumberInput].forEach((input) => {
+          input.addEventListener("input", updateHomeLink);
+
+          input.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              loadMember().catch(showError);
+            }
+          });
+        });
+
+        $$("[data-scroll-target]").forEach((button) => {
+          button.addEventListener("click", () => {
+            document.getElementById(
+              button.dataset.scrollTarget
+            )?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          });
+        });
+      }
+
+      async function initialize() {
+        els.footerVersion.textContent = SCREEN_VERSION;
+
+        if (!CONFIG) {
+          setStatus("warning", "接続エラー");
+          showError(
+            "共通設定を読み込めませんでした。"
+          );
+          return;
+        }
+
+        attachEvents();
+        const hasCredentials = loadInitialCredentials();
+
+        if (hasCredentials) {
+          loadMember({ silent: true }).catch(() => {});
+        }
+      }
+
+      initialize();
+    })();
+  </script>
+</body>
+</html>
