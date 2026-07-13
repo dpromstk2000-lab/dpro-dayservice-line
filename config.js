@@ -3,7 +3,7 @@
  * DPRO デイサービス LINE
  * STEP DAYCARE-4
  * 共通設定 config.js 完全版
- * Version: DAYCARE-4-CONFIG-COMPLETE-20260713
+ * Version: DAYCARE-4-R1-DAILY-CHECK-ENDPOINT-20260713
  * ============================================================
  *
  * GitHub配置先:
@@ -26,8 +26,8 @@
   const APP = Object.freeze({
     serviceName: "DPRO デイサービス LINE",
     subtitle: "デイサービス向け 家族連絡・お休み連絡・送迎案内システム",
-    appVersion: "DAYCARE-4-CONFIG-COMPLETE-20260713",
-    workerVersion: "DAYCARE-3-WORKER-API-COMPLETE-20260713",
+    appVersion: "DAYCARE-4-R1-DAILY-CHECK-ENDPOINT-20260713",
+    workerVersion: "DAYCARE-3-R2-DAILY-CHECK-API-20260713",
     facilityCode: "dpro_dayservice_demo",
     facilityName: "DPROデイサービス",
     timezone: "Asia/Tokyo",
@@ -65,6 +65,7 @@
     adminUserDetail: "/api/admin/user-detail",
     adminScheduleCreate: "/api/admin/schedules/create",
     adminAttendanceStatus: "/api/admin/attendance/status",
+    adminDailyCheckStatus: "/api/admin/daily-checks/status",
     adminTransportStatus: "/api/admin/transport/status",
     adminTaskStatus: "/api/admin/tasks/status",
     adminMessageLogCopy: "/api/admin/messages/log-copy",
