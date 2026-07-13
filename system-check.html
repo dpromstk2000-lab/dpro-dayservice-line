@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#166534">
   <meta name="robots" content="noindex,nofollow">
-  <title>DPRO デイサービス LINE｜営業前システムチェック</title>
+  <title>DPRO デイサービス LINE｜全画面連携・営業前システムチェック</title>
 
   <style>
     :root {
@@ -858,7 +858,7 @@
     }
   </style>
 
-  <script src="./config.js?v=daycare-4"></script>
+  <script src="./config.js?v=daycare-4-r2"></script>
 </head>
 
 <body>
@@ -877,10 +877,10 @@
     <section class="hero">
       <div class="hero-grid">
         <div>
-          <p class="eyebrow">STEP DAYCARE-5</p>
+          <p class="eyebrow">STEP DAYCARE-10</p>
           <h1>営業前システムチェック</h1>
           <p class="hero-copy">
-            Worker・Supabase・管理コード・デモデータを一つの画面から確認します。
+            Worker・Supabase・家族画面・利用者カード・PC管理画面・iPad画面をまとめて確認します。
             商談前は「管理コード保存」→「営業前デモ準備」→「一括チェック」の順で進めてください。
           </p>
 
@@ -1233,6 +1233,63 @@
             </button>
           </div>
         </article>
+
+        <article class="check-card" data-check-card="apiRoutes">
+          <div class="check-card-head">
+            <div>
+              <h3>APIルート構成</h3>
+              <p>日常操作API・連携確認API</p>
+            </div>
+            <span class="status-pill status-neutral" id="status-apiRoutes">
+              <span class="status-dot"></span>
+              未確認
+            </span>
+          </div>
+          <div class="check-result" id="result-apiRoutes">確認前です。</div>
+          <div class="check-actions">
+            <button class="btn btn-secondary btn-small" data-run-check="apiRoutes" type="button">
+              確認する
+            </button>
+          </div>
+        </article>
+
+        <article class="check-card" data-check-card="dailyChecks">
+          <div class="check-card-head">
+            <div>
+              <h3>iPad個別確認連携</h3>
+              <p>昼食・入浴・レク等の保存準備</p>
+            </div>
+            <span class="status-pill status-neutral" id="status-dailyChecks">
+              <span class="status-dot"></span>
+              未確認
+            </span>
+          </div>
+          <div class="check-result" id="result-dailyChecks">デモ準備後に確認します。</div>
+          <div class="check-actions">
+            <button class="btn btn-secondary btn-small" data-run-check="dailyChecks" type="button">
+              確認する
+            </button>
+          </div>
+        </article>
+
+        <article class="check-card" data-check-card="pages">
+          <div class="check-card-head">
+            <div>
+              <h3>全画面公開確認</h3>
+              <p>家族・会員・PC・iPad画面</p>
+            </div>
+            <span class="status-pill status-neutral" id="status-pages">
+              <span class="status-dot"></span>
+              未確認
+            </span>
+          </div>
+          <div class="check-result" id="result-pages">確認前です。</div>
+          <div class="check-actions">
+            <button class="btn btn-secondary btn-small" data-run-check="pages" type="button">
+              確認する
+            </button>
+          </div>
+        </article>
       </div>
     </section>
 
@@ -1242,7 +1299,7 @@
           <p class="section-kicker">04 / PAGE URLS</p>
           <h2>各画面URL</h2>
           <p class="section-description">
-            STEP DAYCARE-6以降で各画面を順番に追加します。現時点で未作成の画面は、追加後に利用できます。
+            家族向け・利用者カード・PC管理・iPad・内部確認画面の完成URLです。
           </p>
         </div>
       </div>
@@ -1265,7 +1322,7 @@
           <p class="section-kicker">05 / MANUAL CHECK</p>
           <h2>営業前の手動確認</h2>
           <p class="section-description">
-            各画面完成後、実際のスマホ・PC・iPadで確認した項目にチェックします。
+            自動確認完了後、こちらから操作できない実機操作だけを最終確認します。
           </p>
         </div>
         <span class="status-pill status-neutral" id="manualStatus">
@@ -1348,14 +1405,14 @@
           </p>
         </div>
         <div class="overall-score">
-          <strong id="overallScore">0 / 17</strong>
-          <span>自動9項目＋手動8項目</span>
+          <strong id="overallScore">0 / 20</strong>
+          <span>自動12項目＋手動8項目</span>
         </div>
       </div>
     </section>
 
     <footer class="footer">
-      <div>DPRO デイサービス LINE｜STEP DAYCARE-5</div>
+      <div>DPRO デイサービス LINE｜STEP DAYCARE-10</div>
       <div id="footerVersion">system-check.html</div>
     </footer>
   </main>
@@ -1364,7 +1421,7 @@
     (function startSystemCheck() {
       "use strict";
 
-      const SCREEN_VERSION = "DAYCARE-5-SYSTEM-CHECK-COMPLETE-20260713";
+      const SCREEN_VERSION = "DAYCARE-10-FULL-INTEGRATION-CHECK-20260713";
       const CONFIG = window.DPRODaycare || window.DPRO_DAYCARE_CONFIG || null;
 
       const CHECK_KEYS = [
@@ -1377,11 +1434,15 @@
         "member",
         "today",
         "dashboard",
+        "apiRoutes",
+        "dailyChecks",
+        "pages",
       ];
 
       const state = {
         checks: Object.fromEntries(CHECK_KEYS.map((key) => [key, null])),
         healthData: null,
+        integrationData: null,
         demoPrepared: false,
       };
 
@@ -1595,8 +1656,10 @@
           {
             key: "index",
             title: "家族向けメイン画面",
-            subtitle: "STEP DAYCARE-6で作成",
-            url: CONFIG.URLS.index,
+            subtitle: "ご家族のお休み・変更希望・施設連絡",
+            url: `${CONFIG.URLS.index}?v=daycare-6`,
+            expectedVersion: "DAYCARE-6-FAMILY-PORTAL-COMPLETE-20260713",
+            pageCheck: true,
             sales: true,
           },
           {
@@ -1608,27 +1671,35 @@
               CONFIG.DEMO.member.userNumber,
               { v: "daycare-7" }
             ),
+            expectedVersion: "DAYCARE-7-MEMBER-CARD-COMPLETE-20260713",
+            pageCheck: true,
             sales: true,
           },
           {
             key: "owner",
             title: "施設管理者PC画面",
-            subtitle: "STEP DAYCARE-8で作成",
-            url: `${CONFIG.URLS.owner}?v=daycare-8`,
+            subtitle: "施設管理者向けPC管理画面",
+            url: `${CONFIG.URLS.owner}?v=daycare-8-r2`,
+            expectedVersion: "DAYCARE-8-R2-JAPANESE-DATE-DISPLAY-20260713",
+            pageCheck: true,
             sales: true,
           },
           {
             key: "ownerIpad",
             title: "スタッフiPad画面",
-            subtitle: "STEP DAYCARE-9で作成",
-            url: `${CONFIG.URLS.ownerIpad}?v=daycare-9`,
+            subtitle: "スタッフの日常業務・タッチ操作",
+            url: `${CONFIG.URLS.ownerIpad}?v=daycare-9-r1`,
+            expectedVersion: "DAYCARE-9-R1-IPAD-READABILITY-FIX-20260713",
+            pageCheck: true,
             sales: true,
           },
           {
             key: "systemCheck",
             title: "営業前システムチェック",
             subtitle: "営業担当者専用・お客様へは渡さない",
-            url: `${CONFIG.URLS.systemCheck}?v=daycare-5`,
+            url: `${CONFIG.URLS.systemCheck}?v=daycare-10`,
+            expectedVersion: "DAYCARE-10-FULL-INTEGRATION-CHECK-20260713",
+            pageCheck: true,
             sales: false,
           },
           {
@@ -2019,6 +2090,184 @@
         }
       }
 
+      async function checkApiRoutes() {
+        setCheckResult(
+          "apiRoutes",
+          "running",
+          "WorkerのAPIルート構成を確認中です。"
+        );
+
+        try {
+          configRequired();
+
+          const data = await CONFIG.API.get("root");
+          const endpoints = data?.endpoints || {};
+
+          const required = {
+            health: "/api/health",
+            member_profile: "/api/member/profile",
+            admin_dashboard: "/api/admin/dashboard",
+            admin_day: "/api/admin/day",
+            admin_attendance_status:
+              "/api/admin/attendance/status",
+            admin_daily_check_status:
+              "/api/admin/daily-checks/status",
+            admin_transport_status:
+              "/api/admin/transport/status",
+            admin_integration_check:
+              "/api/admin/integration-check",
+          };
+
+          const missing = Object.entries(required)
+            .filter(([key, value]) => endpoints[key] !== value)
+            .map(([key]) => key);
+
+          if (missing.length) {
+            throw new Error(
+              `未反映のAPIがあります：${missing.join("、")}`
+            );
+          }
+
+          setCheckResult(
+            "apiRoutes",
+            "ok",
+            [
+              `Worker：${data.version}`,
+              "利用状況API：OK",
+              "個別確認API：OK",
+              "送迎状況API：OK",
+              "全体連携確認API：OK",
+            ].join("\n")
+          );
+
+          return true;
+        } catch (error) {
+          setCheckResult("apiRoutes", "error", error.message);
+          throw error;
+        }
+      }
+
+      async function fetchIntegrationCheck() {
+        configRequired();
+        requireSavedAdminCode();
+
+        const data = await CONFIG.API.adminGet(
+          "adminIntegrationCheck",
+          { date: CONFIG.utils.todayJst() }
+        );
+
+        state.integrationData = data;
+        return data;
+      }
+
+      async function checkDailyChecks() {
+        setCheckResult(
+          "dailyChecks",
+          "running",
+          "iPad個別確認とデモデータを確認中です。"
+        );
+
+        try {
+          const data =
+            state.integrationData ||
+            await fetchIntegrationCheck();
+
+          if (!data?.ok) {
+            throw new Error(
+              "全画面連携確認データを取得できませんでした。"
+            );
+          }
+
+          const failed = Object.entries(data.checks || {})
+            .filter(([, value]) => value !== true)
+            .map(([key]) => key);
+
+          if (failed.length) {
+            throw new Error(
+              `準備不足の項目があります：${failed.join("、")}`
+            );
+          }
+
+          const counts = data.counts || {};
+
+          setCheckResult(
+            "dailyChecks",
+            "ok",
+            [
+              `本日の利用予定：${counts.today_schedules || 0}名`,
+              `送迎予定：${counts.transports || 0}件`,
+              `個別確認：${counts.daily_checks || 0} / ${
+                counts.expected_daily_checks || 0
+              }件`,
+              `確認済み：${counts.completed_daily_checks || 0}件`,
+              `確認種別：${
+                (data.daily_check_types || []).join("、")
+              }`,
+            ].join("\n")
+          );
+
+          return true;
+        } catch (error) {
+          setCheckResult("dailyChecks", "error", error.message);
+          throw error;
+        }
+      }
+
+      async function checkPages() {
+        setCheckResult(
+          "pages",
+          "running",
+          "公開中の全画面を確認中です。"
+        );
+
+        try {
+          configRequired();
+
+          const pages = pageDefinitions().filter(
+            (page) => page.pageCheck
+          );
+
+          const results = [];
+
+          for (const page of pages) {
+            const response = await fetch(page.url, {
+              method: "GET",
+              cache: "no-store",
+            });
+
+            if (!response.ok) {
+              throw new Error(
+                `${page.title}：HTTP ${response.status}`
+              );
+            }
+
+            const html = await response.text();
+
+            if (
+              page.expectedVersion &&
+              !html.includes(page.expectedVersion)
+            ) {
+              throw new Error(
+                `${page.title}：最新バージョンが未反映です。`
+              );
+            }
+
+            results.push(`${page.title}：OK`);
+          }
+
+          setCheckResult(
+            "pages",
+            "ok",
+            results.join("\n")
+          );
+
+          return true;
+        } catch (error) {
+          setCheckResult("pages", "error", error.message);
+          throw error;
+        }
+      }
+
       const checkRunners = {
         config: checkConfig,
         health: checkHealth,
@@ -2029,6 +2278,9 @@
         member: checkMember,
         today: checkToday,
         dashboard: checkDashboard,
+        apiRoutes: checkApiRoutes,
+        dailyChecks: checkDailyChecks,
+        pages: checkPages,
       };
 
       async function runCheck(key) {
@@ -2073,7 +2325,7 @@
             );
 
             if (allOk) {
-              showSuccess("自動チェック9項目がすべて正常です。");
+              showSuccess("自動チェック12項目がすべて正常です。");
             } else {
               showError(
                 "確認できなかった項目があります。赤または黄色の項目を確認してください。"
@@ -2141,6 +2393,7 @@
               }
 
               state.demoPrepared = true;
+              state.integrationData = null;
               renderDemoVerification(data.verification);
 
               setPill(
@@ -2261,7 +2514,7 @@
       }
 
       function manualStorageKey() {
-        return "dpro_daycare_system_check_manual_daycare_5";
+        return "dpro_daycare_system_check_manual_daycare_10";
       }
 
       function loadManualChecks() {
