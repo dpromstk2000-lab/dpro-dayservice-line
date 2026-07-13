@@ -1479,15 +1479,20 @@
         els.dateInput.value = today();
         updateDateLabel();
 
-        els.adminCodeInput.value =
-          CONFIG.storage.getAdminCode();
+        const params = new URLSearchParams(window.location.search);
+        const demoPreview = params.get("demo") === "1";
 
-        els.operatorNameInput.value =
-          CONFIG.storage.getOperatorName("デモ スタッフ");
+        els.adminCodeInput.value = demoPreview
+          ? CONFIG.DEMO.adminCode
+          : CONFIG.storage.getAdminCode();
+
+        els.operatorNameInput.value = demoPreview
+          ? "デモ スタッフ"
+          : CONFIG.storage.getOperatorName("デモ スタッフ");
 
         attachEvents();
 
-        if (CONFIG.storage.getAdminCode()) {
+        if (demoPreview || CONFIG.storage.getAdminCode()) {
           login().catch(() => {
             els.loginScreen.style.display = "grid";
             els.app.classList.remove("is-visible");

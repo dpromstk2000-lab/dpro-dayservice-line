@@ -2899,15 +2899,20 @@
         els.scheduleDate.value = todayText;
         updateDateLabels();
 
-        els.loginAdminCode.value =
-          CONFIG.storage.getAdminCode();
+        const params = new URLSearchParams(window.location.search);
+        const demoPreview = params.get("demo") === "1";
 
-        els.loginOperatorName.value =
-          CONFIG.storage.getOperatorName("デモ 管理者");
+        els.loginAdminCode.value = demoPreview
+          ? CONFIG.DEMO.adminCode
+          : CONFIG.storage.getAdminCode();
+
+        els.loginOperatorName.value = demoPreview
+          ? "デモ 管理者"
+          : CONFIG.storage.getOperatorName("デモ 管理者");
 
         attachEvents();
 
-        if (CONFIG.storage.getAdminCode()) {
+        if (demoPreview || CONFIG.storage.getAdminCode()) {
           login().catch(() => {
             els.loginShell.style.display = "grid";
             els.app.classList.remove("is-visible");
