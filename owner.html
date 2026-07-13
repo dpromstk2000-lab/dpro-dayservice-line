@@ -1,0 +1,2834 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#153f2a">
+  <meta name="color-scheme" content="light">
+  <meta name="robots" content="noindex,nofollow">
+  <title>DPRO デイサービス LINE｜施設管理</title>
+
+  <style>
+    :root {
+      --bg: #f2f5f3;
+      --surface: #ffffff;
+      --surface-soft: #f7faf8;
+      --surface-deep: #edf3ef;
+      --line: #dbe5df;
+      --line-strong: #c5d5cb;
+      --text: #17221b;
+      --muted: #66736b;
+      --brand: #17643a;
+      --brand-dark: #0f4c2b;
+      --brand-soft: #e8f6ed;
+      --blue: #245bb8;
+      --blue-soft: #edf4ff;
+      --orange: #9a4a10;
+      --orange-soft: #fff2e6;
+      --red: #b42318;
+      --red-soft: #fff0ee;
+      --purple: #6d3ab2;
+      --purple-soft: #f4effd;
+      --gray-soft: #eaf0ec;
+      --shadow: 0 14px 38px rgba(23,34,27,.08);
+      --shadow-soft: 0 7px 22px rgba(23,34,27,.055);
+      --sidebar-width: 238px;
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Hiragino Sans",
+        "Yu Gothic UI",
+        "Yu Gothic",
+        Meiryo,
+        sans-serif;
+      line-height: 1.55;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button,
+    a,
+    input,
+    select,
+    textarea {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .login-shell {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top right, rgba(23,100,58,.12), transparent 30rem),
+        linear-gradient(145deg, #f4f8f5, #edf3ef);
+    }
+
+    .login-card {
+      width: min(480px, 100%);
+      padding: clamp(24px, 5vw, 36px);
+      border: 1px solid rgba(23,100,58,.16);
+      border-radius: 26px;
+      background: rgba(255,255,255,.96);
+      box-shadow: 0 24px 60px rgba(23,34,27,.12);
+    }
+
+    .login-brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      flex: 0 0 auto;
+      border-radius: 16px;
+      background: linear-gradient(145deg, #21864d, #0d4b29);
+      color: #fff;
+      font-size: 23px;
+      font-weight: 900;
+      box-shadow: 0 10px 24px rgba(23,100,58,.22);
+    }
+
+    .login-card h1 {
+      margin: 0;
+      font-size: 23px;
+      line-height: 1.3;
+    }
+
+    .login-sub {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .login-title {
+      margin: 26px 0 0;
+      font-size: 28px;
+      line-height: 1.25;
+    }
+
+    .login-copy {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .login-form {
+      display: grid;
+      gap: 13px;
+      margin-top: 22px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field label {
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .input,
+    .select,
+    .textarea {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 11px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+      transition: border-color .14s ease, box-shadow .14s ease;
+    }
+
+    .textarea {
+      min-height: 110px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    .input:focus,
+    .select:focus,
+    .textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(36,91,184,.11);
+    }
+
+    .login-help {
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .app {
+      display: none;
+      min-height: 100vh;
+    }
+
+    .app.is-visible {
+      display: block;
+    }
+
+    .sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 30;
+      width: var(--sidebar-width);
+      padding: 18px 14px;
+      background: #11251a;
+      color: #fff;
+      overflow-y: auto;
+    }
+
+    .side-brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 4px 4px 18px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+
+    .side-brand .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      box-shadow: none;
+    }
+
+    .side-brand h2 {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .side-brand p {
+      margin: 2px 0 0;
+      color: rgba(255,255,255,.60);
+      font-size: 9px;
+    }
+
+    .side-nav {
+      display: grid;
+      gap: 5px;
+      margin-top: 17px;
+    }
+
+    .side-nav button,
+    .side-nav a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 43px;
+      padding: 9px 11px;
+      border: 0;
+      border-radius: 11px;
+      background: transparent;
+      color: rgba(255,255,255,.74);
+      cursor: pointer;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 750;
+    }
+
+    .side-nav button:hover,
+    .side-nav a:hover,
+    .side-nav button.is-active {
+      background: rgba(255,255,255,.10);
+      color: #fff;
+    }
+
+    .side-nav .nav-icon {
+      width: 22px;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    .side-footer {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,.10);
+    }
+
+    .side-footer .small {
+      color: rgba(255,255,255,.55);
+      font-size: 9px;
+    }
+
+    .side-footer strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 11px;
+    }
+
+    .main {
+      min-height: 100vh;
+      margin-left: var(--sidebar-width);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 70px;
+      padding: 13px 22px;
+      border-bottom: 1px solid rgba(219,229,223,.9);
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(14px);
+    }
+
+    .topbar-left {
+      min-width: 0;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 21px;
+      line-height: 1.3;
+    }
+
+    .topbar-sub {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .topbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .content {
+      width: min(1480px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 22px 0 50px;
+    }
+
+    .page-section {
+      display: none;
+    }
+
+    .page-section.is-active {
+      display: block;
+      animation: fadeIn .15s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 16px;
+    }
+
+    .section-kicker {
+      margin: 0 0 2px;
+      color: var(--brand);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .06em;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 25px;
+      line-height: 1.3;
+    }
+
+    .section-description {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .date-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .date-controls .input {
+      min-height: 40px;
+      width: 160px;
+    }
+
+    .card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 25px;
+      line-height: 1.15;
+    }
+
+    .metric small {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 8px;
+    }
+
+    .metric.is-alert {
+      border-color: #efc3bd;
+      background: #fff9f8;
+    }
+
+    .metric.is-alert strong {
+      color: var(--red);
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr);
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 13px;
+    }
+
+    .card-head h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .card-head p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 9px;
+    }
+
+    .list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .task-item,
+    .request-item,
+    .note-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface-soft);
+    }
+
+    .item-title {
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .item-sub {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 9px;
+      white-space: pre-wrap;
+    }
+
+    .item-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 8px 13px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 10px;
+      font-weight: 850;
+      transition:
+        transform .14s ease,
+        box-shadow .14s ease,
+        background .14s ease,
+        border-color .14s ease,
+        opacity .14s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      cursor: wait;
+      opacity: .65;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: #fff;
+      box-shadow: 0 7px 18px rgba(23,100,58,.18);
+    }
+
+    .btn-secondary {
+      border-color: var(--line-strong);
+      background: #fff;
+      color: var(--text);
+    }
+
+    .btn-blue {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .btn-warning {
+      border-color: #e8c697;
+      background: var(--orange-soft);
+      color: var(--orange);
+    }
+
+    .btn-danger {
+      border-color: #efb7b2;
+      background: var(--red-soft);
+      color: var(--red);
+    }
+
+    .btn-small {
+      min-height: 33px;
+      padding: 6px 9px;
+      font-size: 9px;
+    }
+
+    .btn-wide {
+      width: 100%;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 26px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 8px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .status-pill::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-neutral { background: var(--gray-soft); color: #526158; }
+    .status-ok { background: var(--brand-soft); color: var(--brand); }
+    .status-warning { background: var(--orange-soft); color: var(--orange); }
+    .status-error { background: var(--red-soft); color: var(--red); }
+    .status-blue { background: var(--blue-soft); color: var(--blue); }
+    .status-purple { background: var(--purple-soft); color: var(--purple); }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .toolbar .input,
+    .toolbar .select {
+      min-height: 40px;
+    }
+
+    .toolbar .search-input {
+      flex: 1 1 280px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      min-width: 900px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+      font-size: 9px;
+    }
+
+    th {
+      background: #f5f8f6;
+      color: #526158;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    tbody tr:hover {
+      background: #fbfdfc;
+    }
+
+    td strong {
+      font-size: 10px;
+    }
+
+    .status-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .status-action {
+      min-height: 28px;
+      padding: 4px 7px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: #4a5850;
+      cursor: pointer;
+      font-size: 8px;
+      font-weight: 800;
+    }
+
+    .status-action.is-current {
+      border-color: #9bc6a8;
+      background: var(--brand-soft);
+      color: var(--brand);
+    }
+
+    .split-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, .52fr);
+      gap: 14px;
+    }
+
+    .search-results {
+      display: grid;
+      gap: 8px;
+    }
+
+    .search-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--surface-soft);
+    }
+
+    .search-name {
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .search-meta {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 9px;
+    }
+
+    .detail-panel {
+      min-height: 280px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--surface-soft);
+    }
+
+    .detail-panel h3 {
+      margin: 0;
+      font-size: 17px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .detail-item {
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .detail-label {
+      color: var(--muted);
+      font-size: 8px;
+    }
+
+    .detail-value {
+      display: block;
+      margin-top: 2px;
+      font-size: 10px;
+      font-weight: 850;
+      overflow-wrap: anywhere;
+    }
+
+    .detail-section {
+      margin-top: 13px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+
+    .detail-section h4 {
+      margin: 0 0 8px;
+      font-size: 11px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .two-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .three-columns {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .form-note {
+      padding: 11px;
+      border-radius: 10px;
+      background: var(--surface-soft);
+      color: #526158;
+      font-size: 9px;
+    }
+
+    .empty {
+      padding: 20px;
+      border: 1px dashed #c8d6cd;
+      border-radius: 13px;
+      background: #fbfdfc;
+      color: var(--muted);
+      text-align: center;
+      font-size: 10px;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(14,30,20,.55);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-backdrop.is-visible {
+      display: flex;
+    }
+
+    .modal {
+      width: min(640px, 100%);
+      max-height: min(86vh, 760px);
+      overflow-y: auto;
+      padding: 20px;
+      border-radius: 20px;
+      background: #fff;
+      box-shadow: 0 28px 80px rgba(0,0,0,.25);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .modal-head h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .modal-head p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 9px;
+    }
+
+    .modal-close {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .mobile-nav {
+      display: none;
+    }
+
+    @media (max-width: 1180px) {
+      .metric-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .dashboard-grid,
+      .split-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 820px) {
+      :root {
+        --sidebar-width: 0px;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .main {
+        margin-left: 0;
+        padding-bottom: 78px;
+      }
+
+      .content {
+        width: min(100% - 20px, 1480px);
+      }
+
+      .topbar {
+        align-items: flex-start;
+        padding: 12px 14px;
+      }
+
+      .topbar-actions {
+        justify-content: flex-start;
+      }
+
+      .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .section-head {
+        display: grid;
+      }
+
+      .date-controls {
+        justify-content: flex-start;
+      }
+
+      .two-columns,
+      .three-columns,
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .mobile-nav {
+        position: fixed;
+        left: 50%;
+        bottom: max(8px, env(safe-area-inset-bottom));
+        z-index: 60;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 5px;
+        width: min(760px, calc(100% - 16px));
+        padding: 7px;
+        border: 1px solid var(--line);
+        border-radius: 17px;
+        background: rgba(255,255,255,.95);
+        box-shadow: 0 16px 38px rgba(23,34,27,.18);
+        backdrop-filter: blur(14px);
+        transform: translateX(-50%);
+      }
+
+      .mobile-nav button {
+        display: grid;
+        place-items: center;
+        gap: 2px;
+        min-height: 47px;
+        padding: 4px;
+        border: 0;
+        border-radius: 11px;
+        background: transparent;
+        color: #526158;
+        font-size: 8px;
+        font-weight: 800;
+      }
+
+      .mobile-nav button span:first-child {
+        font-size: 16px;
+      }
+
+      .mobile-nav button.is-active {
+        background: var(--brand-soft);
+        color: var(--brand);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .metric-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .topbar {
+        display: grid;
+      }
+
+      .topbar-actions .btn {
+        flex: 1 1 120px;
+      }
+
+      .content {
+        width: min(100% - 14px, 1480px);
+        padding-top: 12px;
+      }
+
+      .card {
+        padding: 14px;
+      }
+    }
+  </style>
+
+  <script src="./config.js?v=daycare-4"></script>
+</head>
+
+<body>
+  <section class="login-shell" id="loginShell">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="brand-mark" aria-hidden="true">＋</div>
+        <div>
+          <h1>DPRO デイサービス LINE</h1>
+          <p class="login-sub">施設管理者PC画面</p>
+        </div>
+      </div>
+
+      <h2 class="login-title">管理画面を開く</h2>
+      <p class="login-copy">
+        管理コードを入力して、今日の利用者・家族連絡・送迎予定を確認します。
+      </p>
+
+      <div class="login-form">
+        <div class="field">
+          <label for="loginAdminCode">管理コード</label>
+          <input
+            class="input"
+            id="loginAdminCode"
+            type="password"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="デモ管理コード 1234"
+            maxlength="20"
+          >
+          <div class="login-help">デモ環境の管理コードは 1234 です。</div>
+        </div>
+
+        <div class="field">
+          <label for="loginOperatorName">操作担当者名</label>
+          <input
+            class="input"
+            id="loginOperatorName"
+            type="text"
+            autocomplete="name"
+            placeholder="例：デモ 管理者"
+            maxlength="100"
+          >
+        </div>
+
+        <button class="btn btn-primary btn-wide" id="loginButton" type="button">
+          管理画面を開く
+        </button>
+
+        <a
+          class="btn btn-secondary btn-wide"
+          href="./system-check.html?v=daycare-5-r1"
+        >
+          営業前システムチェックを開く
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div class="app" id="app">
+    <aside class="sidebar">
+      <div class="side-brand">
+        <div class="brand-mark" aria-hidden="true">＋</div>
+        <div>
+          <h2>DPRO デイサービス LINE</h2>
+          <p>施設管理者PC画面</p>
+        </div>
+      </div>
+
+      <nav class="side-nav" aria-label="管理画面メニュー">
+        <button type="button" data-nav="dashboard" class="is-active">
+          <span class="nav-icon">🏠</span>
+          今日の状況
+        </button>
+        <button type="button" data-nav="today">
+          <span class="nav-icon">👥</span>
+          今日の利用者
+        </button>
+        <button type="button" data-nav="requests">
+          <span class="nav-icon">💬</span>
+          家族からの連絡
+        </button>
+        <button type="button" data-nav="search">
+          <span class="nav-icon">🔍</span>
+          利用者・家族検索
+        </button>
+        <button type="button" data-nav="schedule">
+          <span class="nav-icon">📅</span>
+          利用予定を登録
+        </button>
+        <button type="button" data-nav="messages">
+          <span class="nav-icon">📋</span>
+          家族連絡文面
+        </button>
+        <a href="./owner-ipad.html?v=daycare-9" target="_blank" rel="noopener">
+          <span class="nav-icon">📱</span>
+          iPad画面
+        </a>
+        <a href="./system-check.html?v=daycare-5-r1" target="_blank" rel="noopener">
+          <span class="nav-icon">✅</span>
+          system-check
+        </a>
+      </nav>
+
+      <div class="side-footer">
+        <div class="small">ログイン中</div>
+        <strong id="sideOperatorName">管理者</strong>
+        <button class="btn btn-secondary btn-wide" id="logoutButton" type="button">
+          ログアウト
+        </button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1 id="pageTitle">今日の状況</h1>
+          <p class="topbar-sub" id="pageSubtitle">
+            今日やることと家族連絡を確認します。
+          </p>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="btn btn-secondary" id="refreshAllButton" type="button">
+            最新情報に更新
+          </button>
+          <button class="btn btn-primary" id="newScheduleTopButton" type="button">
+            利用予定を登録
+          </button>
+        </div>
+      </header>
+
+      <div class="content">
+        <section class="page-section is-active" id="section-dashboard" data-section="dashboard">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">DASHBOARD</p>
+              <h2>今日の状況</h2>
+              <p class="section-description">
+                利用者・家族連絡・今日やることを一つの画面で確認します。
+              </p>
+            </div>
+
+            <div class="date-controls">
+              <input class="input" id="dashboardDate" type="date">
+              <button class="btn btn-secondary" id="dashboardReloadButton" type="button">
+                この日を表示
+              </button>
+            </div>
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric">
+              <span class="metric-label">本日の利用予定</span>
+              <strong id="metricScheduled">0</strong>
+              <small>取消を除く利用予定</small>
+            </div>
+            <div class="metric">
+              <span class="metric-label">来所済み</span>
+              <strong id="metricArrived">0</strong>
+              <small>来所確認済み</small>
+            </div>
+            <div class="metric">
+              <span class="metric-label">利用中</span>
+              <strong id="metricInService">0</strong>
+              <small>サービス利用中</small>
+            </div>
+            <div class="metric">
+              <span class="metric-label">お休み</span>
+              <strong id="metricAbsent">0</strong>
+              <small>本日のお休み</small>
+            </div>
+            <div class="metric is-alert">
+              <span class="metric-label">未対応の家族連絡</span>
+              <strong id="metricRequests">0</strong>
+              <small>確認・返信が必要</small>
+            </div>
+            <div class="metric is-alert">
+              <span class="metric-label">今日やること</span>
+              <strong id="metricTasks">0</strong>
+              <small>未対応・対応中</small>
+            </div>
+            <div class="metric">
+              <span class="metric-label">未確認申し送り</span>
+              <strong id="metricNotes">0</strong>
+              <small>スタッフ共有メモ</small>
+            </div>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h3>今日やること</h3>
+                  <p>優先度の高い順に対応してください。</p>
+                </div>
+                <span class="status-pill status-neutral" id="dashboardTaskCount">0件</span>
+              </div>
+              <div class="list" id="dashboardTaskList"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h3>未対応の家族連絡</h3>
+                  <p>お休み・利用日変更・送迎質問など。</p>
+                </div>
+                <span class="status-pill status-warning" id="dashboardRequestCount">0件</span>
+              </div>
+              <div class="list" id="dashboardRequestList"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page-section" id="section-today" data-section="today">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">TODAY USERS</p>
+              <h2>今日の利用者</h2>
+              <p class="section-description">
+                来所・利用中・帰宅準備・送迎出発・帰宅完了を更新できます。
+              </p>
+            </div>
+
+            <div class="date-controls">
+              <input class="input" id="todayDate" type="date">
+              <button class="btn btn-secondary" id="todayReloadButton" type="button">
+                この日を表示
+              </button>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <input
+              class="input search-input"
+              id="todayFilterInput"
+              type="search"
+              placeholder="利用者名・利用者番号で絞り込み"
+            >
+            <select class="select" id="todayStatusFilter">
+              <option value="">すべての状態</option>
+              <option value="scheduled">利用予定</option>
+              <option value="absent">お休み</option>
+              <option value="arrived">来所済み</option>
+              <option value="in_service">利用中</option>
+              <option value="ready_to_go_home">帰宅準備</option>
+              <option value="transport_departed">送迎出発</option>
+              <option value="completed">帰宅完了</option>
+            </select>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>利用者</th>
+                  <th>送迎</th>
+                  <th>お迎え</th>
+                  <th>お帰り</th>
+                  <th>現在状況</th>
+                  <th>状況変更</th>
+                  <th>連絡・申し送り</th>
+                </tr>
+              </thead>
+              <tbody id="todayTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="page-section" id="section-requests" data-section="requests">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">FAMILY REQUESTS</p>
+              <h2>家族からの連絡</h2>
+              <p class="section-description">
+                お休み、利用日変更希望、送迎・持ち物の質問を確認します。
+              </p>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <select class="select" id="requestStatusFilter">
+              <option value="">すべての状態</option>
+              <option value="new">未確認</option>
+              <option value="acknowledged">確認済み</option>
+              <option value="in_progress">対応中</option>
+              <option value="resolved">対応済み</option>
+              <option value="rejected">対応不可</option>
+              <option value="cancelled">取消</option>
+            </select>
+            <button class="btn btn-secondary" id="requestReloadButton" type="button">
+              再読み込み
+            </button>
+          </div>
+
+          <div class="list" id="requestFullList"></div>
+        </section>
+
+        <section class="page-section" id="section-search" data-section="search">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">SEARCH</p>
+              <h2>利用者・家族検索</h2>
+              <p class="section-description">
+                利用者名、家族名、電話番号、利用者番号から検索できます。
+              </p>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <input
+              class="input search-input"
+              id="searchInput"
+              type="search"
+              placeholder="例：佐藤、090-9999-1111、DAY-DEMO-001"
+            >
+            <button class="btn btn-primary" id="searchButton" type="button">
+              検索
+            </button>
+          </div>
+
+          <div class="split-grid">
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h3>検索結果</h3>
+                  <p>利用者と家族をまとめて表示します。</p>
+                </div>
+                <span class="status-pill status-neutral" id="searchCount">0件</span>
+              </div>
+              <div class="search-results" id="searchResults"></div>
+            </div>
+
+            <aside class="detail-panel" id="userDetailPanel">
+              <div class="empty">
+                左の検索結果から利用者を選択してください。
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="page-section" id="section-schedule" data-section="schedule">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">SCHEDULE</p>
+              <h2>利用予定を登録</h2>
+              <p class="section-description">
+                電話受付・窓口受付・スタッフ入力にも利用できます。
+              </p>
+            </div>
+          </div>
+
+          <div class="card">
+            <form class="form-grid" id="scheduleForm">
+              <div class="two-columns">
+                <div class="field">
+                  <label for="scheduleUserId">利用者ID</label>
+                  <input
+                    class="input"
+                    id="scheduleUserId"
+                    type="text"
+                    placeholder="検索結果から選択すると自動入力"
+                    required
+                  >
+                </div>
+
+                <div class="field">
+                  <label for="scheduleUserName">利用者名</label>
+                  <input
+                    class="input"
+                    id="scheduleUserName"
+                    type="text"
+                    placeholder="利用者名"
+                    readonly
+                  >
+                </div>
+              </div>
+
+              <div class="three-columns">
+                <div class="field">
+                  <label for="scheduleDate">利用日</label>
+                  <input class="input" id="scheduleDate" type="date" required>
+                </div>
+
+                <div class="field">
+                  <label for="scheduleStatus">初期状態</label>
+                  <select class="select" id="scheduleStatus">
+                    <option value="scheduled">利用予定</option>
+                    <option value="absent">お休み</option>
+                    <option value="arrived">来所済み</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="scheduleSource">受付方法</label>
+                  <select class="select" id="scheduleSource">
+                    <option value="staff">スタッフ入力</option>
+                    <option value="phone">電話受付</option>
+                    <option value="counter">窓口受付</option>
+                    <option value="family_request">家族連絡</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="three-columns">
+                <div class="field">
+                  <label for="scheduleTransportMode">送迎方法</label>
+                  <select class="select" id="scheduleTransportMode">
+                    <option value="facility_transport">施設送迎</option>
+                    <option value="family_transport">家族送迎</option>
+                    <option value="family_pickup">家族お迎え</option>
+                    <option value="no_transport">送迎なし</option>
+                    <option value="other">その他</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="schedulePickupTime">お迎え予定</label>
+                  <input class="input" id="schedulePickupTime" type="time">
+                </div>
+
+                <div class="field">
+                  <label for="scheduleDropoffTime">お帰り予定</label>
+                  <input class="input" id="scheduleDropoffTime" type="time">
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="scheduleNote">受付メモ</label>
+                <textarea
+                  class="textarea"
+                  id="scheduleNote"
+                  placeholder="電話受付内容や家族からの連絡内容を入力"
+                  maxlength="2000"
+                ></textarea>
+              </div>
+
+              <div class="form-note">
+                保存後はSupabaseへ登録され、PC画面・iPad画面・利用者カードへ反映されます。
+              </div>
+
+              <button class="btn btn-primary" id="scheduleSubmitButton" type="submit">
+                利用予定を保存
+              </button>
+            </form>
+          </div>
+        </section>
+
+        <section class="page-section" id="section-messages" data-section="messages">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">MESSAGE COPY</p>
+              <h2>家族連絡文面</h2>
+              <p class="section-description">
+                送迎時間・持ち物・確認依頼の文面を作成し、コピー履歴を残します。
+              </p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="form-grid">
+              <div class="two-columns">
+                <div class="field">
+                  <label for="messageUserId">利用者ID</label>
+                  <input
+                    class="input"
+                    id="messageUserId"
+                    type="text"
+                    placeholder="検索結果から選択"
+                  >
+                </div>
+
+                <div class="field">
+                  <label for="messageUserName">利用者名</label>
+                  <input
+                    class="input"
+                    id="messageUserName"
+                    type="text"
+                    placeholder="利用者名"
+                    readonly
+                  >
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="messageSubject">件名</label>
+                <input
+                  class="input"
+                  id="messageSubject"
+                  type="text"
+                  placeholder="例：本日のお帰り送迎について"
+                  maxlength="200"
+                >
+              </div>
+
+              <div class="field">
+                <label for="messageBody">連絡文面</label>
+                <textarea
+                  class="textarea"
+                  id="messageBody"
+                  placeholder="家族へ送る文面を入力してください。"
+                  maxlength="5000"
+                ></textarea>
+              </div>
+
+              <div class="toolbar">
+                <button class="btn btn-secondary" id="transportTemplateButton" type="button">
+                  送迎案内テンプレート
+                </button>
+                <button class="btn btn-secondary" id="itemTemplateButton" type="button">
+                  持ち物案内テンプレート
+                </button>
+                <button class="btn btn-blue" id="copyAndLogButton" type="button">
+                  文面をコピーして履歴保存
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <nav class="mobile-nav" aria-label="スマホ用管理メニュー">
+    <button type="button" data-nav="dashboard" class="is-active">
+      <span>🏠</span>
+      <span>状況</span>
+    </button>
+    <button type="button" data-nav="today">
+      <span>👥</span>
+      <span>利用者</span>
+    </button>
+    <button type="button" data-nav="requests">
+      <span>💬</span>
+      <span>家族連絡</span>
+    </button>
+    <button type="button" data-nav="search">
+      <span>🔍</span>
+      <span>検索</span>
+    </button>
+  </nav>
+
+  <div class="modal-backdrop" id="requestModalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="requestModalTitle">
+      <div class="modal-head">
+        <div>
+          <h3 id="requestModalTitle">家族連絡への対応</h3>
+          <p id="requestModalSubtitle">対応状況と返信内容を保存します。</p>
+        </div>
+        <button class="modal-close" type="button" data-close-modal>×</button>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="requestModalStatus">対応状況</label>
+          <select class="select" id="requestModalStatus">
+            <option value="acknowledged">確認済み</option>
+            <option value="in_progress">対応中</option>
+            <option value="resolved">対応済み</option>
+            <option value="rejected">対応不可</option>
+            <option value="cancelled">取消</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="requestModalResponse">施設からの回答・対応メモ</label>
+          <textarea
+            class="textarea"
+            id="requestModalResponse"
+            maxlength="3000"
+            placeholder="家族への回答や対応内容を入力してください。"
+          ></textarea>
+        </div>
+
+        <div class="toolbar">
+          <button class="btn btn-secondary" id="requestCopyButton" type="button">
+            回答文面をコピー
+          </button>
+          <button class="btn btn-primary" id="requestSaveButton" type="button">
+            対応状況を保存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function startOwnerAdmin() {
+      "use strict";
+
+      const SCREEN_VERSION = "DAYCARE-8-OWNER-PC-COMPLETE-20260713";
+      const CONFIG = window.DPRODaycare || window.DPRO_DAYCARE_CONFIG || null;
+
+      const $ = (selector) => document.querySelector(selector);
+      const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+      const state = {
+        currentSection: "dashboard",
+        dashboard: null,
+        day: null,
+        requests: [],
+        selectedRequest: null,
+        search: null,
+        selectedUserDetail: null,
+      };
+
+      const els = {
+        loginShell: $("#loginShell"),
+        app: $("#app"),
+        loginAdminCode: $("#loginAdminCode"),
+        loginOperatorName: $("#loginOperatorName"),
+        loginButton: $("#loginButton"),
+        logoutButton: $("#logoutButton"),
+        sideOperatorName: $("#sideOperatorName"),
+
+        pageTitle: $("#pageTitle"),
+        pageSubtitle: $("#pageSubtitle"),
+        refreshAllButton: $("#refreshAllButton"),
+        newScheduleTopButton: $("#newScheduleTopButton"),
+
+        dashboardDate: $("#dashboardDate"),
+        dashboardReloadButton: $("#dashboardReloadButton"),
+
+        metricScheduled: $("#metricScheduled"),
+        metricArrived: $("#metricArrived"),
+        metricInService: $("#metricInService"),
+        metricAbsent: $("#metricAbsent"),
+        metricRequests: $("#metricRequests"),
+        metricTasks: $("#metricTasks"),
+        metricNotes: $("#metricNotes"),
+        dashboardTaskCount: $("#dashboardTaskCount"),
+        dashboardTaskList: $("#dashboardTaskList"),
+        dashboardRequestCount: $("#dashboardRequestCount"),
+        dashboardRequestList: $("#dashboardRequestList"),
+
+        todayDate: $("#todayDate"),
+        todayReloadButton: $("#todayReloadButton"),
+        todayFilterInput: $("#todayFilterInput"),
+        todayStatusFilter: $("#todayStatusFilter"),
+        todayTableBody: $("#todayTableBody"),
+
+        requestStatusFilter: $("#requestStatusFilter"),
+        requestReloadButton: $("#requestReloadButton"),
+        requestFullList: $("#requestFullList"),
+
+        searchInput: $("#searchInput"),
+        searchButton: $("#searchButton"),
+        searchCount: $("#searchCount"),
+        searchResults: $("#searchResults"),
+        userDetailPanel: $("#userDetailPanel"),
+
+        scheduleForm: $("#scheduleForm"),
+        scheduleUserId: $("#scheduleUserId"),
+        scheduleUserName: $("#scheduleUserName"),
+        scheduleDate: $("#scheduleDate"),
+        scheduleStatus: $("#scheduleStatus"),
+        scheduleSource: $("#scheduleSource"),
+        scheduleTransportMode: $("#scheduleTransportMode"),
+        schedulePickupTime: $("#schedulePickupTime"),
+        scheduleDropoffTime: $("#scheduleDropoffTime"),
+        scheduleNote: $("#scheduleNote"),
+        scheduleSubmitButton: $("#scheduleSubmitButton"),
+
+        messageUserId: $("#messageUserId"),
+        messageUserName: $("#messageUserName"),
+        messageSubject: $("#messageSubject"),
+        messageBody: $("#messageBody"),
+        transportTemplateButton: $("#transportTemplateButton"),
+        itemTemplateButton: $("#itemTemplateButton"),
+        copyAndLogButton: $("#copyAndLogButton"),
+
+        requestModalBackdrop: $("#requestModalBackdrop"),
+        requestModalTitle: $("#requestModalTitle"),
+        requestModalSubtitle: $("#requestModalSubtitle"),
+        requestModalStatus: $("#requestModalStatus"),
+        requestModalResponse: $("#requestModalResponse"),
+        requestCopyButton: $("#requestCopyButton"),
+        requestSaveButton: $("#requestSaveButton"),
+      };
+
+      const sectionMeta = {
+        dashboard: {
+          title: "今日の状況",
+          subtitle: "今日やることと家族連絡を確認します。",
+        },
+        today: {
+          title: "今日の利用者",
+          subtitle: "利用状況と送迎予定を確認・更新します。",
+        },
+        requests: {
+          title: "家族からの連絡",
+          subtitle: "お休み・変更希望・質問への対応状況を管理します。",
+        },
+        search: {
+          title: "利用者・家族検索",
+          subtitle: "氏名・電話番号・利用者番号から検索します。",
+        },
+        schedule: {
+          title: "利用予定を登録",
+          subtitle: "電話受付・窓口受付・スタッフ入力に対応します。",
+        },
+        messages: {
+          title: "家族連絡文面",
+          subtitle: "文面を作成・コピーし、履歴を保存します。",
+        },
+      };
+
+      function configRequired() {
+        if (!CONFIG) {
+          throw new Error(
+            "共通設定を読み込めませんでした。ページを再読み込みしてください。"
+          );
+        }
+        return CONFIG;
+      }
+
+      function showSuccess(message) {
+        if (CONFIG?.utils?.showSuccess) {
+          CONFIG.utils.showSuccess(message);
+        } else {
+          window.alert(message);
+        }
+      }
+
+      function showError(error) {
+        const message = typeof error === "string"
+          ? error
+          : error?.message || "処理に失敗しました。";
+
+        if (CONFIG?.utils?.showError) {
+          CONFIG.utils.showError(message);
+        } else {
+          window.alert(message);
+        }
+      }
+
+      function showInfo(message) {
+        if (CONFIG?.utils?.showInfo) {
+          CONFIG.utils.showInfo(message);
+        } else {
+          window.alert(message);
+        }
+      }
+
+      async function withButton(button, loadingText, task) {
+        if (CONFIG?.utils?.runWithButton) {
+          return CONFIG.utils.runWithButton(
+            button,
+            task,
+            { loadingText }
+          );
+        }
+
+        const original = button?.textContent || "";
+        if (button) {
+          button.disabled = true;
+          button.textContent = loadingText;
+        }
+
+        try {
+          return await task();
+        } finally {
+          if (button) {
+            button.disabled = false;
+            button.textContent = original;
+          }
+        }
+      }
+
+      function today() {
+        return CONFIG?.utils?.todayJst
+          ? CONFIG.utils.todayJst()
+          : new Date().toISOString().slice(0, 10);
+      }
+
+      function formatDate(value) {
+        return CONFIG?.utils?.formatDateJa
+          ? CONFIG.utils.formatDateJa(value)
+          : String(value || "未設定");
+      }
+
+      function formatDateTime(value) {
+        return CONFIG?.utils?.formatDateTimeJa
+          ? CONFIG.utils.formatDateTimeJa(value)
+          : String(value || "");
+      }
+
+      function formatTime(value) {
+        return CONFIG?.utils?.formatTimeJa
+          ? CONFIG.utils.formatTimeJa(value, { emptyText: "未設定" })
+          : String(value || "未設定");
+      }
+
+      function normalizeText(value) {
+        return CONFIG?.utils?.normalizeNewlines
+          ? CONFIG.utils.normalizeNewlines(value)
+          : String(value || "").trim();
+      }
+
+      function escapeHtml(value) {
+        return CONFIG?.utils?.escapeHtml
+          ? CONFIG.utils.escapeHtml(value)
+          : String(value || "")
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#039;");
+      }
+
+      function statusMode(status) {
+        if (["arrived", "in_service", "completed", "resolved"].includes(status)) {
+          return "ok";
+        }
+        if (["new", "acknowledged", "in_progress", "absent"].includes(status)) {
+          return "warning";
+        }
+        if (status === "transport_departed") return "blue";
+        if (status === "ready_to_go_home") return "purple";
+        if (["rejected", "cancelled"].includes(status)) return "error";
+        return "neutral";
+      }
+
+      function emptyHtml(message) {
+        return `<div class="empty">${escapeHtml(message)}</div>`;
+      }
+
+      function operatorName() {
+        return CONFIG.storage.getOperatorName("管理者");
+      }
+
+      function openSection(name) {
+        if (!sectionMeta[name]) return;
+
+        state.currentSection = name;
+
+        $$("[data-section]").forEach((section) => {
+          section.classList.toggle(
+            "is-active",
+            section.dataset.section === name
+          );
+        });
+
+        $$("[data-nav]").forEach((button) => {
+          button.classList.toggle(
+            "is-active",
+            button.dataset.nav === name
+          );
+        });
+
+        els.pageTitle.textContent = sectionMeta[name].title;
+        els.pageSubtitle.textContent = sectionMeta[name].subtitle;
+
+        if (name === "dashboard") loadDashboard().catch(showError);
+        if (name === "today") loadDay().catch(showError);
+        if (name === "requests") renderFullRequests();
+      }
+
+      async function login() {
+        configRequired();
+
+        const adminCode = els.loginAdminCode.value.trim();
+        const name = els.loginOperatorName.value.trim() || "管理者";
+
+        if (!adminCode) {
+          throw new Error("管理コードを入力してください。");
+        }
+
+        CONFIG.storage.saveAdminCode(adminCode);
+        CONFIG.storage.saveOperatorName(name);
+        CONFIG.storage.saveDeviceType("pc");
+
+        await withButton(
+          els.loginButton,
+          "確認中…",
+          async () => {
+            const data = await CONFIG.API.adminGet(
+              "adminDashboard",
+              { date: today() }
+            );
+
+            if (!data?.ok) {
+              throw new Error("管理コードを確認できませんでした。");
+            }
+
+            els.sideOperatorName.textContent = name;
+            els.loginShell.style.display = "none";
+            els.app.classList.add("is-visible");
+
+            await Promise.all([
+              loadDashboard(),
+              loadDay(),
+            ]);
+
+            showSuccess("管理画面を開きました。");
+          }
+        );
+      }
+
+      function logout() {
+        CONFIG.storage.clearAdminCode();
+        CONFIG.storage.remove(CONFIG.STORAGE_KEYS.operatorName);
+        window.location.reload();
+      }
+
+      async function loadDashboard() {
+        configRequired();
+
+        const date = els.dashboardDate.value || today();
+
+        const data = await CONFIG.API.adminGet(
+          "adminDashboard",
+          { date }
+        );
+
+        state.dashboard = data;
+        state.requests = data.pending_family_requests || [];
+
+        const counts = data.counts || {};
+
+        els.metricScheduled.textContent = counts.scheduled_total || 0;
+        els.metricArrived.textContent = counts.arrived || 0;
+        els.metricInService.textContent = counts.in_service || 0;
+        els.metricAbsent.textContent = counts.absent || 0;
+        els.metricRequests.textContent = counts.pending_family_requests || 0;
+        els.metricTasks.textContent = counts.open_tasks || 0;
+        els.metricNotes.textContent = counts.unresolved_notes || 0;
+
+        renderDashboardTasks(data.today_tasks || []);
+        renderDashboardRequests(data.pending_family_requests || []);
+      }
+
+      function renderDashboardTasks(tasks) {
+        els.dashboardTaskCount.textContent = `${tasks.length}件`;
+
+        if (!tasks.length) {
+          els.dashboardTaskList.innerHTML =
+            emptyHtml("現在、未対応のタスクはありません。");
+          return;
+        }
+
+        els.dashboardTaskList.innerHTML = tasks.map((task) => `
+          <div class="task-item">
+            <div>
+              <div class="item-title">${escapeHtml(task.title)}</div>
+              <div class="item-sub">${escapeHtml(
+                normalizeText(task.description)
+              )}</div>
+            </div>
+            <div class="item-actions">
+              <span class="status-pill status-${statusMode(task.task_status)}">
+                ${escapeHtml(
+                  CONFIG.utils.taskStatusLabel(task.task_status)
+                )}
+              </span>
+              <button
+                class="btn btn-primary btn-small"
+                type="button"
+                data-complete-task="${escapeHtml(task.id)}"
+              >
+                対応済み
+              </button>
+            </div>
+          </div>
+        `).join("");
+      }
+
+      function renderDashboardRequests(requests) {
+        els.dashboardRequestCount.textContent = `${requests.length}件`;
+
+        if (!requests.length) {
+          els.dashboardRequestList.innerHTML =
+            emptyHtml("現在、未対応の家族連絡はありません。");
+          return;
+        }
+
+        els.dashboardRequestList.innerHTML = requests
+          .slice(0, 8)
+          .map((request) => `
+            <div class="request-item">
+              <div>
+                <div class="item-title">${escapeHtml(
+                  request.subject ||
+                  CONFIG.utils.requestTypeLabel(request.request_type)
+                )}</div>
+                <div class="item-sub">
+                  ${escapeHtml(
+                    request.target_date
+                      ? formatDate(request.target_date)
+                      : formatDateTime(request.created_at)
+                  )}
+                </div>
+              </div>
+              <div class="item-actions">
+                <span class="status-pill status-${statusMode(
+                  request.request_status
+                )}">
+                  ${escapeHtml(
+                    CONFIG.utils.requestStatusLabel(
+                      request.request_status
+                    )
+                  )}
+                </span>
+                <button
+                  class="btn btn-secondary btn-small"
+                  type="button"
+                  data-open-request="${escapeHtml(request.id)}"
+                >
+                  対応する
+                </button>
+              </div>
+            </div>
+          `).join("");
+      }
+
+      async function loadDay() {
+        configRequired();
+
+        const date = els.todayDate.value || today();
+
+        const data = await CONFIG.API.adminGet(
+          "adminDay",
+          { date }
+        );
+
+        state.day = data;
+        renderTodayTable();
+      }
+
+      function filteredDayUsers() {
+        const entries = state.day?.users || [];
+        const keyword = els.todayFilterInput.value.trim().toLowerCase();
+        const status = els.todayStatusFilter.value;
+
+        return entries.filter((entry) => {
+          const user = entry.user || {};
+          const schedule = entry.schedule || {};
+
+          const matchesKeyword = !keyword || [
+            user.full_name,
+            user.full_name_kana,
+            user.user_number,
+          ].some((value) =>
+            String(value || "").toLowerCase().includes(keyword)
+          );
+
+          const matchesStatus = !status || schedule.status === status;
+
+          return matchesKeyword && matchesStatus;
+        });
+      }
+
+      function renderTodayTable() {
+        const entries = filteredDayUsers();
+
+        if (!entries.length) {
+          els.todayTableBody.innerHTML = `
+            <tr>
+              <td colspan="7">
+                ${emptyHtml("該当する利用者がいません。")}
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        const statuses = [
+          "scheduled",
+          "absent",
+          "arrived",
+          "in_service",
+          "ready_to_go_home",
+          "transport_departed",
+          "completed",
+        ];
+
+        els.todayTableBody.innerHTML = entries.map((entry) => {
+          const user = entry.user || {};
+          const schedule = entry.schedule || {};
+          const transport = entry.transport || {};
+          const requestCount = entry.pending_family_requests?.length || 0;
+          const noteCount = entry.notes?.length || 0;
+
+          return `
+            <tr>
+              <td>
+                <strong>${escapeHtml(user.full_name || "名称未設定")}</strong><br>
+                <span>${escapeHtml(user.user_number || "")}</span>
+              </td>
+              <td>${escapeHtml(
+                CONFIG.utils.transportModeLabel(
+                  transport.transport_mode ||
+                  schedule.transport_mode
+                )
+              )}</td>
+              <td>${escapeHtml(formatTime(transport.pickup_planned_at))}</td>
+              <td>${escapeHtml(formatTime(transport.dropoff_planned_at))}</td>
+              <td>
+                <span class="status-pill status-${statusMode(schedule.status)}">
+                  ${escapeHtml(CONFIG.utils.statusLabel(schedule.status))}
+                </span>
+              </td>
+              <td>
+                <div class="status-actions">
+                  ${statuses.map((status) => `
+                    <button
+                      class="status-action ${
+                        status === schedule.status ? "is-current" : ""
+                      }"
+                      type="button"
+                      data-change-status="${escapeHtml(schedule.id)}"
+                      data-to-status="${escapeHtml(status)}"
+                    >
+                      ${escapeHtml(
+                        CONFIG.ATTENDANCE_STATUSES[status]?.shortLabel ||
+                        CONFIG.utils.statusLabel(status)
+                      )}
+                    </button>
+                  `).join("")}
+                </div>
+              </td>
+              <td>
+                <button
+                  class="btn btn-secondary btn-small"
+                  type="button"
+                  data-show-user="${escapeHtml(user.id)}"
+                >
+                  詳細
+                </button>
+                <div class="item-sub">
+                  家族連絡 ${requestCount}件・申し送り ${noteCount}件
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      function allRequests() {
+        const dashboardRequests = state.dashboard?.pending_family_requests || [];
+        const detailRequests = state.requests || [];
+
+        return [...new Map(
+          [...dashboardRequests, ...detailRequests].map((row) => [row.id, row])
+        ).values()];
+      }
+
+      function renderFullRequests() {
+        const statusFilter = els.requestStatusFilter.value;
+        const rows = allRequests().filter(
+          (request) => !statusFilter || request.request_status === statusFilter
+        );
+
+        if (!rows.length) {
+          els.requestFullList.innerHTML =
+            emptyHtml("該当する家族連絡はありません。");
+          return;
+        }
+
+        els.requestFullList.innerHTML = rows.map((request) => `
+          <article class="request-item">
+            <div>
+              <div class="item-title">${escapeHtml(
+                request.subject ||
+                CONFIG.utils.requestTypeLabel(request.request_type)
+              )}</div>
+              <div class="item-sub">${escapeHtml(
+                normalizeText(request.message) ||
+                "内容はありません。"
+              )}</div>
+              <div class="item-sub">
+                受付：${escapeHtml(formatDateTime(request.created_at))}
+                ${
+                  request.target_date
+                    ? `・対象日：${escapeHtml(formatDate(request.target_date))}`
+                    : ""
+                }
+              </div>
+            </div>
+            <div class="item-actions">
+              <span class="status-pill status-${statusMode(
+                request.request_status
+              )}">
+                ${escapeHtml(
+                  CONFIG.utils.requestStatusLabel(request.request_status)
+                )}
+              </span>
+              <button
+                class="btn btn-secondary btn-small"
+                type="button"
+                data-open-request="${escapeHtml(request.id)}"
+              >
+                対応する
+              </button>
+            </div>
+          </article>
+        `).join("");
+      }
+
+      async function completeTask(taskId, button) {
+        await withButton(
+          button,
+          "更新中…",
+          async () => {
+            const data = await CONFIG.API.adminPost(
+              "adminTaskStatus",
+              {
+                task_id: taskId,
+                status: "completed",
+              }
+            );
+
+            showSuccess(data.message || "対応済みに変更しました。");
+            await loadDashboard();
+          }
+        );
+      }
+
+      async function changeAttendance(scheduleId, toStatus, button) {
+        await withButton(
+          button,
+          "更新中…",
+          async () => {
+            const data = await CONFIG.API.adminPost(
+              "adminAttendanceStatus",
+              {
+                schedule_id: scheduleId,
+                to_status: toStatus,
+                note: "",
+              }
+            );
+
+            showSuccess(data.message || "利用状況を更新しました。");
+
+            await Promise.all([
+              loadDay(),
+              loadDashboard(),
+            ]);
+          }
+        );
+      }
+
+      function openRequestModal(requestId) {
+        const request = allRequests().find((row) => row.id === requestId);
+
+        if (!request) {
+          showError("家族連絡が見つかりません。");
+          return;
+        }
+
+        state.selectedRequest = request;
+
+        els.requestModalTitle.textContent =
+          request.subject ||
+          CONFIG.utils.requestTypeLabel(request.request_type);
+
+        els.requestModalSubtitle.textContent =
+          normalizeText(request.message) || "内容はありません。";
+
+        els.requestModalStatus.value =
+          request.request_status === "new"
+            ? "acknowledged"
+            : request.request_status;
+
+        els.requestModalResponse.value =
+          request.response_message || "";
+
+        els.requestModalBackdrop.classList.add("is-visible");
+      }
+
+      function closeRequestModal() {
+        state.selectedRequest = null;
+        els.requestModalBackdrop.classList.remove("is-visible");
+      }
+
+      async function saveRequestStatus() {
+        if (!state.selectedRequest) {
+          throw new Error("対象の家族連絡が選択されていません。");
+        }
+
+        await withButton(
+          els.requestSaveButton,
+          "保存中…",
+          async () => {
+            const data = await CONFIG.API.adminPost(
+              "adminFamilyRequestStatus",
+              {
+                request_id: state.selectedRequest.id,
+                status: els.requestModalStatus.value,
+                response_message: normalizeText(
+                  els.requestModalResponse.value
+                ),
+              }
+            );
+
+            showSuccess(data.message || "対応状況を更新しました。");
+            closeRequestModal();
+
+            await loadDashboard();
+            renderFullRequests();
+          }
+        );
+      }
+
+      async function copyRequestResponse() {
+        const text = normalizeText(els.requestModalResponse.value);
+
+        if (!text) {
+          throw new Error("コピーする回答文面を入力してください。");
+        }
+
+        await CONFIG.utils.copyText(text);
+        showSuccess("回答文面をコピーしました。");
+      }
+
+      async function searchUsers() {
+        const query = els.searchInput.value.trim();
+
+        if (!query) {
+          throw new Error("検索文字を入力してください。");
+        }
+
+        await withButton(
+          els.searchButton,
+          "検索中…",
+          async () => {
+            const data = await CONFIG.API.adminGet(
+              "adminSearch",
+              { q: query }
+            );
+
+            state.search = data;
+            renderSearchResults(data);
+          }
+        );
+      }
+
+      function renderSearchResults(data) {
+        const users = data.users || [];
+        const families = data.families || [];
+        const count = users.length + families.length;
+
+        els.searchCount.textContent = `${count}件`;
+
+        if (!count) {
+          els.searchResults.innerHTML =
+            emptyHtml("該当する利用者・家族は見つかりませんでした。");
+          return;
+        }
+
+        const userCards = users.map((user) => `
+          <div class="search-card">
+            <div>
+              <div class="search-name">${escapeHtml(user.full_name)}</div>
+              <div class="search-meta">
+                利用者番号：${escapeHtml(user.user_number)}
+                ・${escapeHtml(
+                  CONFIG.utils.transportModeLabel(
+                    user.standard_transport_mode
+                  )
+                )}
+              </div>
+            </div>
+            <button
+              class="btn btn-primary btn-small"
+              type="button"
+              data-show-user="${escapeHtml(user.id)}"
+            >
+              詳細
+            </button>
+          </div>
+        `);
+
+        const familyCards = families.map((family) => `
+          <div class="search-card">
+            <div>
+              <div class="search-name">${escapeHtml(family.full_name)}</div>
+              <div class="search-meta">
+                家族・電話：${escapeHtml(
+                  CONFIG.utils.formatPhone(family.phone)
+                )}
+              </div>
+            </div>
+            <button
+              class="btn btn-secondary btn-small"
+              type="button"
+              data-family-user-ids="${escapeHtml(
+                (family.related_user_ids || []).join(",")
+              )}"
+            >
+              関連利用者
+            </button>
+          </div>
+        `);
+
+        els.searchResults.innerHTML =
+          [...userCards, ...familyCards].join("");
+      }
+
+      async function loadUserDetail(userId) {
+        const data = await CONFIG.API.adminGet(
+          "adminUserDetail",
+          { user_id: userId }
+        );
+
+        state.selectedUserDetail = data;
+        renderUserDetail(data);
+      }
+
+      function renderUserDetail(data) {
+        const user = data.user;
+        const families = data.families || [];
+        const schedules = data.schedules || [];
+        const requests = data.family_requests || [];
+
+        els.userDetailPanel.innerHTML = `
+          <h3>${escapeHtml(user.full_name)}</h3>
+          <div class="item-sub">${escapeHtml(user.user_number)}</div>
+
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">通常送迎</span>
+              <strong class="detail-value">${escapeHtml(
+                CONFIG.utils.transportModeLabel(
+                  user.standard_transport_mode
+                )
+              )}</strong>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">持ち物</span>
+              <strong class="detail-value">${escapeHtml(
+                normalizeText(user.item_note) || "未登録"
+              )}</strong>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">家族</span>
+              <strong class="detail-value">${escapeHtml(
+                families.map((family) => family.full_name).join("、") ||
+                "未登録"
+              )}</strong>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">登録電話</span>
+              <strong class="detail-value">${escapeHtml(
+                families.map((family) =>
+                  CONFIG.utils.formatPhone(family.phone)
+                ).join("、") || "未登録"
+              )}</strong>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h4>利用予定</h4>
+            <div class="item-sub">
+              ${schedules.slice(0, 5).map((schedule) =>
+                `${formatDate(schedule.service_date)}：${
+                  CONFIG.utils.statusLabel(schedule.status)
+                }`
+              ).join("<br>") || "利用予定はありません。"}
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h4>家族連絡</h4>
+            <div class="item-sub">
+              ${requests.slice(0, 5).map((request) =>
+                `${escapeHtml(
+                  request.subject ||
+                  CONFIG.utils.requestTypeLabel(request.request_type)
+                )}：${escapeHtml(
+                  CONFIG.utils.requestStatusLabel(request.request_status)
+                )}`
+              ).join("<br>") || "家族連絡はありません。"}
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <button
+              class="btn btn-primary btn-small"
+              type="button"
+              data-use-user-schedule="${escapeHtml(user.id)}"
+              data-user-name="${escapeHtml(user.full_name)}"
+            >
+              この利用者の予定を登録
+            </button>
+            <button
+              class="btn btn-blue btn-small"
+              type="button"
+              data-use-user-message="${escapeHtml(user.id)}"
+              data-user-name="${escapeHtml(user.full_name)}"
+            >
+              この利用者へ連絡文面
+            </button>
+          </div>
+        `;
+      }
+
+      function selectUserForSchedule(userId, userName) {
+        els.scheduleUserId.value = userId;
+        els.scheduleUserName.value = userName;
+        openSection("schedule");
+        showInfo(`${userName}様を利用予定登録にセットしました。`);
+      }
+
+      function selectUserForMessage(userId, userName) {
+        els.messageUserId.value = userId;
+        els.messageUserName.value = userName;
+        openSection("messages");
+        showInfo(`${userName}様を連絡文面にセットしました。`);
+      }
+
+      async function saveSchedule(event) {
+        event.preventDefault();
+
+        const userId = els.scheduleUserId.value.trim();
+
+        if (!userId) {
+          throw new Error(
+            "利用者検索から対象利用者を選択してください。"
+          );
+        }
+
+        await withButton(
+          els.scheduleSubmitButton,
+          "保存中…",
+          async () => {
+            const data = await CONFIG.API.adminPost(
+              "adminScheduleCreate",
+              {
+                user_id: userId,
+                service_date: els.scheduleDate.value,
+                status: els.scheduleStatus.value,
+                source: els.scheduleSource.value,
+                transport_mode: els.scheduleTransportMode.value,
+                pickup_time: els.schedulePickupTime.value || null,
+                dropoff_time: els.scheduleDropoffTime.value || null,
+                schedule_note: normalizeText(els.scheduleNote.value),
+              }
+            );
+
+            showSuccess(data.message || "利用予定を保存しました。");
+            els.scheduleNote.value = "";
+
+            await Promise.all([
+              loadDashboard(),
+              loadDay(),
+            ]);
+          }
+        );
+      }
+
+      function buildTransportTemplate() {
+        const userName = els.messageUserName.value.trim() || "ご利用者";
+        const facilityName =
+          state.dashboard?.facility?.facility_name ||
+          CONFIG.APP.facilityName;
+
+        els.messageSubject.value = "本日の送迎予定について";
+        els.messageBody.value = [
+          `${userName}様のご家族様`,
+          `${facilityName}です。`,
+          "",
+          `${userName}様の本日のお帰り送迎は、〇〇時〇〇分頃を予定しています。`,
+          "交通状況により前後する場合があります。",
+          "",
+          "よろしくお願いいたします。",
+        ].join("\n");
+      }
+
+      function buildItemTemplate() {
+        const userName = els.messageUserName.value.trim() || "ご利用者";
+        const facilityName =
+          state.dashboard?.facility?.facility_name ||
+          CONFIG.APP.facilityName;
+
+        els.messageSubject.value = "次回の持ち物について";
+        els.messageBody.value = [
+          `${userName}様のご家族様`,
+          `${facilityName}です。`,
+          "",
+          "次回ご利用時に、〇〇をご用意ください。",
+          "",
+          "よろしくお願いいたします。",
+        ].join("\n");
+      }
+
+      async function copyAndLogMessage() {
+        const messageBody = normalizeText(els.messageBody.value);
+
+        if (!messageBody) {
+          throw new Error("連絡文面を入力してください。");
+        }
+
+        await withButton(
+          els.copyAndLogButton,
+          "コピー中…",
+          async () => {
+            await CONFIG.utils.copyText(messageBody);
+
+            const data = await CONFIG.API.adminPost(
+              "adminMessageLogCopy",
+              {
+                user_id: els.messageUserId.value.trim() || null,
+                subject: els.messageSubject.value.trim() || null,
+                message_body: messageBody,
+                destination_type: "line",
+                action_type: "copied",
+              }
+            );
+
+            showSuccess(
+              data.message || "文面をコピーし、履歴を保存しました。"
+            );
+          }
+        );
+      }
+
+      async function refreshAll() {
+        await withButton(
+          els.refreshAllButton,
+          "更新中…",
+          async () => {
+            await Promise.all([
+              loadDashboard(),
+              loadDay(),
+            ]);
+            showSuccess("最新情報に更新しました。");
+          }
+        );
+      }
+
+      function attachEvents() {
+        els.loginButton.addEventListener(
+          "click",
+          () => login().catch((error) => {
+            CONFIG?.storage?.clearAdminCode();
+            showError(error);
+          })
+        );
+
+        [els.loginAdminCode, els.loginOperatorName].forEach((input) => {
+          input.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              login().catch(showError);
+            }
+          });
+        });
+
+        els.logoutButton.addEventListener("click", logout);
+
+        els.refreshAllButton.addEventListener(
+          "click",
+          () => refreshAll().catch(showError)
+        );
+
+        els.newScheduleTopButton.addEventListener(
+          "click",
+          () => openSection("schedule")
+        );
+
+        els.dashboardReloadButton.addEventListener(
+          "click",
+          () => loadDashboard().catch(showError)
+        );
+
+        els.todayReloadButton.addEventListener(
+          "click",
+          () => loadDay().catch(showError)
+        );
+
+        els.todayFilterInput.addEventListener("input", renderTodayTable);
+        els.todayStatusFilter.addEventListener("change", renderTodayTable);
+
+        els.requestStatusFilter.addEventListener(
+          "change",
+          renderFullRequests
+        );
+
+        els.requestReloadButton.addEventListener(
+          "click",
+          () => loadDashboard()
+            .then(renderFullRequests)
+            .catch(showError)
+        );
+
+        els.searchButton.addEventListener(
+          "click",
+          () => searchUsers().catch(showError)
+        );
+
+        els.searchInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            searchUsers().catch(showError);
+          }
+        });
+
+        els.scheduleForm.addEventListener(
+          "submit",
+          (event) => saveSchedule(event).catch(showError)
+        );
+
+        els.transportTemplateButton.addEventListener(
+          "click",
+          buildTransportTemplate
+        );
+
+        els.itemTemplateButton.addEventListener(
+          "click",
+          buildItemTemplate
+        );
+
+        els.copyAndLogButton.addEventListener(
+          "click",
+          () => copyAndLogMessage().catch(showError)
+        );
+
+        els.requestSaveButton.addEventListener(
+          "click",
+          () => saveRequestStatus().catch(showError)
+        );
+
+        els.requestCopyButton.addEventListener(
+          "click",
+          () => copyRequestResponse().catch(showError)
+        );
+
+        document.addEventListener("click", (event) => {
+          const nav = event.target.closest("[data-nav]");
+          if (nav) {
+            openSection(nav.dataset.nav);
+            return;
+          }
+
+          const taskButton = event.target.closest("[data-complete-task]");
+          if (taskButton) {
+            completeTask(
+              taskButton.dataset.completeTask,
+              taskButton
+            ).catch(showError);
+            return;
+          }
+
+          const statusButton = event.target.closest("[data-change-status]");
+          if (statusButton) {
+            changeAttendance(
+              statusButton.dataset.changeStatus,
+              statusButton.dataset.toStatus,
+              statusButton
+            ).catch(showError);
+            return;
+          }
+
+          const requestButton = event.target.closest("[data-open-request]");
+          if (requestButton) {
+            openRequestModal(requestButton.dataset.openRequest);
+            return;
+          }
+
+          const showUserButton = event.target.closest("[data-show-user]");
+          if (showUserButton) {
+            loadUserDetail(showUserButton.dataset.showUser)
+              .then(() => {
+                if (state.currentSection !== "search") {
+                  openSection("search");
+                }
+              })
+              .catch(showError);
+            return;
+          }
+
+          const familyButton = event.target.closest("[data-family-user-ids]");
+          if (familyButton) {
+            const ids = familyButton.dataset.familyUserIds
+              .split(",")
+              .filter(Boolean);
+
+            if (!ids.length) {
+              showInfo("関連利用者が登録されていません。");
+            } else {
+              loadUserDetail(ids[0]).catch(showError);
+            }
+            return;
+          }
+
+          const scheduleButton = event.target.closest("[data-use-user-schedule]");
+          if (scheduleButton) {
+            selectUserForSchedule(
+              scheduleButton.dataset.useUserSchedule,
+              scheduleButton.dataset.userName
+            );
+            return;
+          }
+
+          const messageButton = event.target.closest("[data-use-user-message]");
+          if (messageButton) {
+            selectUserForMessage(
+              messageButton.dataset.useUserMessage,
+              messageButton.dataset.userName
+            );
+            return;
+          }
+
+          if (
+            event.target.closest("[data-close-modal]") ||
+            event.target === els.requestModalBackdrop
+          ) {
+            closeRequestModal();
+          }
+        });
+      }
+
+      async function initialize() {
+        configRequired();
+
+        const todayText = today();
+        els.dashboardDate.value = todayText;
+        els.todayDate.value = todayText;
+        els.scheduleDate.value = todayText;
+
+        els.loginAdminCode.value =
+          CONFIG.storage.getAdminCode();
+
+        els.loginOperatorName.value =
+          CONFIG.storage.getOperatorName("デモ 管理者");
+
+        attachEvents();
+
+        if (CONFIG.storage.getAdminCode()) {
+          login().catch(() => {
+            els.loginShell.style.display = "grid";
+            els.app.classList.remove("is-visible");
+          });
+        }
+      }
+
+      initialize().catch(showError);
+    })();
+  </script>
+</body>
+</html>
