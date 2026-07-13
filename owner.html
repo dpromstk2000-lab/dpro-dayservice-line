@@ -392,13 +392,55 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
-    .date-controls .input {
+    .date-display {
+      display: inline-flex;
+      align-items: center;
       min-height: 40px;
-      width: 210px;
-      min-width: 210px;
+      min-width: 178px;
+      padding: 8px 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 11px;
+      background: #fff;
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 850;
       font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .date-picker-button {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 8px 13px;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 850;
+      overflow: hidden;
+    }
+
+    .date-picker-button:hover {
+      border-color: #a9c3b2;
+      background: #fbfdfc;
+    }
+
+    .date-picker-button input[type="date"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
     }
 
     .card {
@@ -920,9 +962,8 @@
         flex-wrap: wrap;
       }
 
-      .date-controls .input {
-        width: min(100%, 220px);
-        min-width: 0;
+      .date-display {
+        min-width: min(100%, 190px);
       }
 
       .two-columns,
@@ -1142,7 +1183,17 @@
             </div>
 
             <div class="date-controls">
-              <input class="input" id="dashboardDate" type="date">
+              <span class="date-display" id="dashboardDateLabel">
+                日付を確認中
+              </span>
+              <label class="date-picker-button">
+                日付を選ぶ
+                <input
+                  id="dashboardDate"
+                  type="date"
+                  aria-label="ダッシュボードの日付を選ぶ"
+                >
+              </label>
               <button class="btn btn-secondary" id="dashboardReloadButton" type="button">
                 この日を表示
               </button>
@@ -1223,7 +1274,17 @@
             </div>
 
             <div class="date-controls">
-              <input class="input" id="todayDate" type="date">
+              <span class="date-display" id="todayDateLabel">
+                日付を確認中
+              </span>
+              <label class="date-picker-button">
+                日付を選ぶ
+                <input
+                  id="todayDate"
+                  type="date"
+                  aria-label="今日の利用者の日付を選ぶ"
+                >
+              </label>
               <button class="btn btn-secondary" id="todayReloadButton" type="button">
                 この日を表示
               </button>
@@ -1588,7 +1649,7 @@
     (function startOwnerAdmin() {
       "use strict";
 
-      const SCREEN_VERSION = "DAYCARE-8-R1-DATE-INPUT-WIDTH-20260713";
+      const SCREEN_VERSION = "DAYCARE-8-R2-JAPANESE-DATE-DISPLAY-20260713";
       const CONFIG = window.DPRODaycare || window.DPRO_DAYCARE_CONFIG || null;
 
       const $ = (selector) => document.querySelector(selector);
@@ -1619,6 +1680,7 @@
         newScheduleTopButton: $("#newScheduleTopButton"),
 
         dashboardDate: $("#dashboardDate"),
+        dashboardDateLabel: $("#dashboardDateLabel"),
         dashboardReloadButton: $("#dashboardReloadButton"),
 
         metricScheduled: $("#metricScheduled"),
@@ -1634,6 +1696,7 @@
         dashboardRequestList: $("#dashboardRequestList"),
 
         todayDate: $("#todayDate"),
+        todayDateLabel: $("#todayDateLabel"),
         todayReloadButton: $("#todayReloadButton"),
         todayFilterInput: $("#todayFilterInput"),
         todayStatusFilter: $("#todayStatusFilter"),
@@ -1777,6 +1840,14 @@
         return CONFIG?.utils?.formatDateJa
           ? CONFIG.utils.formatDateJa(value)
           : String(value || "未設定");
+      }
+
+      function updateDateLabels() {
+        const dashboardValue = els.dashboardDate.value || today();
+        const todayValue = els.todayDate.value || today();
+
+        els.dashboardDateLabel.textContent = formatDate(dashboardValue);
+        els.todayDateLabel.textContent = formatDate(todayValue);
       }
 
       function formatDateTime(value) {
@@ -2659,6 +2730,14 @@
           () => openSection("schedule")
         );
 
+        els.dashboardDate.addEventListener("change", () => {
+          updateDateLabels();
+        });
+
+        els.todayDate.addEventListener("change", () => {
+          updateDateLabels();
+        });
+
         els.dashboardReloadButton.addEventListener(
           "click",
           () => loadDashboard().catch(showError)
@@ -2818,6 +2897,7 @@
         els.dashboardDate.value = todayText;
         els.todayDate.value = todayText;
         els.scheduleDate.value = todayText;
+        updateDateLabels();
 
         els.loginAdminCode.value =
           CONFIG.storage.getAdminCode();
