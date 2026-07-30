@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#17643a">
   <meta name="color-scheme" content="light">
   <meta name="description" content="DPROデイサービスの家族向け利用者カードです。利用予定、送迎予定、お休み連絡履歴、施設からのお知らせを確認できます。">
-  <title>DPRO デイサービス LINE｜利用者カード</title>
+  <title>DPRO デイサービス LINE｜利用者カード｜公開操作デモ</title>
 
   <style>
     :root {
@@ -769,12 +769,122 @@
         display: none;
       }
     }
-  </style>
+  
+/* DPRO-SYSTEMS-9 DAYSERVICE OPERATION DEMO */
+.dayservice-operation-demo-banner{
+  width:min(1480px,calc(100% - 24px));
+  margin:14px auto 0;
+  padding:14px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  color:#17351f;
+  border:1px solid #bedfca;
+  border-radius:16px;
+  background:
+    radial-gradient(circle at 92% 0,rgba(23,100,58,.13),transparent 31%),
+    linear-gradient(135deg,#fff,#eff9f2);
+  box-shadow:0 11px 28px rgba(29,76,46,.09);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+}
+.dayservice-operation-demo-copy{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+}
+.dayservice-operation-demo-copy small{
+  color:#17643a;
+  font-size:9px;
+  font-weight:1000;
+  letter-spacing:.14em;
+}
+.dayservice-operation-demo-copy strong{
+  margin-top:3px;
+  font-size:15px;
+  line-height:1.45;
+}
+.dayservice-operation-demo-copy span{
+  margin-top:3px;
+  color:#61746a;
+  font-size:10px;
+  font-weight:760;
+  line-height:1.6;
+}
+.dayservice-operation-demo-actions{
+  flex:0 0 auto;
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.dayservice-operation-demo-actions a{
+  min-height:38px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:7px 12px;
+  color:#fff!important;
+  border:0!important;
+  border-radius:999px;
+  background:#17643a!important;
+  text-decoration:none!important;
+  font-size:9px;
+  font-weight:950;
+  box-shadow:0 7px 17px rgba(23,100,58,.17);
+}
+.dayservice-operation-demo-actions a:last-child{
+  color:#0e4c2a!important;
+  border:1px solid #bedfca!important;
+  background:#eaf7ef!important;
+  box-shadow:none;
+}
+body.dayservice-operation-demo-page .version-badge{
+  color:#17643a;
+  background:#eaf7ef;
+}
+body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
+  display:none!important;
+}
+@media(max-width:700px){
+  .dayservice-operation-demo-banner{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .dayservice-operation-demo-actions{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+}
+@media(max-width:410px){
+  .dayservice-operation-demo-actions{
+    grid-template-columns:1fr;
+  }
+}
+@media print{
+  .dayservice-operation-demo-banner{display:none!important}
+}
+</style>
 
   <script src="./config.js?v=daycare-4"></script>
+
+<meta name="robots" content="noindex,nofollow,noarchive">
+<link rel="canonical" href="https://dpro-shop.com/systems/dayservice">
 </head>
 
-<body>
+<body class="dayservice-operation-demo-page">
+<section class="dayservice-operation-demo-banner" aria-label="公開操作デモの案内">
+  <div class="dayservice-operation-demo-copy">
+    <small>PUBLIC OPERATION DEMO</small>
+    <strong>これはDPRO デイサービス LINEの公開操作デモです</strong>
+    <span>架空情報だけを使用し、実在する利用者・家族・電話番号・健康情報は入力しないでください。</span>
+  </div>
+  <div class="dayservice-operation-demo-actions">
+    <a href="demo-guide.html">公開デモ画面一覧</a>
+    <a href="https://dpro-shop.com/systems/dayservice">公式の機能説明</a>
+  </div>
+</section>
+
   <main class="page">
     <header class="topbar">
       <div class="brand">
@@ -784,7 +894,7 @@
           <p class="brand-sub">ご家族向け利用者カード</p>
         </div>
       </div>
-      <div class="version-badge">STEP DAYCARE-7</div>
+      <div class="version-badge">PUBLIC OPERATION DEMO</div>
     </header>
 
     <section class="hero">
@@ -1007,7 +1117,7 @@
     </section>
 
     <footer class="footer">
-      <div>DPRO デイサービス LINE｜STEP DAYCARE-7</div>
+      <div>DPRO デイサービス LINE｜PUBLIC OPERATION DEMO</div>
       <div id="footerVersion">DAYCARE-7-MEMBER-CARD</div>
     </footer>
   </main>
