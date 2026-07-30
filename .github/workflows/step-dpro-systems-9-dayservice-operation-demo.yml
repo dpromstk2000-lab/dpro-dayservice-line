@@ -1,0 +1,227 @@
+name: STEP DPRO-SYSTEMS-9 Day Service Operation Demo
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/step-dpro-systems-9-dayservice-operation-demo.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create and clarify day service public operation demo
+        shell: python
+        run: |
+          from pathlib import Path
+          import base64
+          import re
+
+          official_url = "https://dpro-shop.com/systems/dayservice"
+          portal = base64.b64decode("PCFkb2N0eXBlIGh0bWw+CjxodG1sIGxhbmc9ImphIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0Zi04Ij4KPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xLCB2aWV3cG9ydC1maXQ9Y292ZXIiPgo8bWV0YSBuYW1lPSJ0aGVtZS1jb2xvciIgY29udGVudD0iIzE3NjQzYSI+CjxtZXRhIG5hbWU9InJvYm90cyIgY29udGVudD0ibm9pbmRleCxub2ZvbGxvdyxub2FyY2hpdmUiPgo8bGluayByZWw9ImNhbm9uaWNhbCIgaHJlZj0iaHR0cHM6Ly9kcHJvLXNob3AuY29tL3N5c3RlbXMvZGF5c2VydmljZSI+Cjx0aXRsZT5EUFJPIOODh+OCpOOCteODvOODk+OCuSBMSU5F772c5YWs6ZaL5pON5L2c44OH44Oi44O755S76Z2i5LiA6KanPC90aXRsZT4KPHN0eWxlPgo6cm9vdHsKICAtLWJnOiNmMWY3ZjM7CiAgLS1jYXJkOiNmZmY7CiAgLS10ZXh0OiMxNjI1MWI7CiAgLS1tdXRlZDojNjQ3MjY5OwogIC0tbGluZTojZDdlNmRjOwogIC0tYnJhbmQ6IzE3NjQzYTsKICAtLWJyYW5kLWRhcms6IzBlNGMyYTsKICAtLXNvZnQ6I2VhZjdlZjsKICAtLXdhcm46I2ZmZjdlNjsKICAtLXNoYWRvdzowIDE2cHggNDBweCByZ2JhKDI3LDczLDQ1LC4xMCk7Cn0KKntib3gtc2l6aW5nOmJvcmRlci1ib3h9Cmh0bWx7c2Nyb2xsLWJlaGF2aW9yOnNtb290aDtiYWNrZ3JvdW5kOnZhcigtLWJnKX0KYm9keXsKICBtYXJnaW46MDsKICBtaW4taGVpZ2h0OjEwMHZoOwogIGNvbG9yOnZhcigtLXRleHQpOwogIGJhY2tncm91bmQ6CiAgICByYWRpYWwtZ3JhZGllbnQoY2lyY2xlIGF0IDglIDAscmdiYSgyMywxMDAsNTgsLjE0KSx0cmFuc3BhcmVudCAzMSUpLAogICAgcmFkaWFsLWdyYWRpZW50KGNpcmNsZSBhdCA5NSUgMTElLHJnYmEoNjgsMTU0LDk2LC4xMSksdHJhbnNwYXJlbnQgMjklKSwKICAgIHZhcigtLWJnKTsKICBmb250LWZhbWlseTotYXBwbGUtc3lzdGVtLEJsaW5rTWFjU3lzdGVtRm9udCwiU2Vnb2UgVUkiLCJIaXJhZ2lubyBTYW5zIiwiWXUgR290aGljIixNZWlyeW8sc2Fucy1zZXJpZjsKICBsaW5lLWhlaWdodDoxLjY1Owp9CmF7Y29sb3I6aW5oZXJpdH0KLnBhZ2V7d2lkdGg6bWluKDExMjBweCxjYWxjKDEwMCUgLSAyNHB4KSk7bWFyZ2luOjAgYXV0bztwYWRkaW5nOjIwcHggMCA0NnB4fQouaGVyb3sKICBwb3NpdGlvbjpyZWxhdGl2ZTsKICBvdmVyZmxvdzpoaWRkZW47CiAgcGFkZGluZzozNHB4OwogIGNvbG9yOiNmZmY7CiAgYm9yZGVyLXJhZGl1czoyN3B4OwogIGJhY2tncm91bmQ6CiAgICBsaW5lYXItZ3JhZGllbnQoMTM1ZGVnLHJnYmEoMjU1LDI1NSwyNTUsLjEwKSx0cmFuc3BhcmVudCA0NSUpLAogICAgbGluZWFyLWdyYWRpZW50KDEzNWRlZywjMGQ0ODI5LCMxNzY0M2EgNTglLCMyMzg0NGMpOwogIGJveC1zaGFkb3c6MCAyMnB4IDU1cHggcmdiYSgyMywxMDAsNTgsLjIyKTsKfQouaGVybzphZnRlcnsKICBjb250ZW50OiIiOwogIHBvc2l0aW9uOmFic29sdXRlOwogIHdpZHRoOjI2MHB4O2hlaWdodDoyNjBweDsKICByaWdodDotODJweDtib3R0b206LTEzMnB4OwogIGJvcmRlci1yYWRpdXM6NTAlOwogIGJhY2tncm91bmQ6cmdiYSgyNTUsMjU1LDI1NSwuMDcpOwp9Ci5raWNrZXJ7Zm9udC1zaXplOjExcHg7Zm9udC13ZWlnaHQ6MTAwMDtsZXR0ZXItc3BhY2luZzouMTRlbTtvcGFjaXR5Oi45fQouaGVybyBoMXtwb3NpdGlvbjpyZWxhdGl2ZTt6LWluZGV4OjE7bWFyZ2luOjEwcHggMCAwO2ZvbnQtc2l6ZTpjbGFtcCgyOHB4LDV2dyw0OHB4KTtsaW5lLWhlaWdodDoxLjI1fQouaGVybyBwe3Bvc2l0aW9uOnJlbGF0aXZlO3otaW5kZXg6MTttYXgtd2lkdGg6ODIwcHg7bWFyZ2luOjEzcHggMCAwO2ZvbnQtc2l6ZToxNHB4O29wYWNpdHk6LjkzfQouaGVyby1hY3Rpb25ze3Bvc2l0aW9uOnJlbGF0aXZlO3otaW5kZXg6MTtkaXNwbGF5OmZsZXg7Z2FwOjlweDtmbGV4LXdyYXA6d3JhcDttYXJnaW4tdG9wOjIwcHh9Ci5idXR0b257CiAgbWluLWhlaWdodDo0NXB4OwogIGRpc3BsYXk6aW5saW5lLWZsZXg7CiAgYWxpZ24taXRlbXM6Y2VudGVyOwogIGp1c3RpZnktY29udGVudDpjZW50ZXI7CiAgcGFkZGluZzo5cHggMTVweDsKICBib3JkZXItcmFkaXVzOjk5OXB4OwogIHRleHQtZGVjb3JhdGlvbjpub25lOwogIGZvbnQtc2l6ZToxMnB4OwogIGZvbnQtd2VpZ2h0Ojk1MDsKfQouYnV0dG9uLWxpZ2h0e2NvbG9yOnZhcigtLWJyYW5kLWRhcmspO2JhY2tncm91bmQ6I2ZmZn0KLmJ1dHRvbi1naG9zdHtjb2xvcjojZmZmO2JvcmRlcjoxcHggc29saWQgcmdiYSgyNTUsMjU1LDI1NSwuMzUpO2JhY2tncm91bmQ6cmdiYSgyNTUsMjU1LDI1NSwuMTApfQoubm90aWNlewogIG1hcmdpbi10b3A6MTVweDsKICBwYWRkaW5nOjE1cHggMTdweDsKICBib3JkZXI6MXB4IHNvbGlkICNlYWQ4YTc7CiAgYm9yZGVyLXJhZGl1czoxNXB4OwogIGJhY2tncm91bmQ6dmFyKC0td2Fybik7CiAgY29sb3I6IzczNTExMjsKICBmb250LXNpemU6MTJweDsKICBmb250LXdlaWdodDo3NjA7Cn0KLmRlbW8taW5mb3sKICBtYXJnaW4tdG9wOjE2cHg7CiAgZGlzcGxheTpncmlkOwogIGdyaWQtdGVtcGxhdGUtY29sdW1uczpyZXBlYXQoMyxtaW5tYXgoMCwxZnIpKTsKICBnYXA6MTBweDsKfQouZGVtby1pbmZvPmRpdnsKICBwYWRkaW5nOjE0cHg7CiAgYm9yZGVyOjFweCBzb2xpZCB2YXIoLS1saW5lKTsKICBib3JkZXItcmFkaXVzOjE1cHg7CiAgYmFja2dyb3VuZDpyZ2JhKDI1NSwyNTUsMjU1LC45NCk7CiAgYm94LXNoYWRvdzp2YXIoLS1zaGFkb3cpOwp9Ci5kZW1vLWluZm8gc21hbGx7ZGlzcGxheTpibG9jaztjb2xvcjp2YXIoLS1icmFuZCk7Zm9udC1zaXplOjlweDtmb250LXdlaWdodDoxMDAwO2xldHRlci1zcGFjaW5nOi4wOGVtfQouZGVtby1pbmZvIHN0cm9uZ3tkaXNwbGF5OmJsb2NrO21hcmdpbi10b3A6NHB4O2ZvbnQtc2l6ZToxNHB4fQouc2VjdGlvbi1oZWFke21hcmdpbjozMnB4IDAgMTVweH0KLnNlY3Rpb24taGVhZCBzbWFsbHtjb2xvcjp2YXIoLS1icmFuZCk7Zm9udC1zaXplOjEwcHg7Zm9udC13ZWlnaHQ6MTAwMDtsZXR0ZXItc3BhY2luZzouMTJlbX0KLnNlY3Rpb24taGVhZCBoMnttYXJnaW46NXB4IDAgMDtmb250LXNpemU6Y2xhbXAoMjNweCw0dncsMzRweCl9Ci5zZWN0aW9uLWhlYWQgcHttYXgtd2lkdGg6ODIwcHg7bWFyZ2luOjdweCAwIDA7Y29sb3I6dmFyKC0tbXV0ZWQpO2ZvbnQtc2l6ZToxM3B4fQouZ3JpZHtkaXNwbGF5OmdyaWQ7Z3JpZC10ZW1wbGF0ZS1jb2x1bW5zOnJlcGVhdCgyLG1pbm1heCgwLDFmcikpO2dhcDoxM3B4fQouY2FyZHsKICBtaW4td2lkdGg6MDsKICBwYWRkaW5nOjIwcHg7CiAgYm9yZGVyOjFweCBzb2xpZCB2YXIoLS1saW5lKTsKICBib3JkZXItcmFkaXVzOjIwcHg7CiAgYmFja2dyb3VuZDpyZ2JhKDI1NSwyNTUsMjU1LC45Nyk7CiAgYm94LXNoYWRvdzp2YXIoLS1zaGFkb3cpOwp9Ci5jYXJkLW51bWJlcntjb2xvcjp2YXIoLS1icmFuZCk7Zm9udC1zaXplOjEwcHg7Zm9udC13ZWlnaHQ6MTAwMDtsZXR0ZXItc3BhY2luZzouMWVtfQouY2FyZCBoM3ttYXJnaW46N3B4IDAgMDtmb250LXNpemU6MjFweDtsaW5lLWhlaWdodDoxLjR9Ci5jYXJkIHB7bWFyZ2luOjhweCAwIDA7Y29sb3I6dmFyKC0tbXV0ZWQpO2ZvbnQtc2l6ZToxMnB4fQoucGlsbHN7ZGlzcGxheTpmbGV4O2dhcDo2cHg7ZmxleC13cmFwOndyYXA7bWFyZ2luLXRvcDoxMnB4fQoucGlsbHMgc3BhbntwYWRkaW5nOjVweCA4cHg7Ym9yZGVyLXJhZGl1czo5OTlweDtiYWNrZ3JvdW5kOnZhcigtLXNvZnQpO2NvbG9yOnZhcigtLWJyYW5kLWRhcmspO2ZvbnQtc2l6ZTo5cHg7Zm9udC13ZWlnaHQ6OTAwfQouY2FyZC1ub3Rle21hcmdpbi10b3A6MTNweDtwYWRkaW5nOjExcHg7Ym9yZGVyLXJhZGl1czoxMnB4O2JhY2tncm91bmQ6I2Y0ZjlmNjtjb2xvcjojNTA2NjVhO2ZvbnQtc2l6ZToxMXB4fQouY2FyZC1ub3RlIGJ7Y29sb3I6dmFyKC0tYnJhbmQtZGFyayl9Ci5jYXJkLWFjdGlvbnN7ZGlzcGxheTpncmlkO2dyaWQtdGVtcGxhdGUtY29sdW1uczoxZnIgYXV0bztnYXA6OHB4O21hcmdpbi10b3A6MTVweH0KLm9wZW4sLm9mZmljaWFsewogIG1pbi1oZWlnaHQ6NDRweDsKICBkaXNwbGF5OmZsZXg7CiAgYWxpZ24taXRlbXM6Y2VudGVyOwogIGp1c3RpZnktY29udGVudDpjZW50ZXI7CiAgcGFkZGluZzo5cHggMTNweDsKICBib3JkZXItcmFkaXVzOjEycHg7CiAgdGV4dC1kZWNvcmF0aW9uOm5vbmU7CiAgZm9udC1zaXplOjEwcHg7CiAgZm9udC13ZWlnaHQ6OTUwOwp9Ci5vcGVue2NvbG9yOiNmZmY7YmFja2dyb3VuZDpsaW5lYXItZ3JhZGllbnQoMTM1ZGVnLHZhcigtLWJyYW5kLWRhcmspLHZhcigtLWJyYW5kKSl9Ci5vZmZpY2lhbHtjb2xvcjp2YXIoLS1icmFuZC1kYXJrKTtib3JkZXI6MXB4IHNvbGlkIHZhcigtLWxpbmUpO2JhY2tncm91bmQ6dmFyKC0tc29mdCl9Ci5zY29wZXsKICBtYXJnaW4tdG9wOjE0cHg7CiAgcGFkZGluZzoxOHB4OwogIGJvcmRlcjoxcHggc29saWQgdmFyKC0tbGluZSk7CiAgYm9yZGVyLXJhZGl1czoxOXB4OwogIGJhY2tncm91bmQ6I2ZmZjsKICBib3gtc2hhZG93OnZhcigtLXNoYWRvdyk7Cn0KLnNjb3BlIHN0cm9uZ3tkaXNwbGF5OmJsb2NrO2NvbG9yOnZhcigtLWJyYW5kLWRhcmspfQouc2NvcGUgcHttYXJnaW46NnB4IDAgMDtjb2xvcjp2YXIoLS1tdXRlZCk7Zm9udC1zaXplOjEycHh9Ci5mb290ZXJ7bWFyZ2luLXRvcDoyNnB4O2NvbG9yOiM3MzgzN2E7Zm9udC1zaXplOjEwcHg7dGV4dC1hbGlnbjpjZW50ZXJ9CkBtZWRpYShtYXgtd2lkdGg6NzYwcHgpewogIC5oZXJve3BhZGRpbmc6MjVweCAyMHB4fQogIC5kZW1vLWluZm8sLmdyaWR7Z3JpZC10ZW1wbGF0ZS1jb2x1bW5zOjFmcn0KfQpAbWVkaWEobWF4LXdpZHRoOjQyMHB4KXsKICAucGFnZXt3aWR0aDptaW4oMTAwJSAtIDE2cHgsMTEyMHB4KX0KICAuY2FyZC1hY3Rpb25ze2dyaWQtdGVtcGxhdGUtY29sdW1uczoxZnJ9Cn0KPC9zdHlsZT4KPC9oZWFkPgo8Ym9keT4KPG1haW4gY2xhc3M9InBhZ2UiPgo8c2VjdGlvbiBjbGFzcz0iaGVybyI+CiAgPGRpdiBjbGFzcz0ia2lja2VyIj5QVUJMSUMgT1BFUkFUSU9OIERFTU88L2Rpdj4KICA8aDE+RFBSTyDjg4fjgqTjgrXjg7zjg5PjgrkgTElORTxicj7lhazplovmk43kvZzjg4fjg6Ljg7vnlLvpnaLkuIDopqc8L2gxPgogIDxwPuOBlOWutuaXj+OBi+OCieOBruasoOW4reODu+WkieabtOmAo+e1oeOAgeWIqeeUqOiAheOCq+ODvOODieOAgeaWveioreeuoeeQhlBD44CB44K544K/44OD44OVaVBhZOOCkuOAgeaetuepuuODh+ODvOOCv+OBp+Wun+mam+OBq+eiuuiqjeOBp+OBjeOBvuOBmeOAgjwvcD4KICA8ZGl2IGNsYXNzPSJoZXJvLWFjdGlvbnMiPgogICAgPGEgY2xhc3M9ImJ1dHRvbiBidXR0b24tbGlnaHQiIGhyZWY9Imh0dHBzOi8vZHByby1zaG9wLmNvbS9zeXN0ZW1zL2RheXNlcnZpY2UiPuWFrOW8j+OBruapn+iDveODu+aWmemHkeiqrOaYjuOCkuimi+OCizwvYT4KICAgIDxhIGNsYXNzPSJidXR0b24gYnV0dG9uLWdob3N0IiBocmVmPSJpbmRleC5odG1sP3Bob25lPTA5MC05OTk5LTExMTEmYW1wO3VzZXJfbnVtYmVyPURBWS1ERU1PLTAwMSI+5a625peP55S76Z2i44GL44KJ5aeL44KB44KLPC9hPgogIDwvZGl2Pgo8L3NlY3Rpb24+Cgo8ZGl2IGNsYXNzPSJub3RpY2UiPgogIOOBk+OCjOOBr+WFrOmWi+ODh+ODouOBp+OBmeOAguWun+WcqOOBmeOCi+WIqeeUqOiAheWQjeOAgeWutuaXj+WQjeOAgembu+ipseeVquWPt+OAgeWBpeW6t+aDheWgseOAgemAgei/juaDheWgseOBquOBqeOBr+WFpeWKm+OBl+OBquOBhOOBp+OBj+OBoOOBleOBhOOAguWMu+eZguWIpOaWreOAgeato+W8j+OBquS7i+itt+iomOmMsuOAgeS7i+itt+iri+axguOBq+OBr+S9v+eUqOOBl+OBvuOBm+OCk+OAggo8L2Rpdj4KCjxzZWN0aW9uIGNsYXNzPSJkZW1vLWluZm8iIGFyaWEtbGFiZWw9IuODh+ODouWIqeeUqOaDheWgsSI+CiAgPGRpdj48c21hbGw+RkFNSUxZIERFTU88L3NtYWxsPjxzdHJvbmc+6Zu76Kmx77yaMDkwLTk5OTktMTExMTxicj7liKnnlKjogIXnlarlj7fvvJpEQVktREVNTy0wMDE8L3N0cm9uZz48L2Rpdj4KICA8ZGl2PjxzbWFsbD5BRE1JTiBDT0RFPC9zbWFsbD48c3Ryb25nPuaWveioreWBtOODh+ODoueuoeeQhuOCs+ODvOODie+8mjEyMzQ8L3N0cm9uZz48L2Rpdj4KICA8ZGl2PjxzbWFsbD5ERU1PIERBVEE8L3NtYWxsPjxzdHJvbmc+6KGo56S644O75YWl5Yqb44GZ44KL5oOF5aCx44Gv44GZ44G544Gm5p6256m6PC9zdHJvbmc+PC9kaXY+Cjwvc2VjdGlvbj4KCjxkaXYgY2xhc3M9InNlY3Rpb24taGVhZCI+CiAgPHNtYWxsPkNIT09TRSBBIFNDUkVFTjwvc21hbGw+CiAgPGgyPueiuuiqjeOBmeOCi+eUu+mdouOCkumBuOaKnjwvaDI+CiAgPHA+44GU5a625peP5ZCR44GR55S76Z2i44Gv44OH44Oi5oOF5aCx44KS6Ieq5YuV5YWl5Yqb44Gn44GN44G+44GZ44CC5pa96Kit566h55CGUEPjgajjgrnjgr/jg4Pjg5VpUGFk44Gv566h55CG44Kz44O844OJMTIzNOOBp+mWi+OBjeOBvuOBmeOAgjwvcD4KPC9kaXY+Cgo8c2VjdGlvbiBjbGFzcz0iZ3JpZCI+CiAgPGFydGljbGUgY2xhc3M9ImNhcmQiPgogICAgPGRpdiBjbGFzcz0iY2FyZC1udW1iZXIiPjAxIC8gRkFNSUxZIFBPUlRBTDwvZGl2PgogICAgPGgzPuOBlOWutuaXj+WQkeOBkTxicj7mrKDluK3jg7vpgIHov47jg7vmlr3oqK3pgKPntaE8L2gzPgogICAgPHA+44GK5LyR44G/44CB5Yip55So5pel5aSJ5pu05biM5pyb44CB6YCB6L+O5pmC6ZaT44CB5oyB44Gh54mp44CB5pa96Kit44G444Gu6YCj57Wh44KS5pON5L2c44GX44G+44GZ44CCPC9wPgogICAgPGRpdiBjbGFzcz0icGlsbHMiPjxzcGFuPuOBiuS8keOBv+mAo+e1oTwvc3Bhbj48c3Bhbj7liKnnlKjml6XlpInmm7Q8L3NwYW4+PHNwYW4+6YCB6L+O44O75oyB44Gh54mpPC9zcGFuPjwvZGl2PgogICAgPGRpdiBjbGFzcz0iY2FyZC1ub3RlIj48Yj7jg4fjg6Lmg4XloLHvvJo8L2I+6Zu76Kmx55Wq5Y+3IDA5MC05OTk5LTExMTHvvI/liKnnlKjogIXnlarlj7cgREFZLURFTU8tMDAxPC9kaXY+CiAgICA8ZGl2IGNsYXNzPSJjYXJkLWFjdGlvbnMiPjxhIGNsYXNzPSJvcGVuIiBocmVmPSJpbmRleC5odG1sP3Bob25lPTA5MC05OTk5LTExMTEmYW1wO3VzZXJfbnVtYmVyPURBWS1ERU1PLTAwMSI+5a625peP55S76Z2i44KS6ZaL44GPPC9hPjxhIGNsYXNzPSJvZmZpY2lhbCIgaHJlZj0iaHR0cHM6Ly9kcHJvLXNob3AuY29tL3N5c3RlbXMvZGF5c2VydmljZSNmZWF0dXJlcyI+6Kqs5piOPC9hPjwvZGl2PgogIDwvYXJ0aWNsZT4KCiAgPGFydGljbGUgY2xhc3M9ImNhcmQiPgogICAgPGRpdiBjbGFzcz0iY2FyZC1udW1iZXIiPjAyIC8gTUVNQkVSIENBUkQ8L2Rpdj4KICAgIDxoMz7liKnnlKjogIXjgqvjg7zjg4k8YnI+5LqI5a6a44O76YCB6L+O44O76YCj57Wh5bGl5q20PC9oMz4KICAgIDxwPuasoeWbnuWIqeeUqOOAgeS7iuW+jOOBruS6iOWumuOAgemAgei/juaZgumWk+OAgeasoOW4reODu+WkieabtOW4jOacm+WxpeattOOAgeaMgeOBoeeJqeOAgeOBiuefpeOCieOBm+OCkueiuuiqjeOBl+OBvuOBmeOAgjwvcD4KICAgIDxkaXYgY2xhc3M9InBpbGxzIj48c3Bhbj7mrKHlm57liKnnlKg8L3NwYW4+PHNwYW4+6YCB6L+O5LqI5a6aPC9zcGFuPjxzcGFuPuWutuaXj+mAo+e1oeWxpeattDwvc3Bhbj48L2Rpdj4KICAgIDxkaXYgY2xhc3M9ImNhcmQtbm90ZSI+PGI+5pys5Lq656K66KqN5riI44G/VVJM77yaPC9iPuODh+ODouaDheWgseOCkuS7mOOBkeOBpuebtOaOpemWi+OBjeOBvuOBmeOAgjwvZGl2PgogICAgPGRpdiBjbGFzcz0iY2FyZC1hY3Rpb25zIj48YSBjbGFzcz0ib3BlbiIgaHJlZj0ibWVtYmVyLmh0bWw/cGhvbmU9MDkwLTk5OTktMTExMSZhbXA7dXNlcl9udW1iZXI9REFZLURFTU8tMDAxIj7liKnnlKjogIXjgqvjg7zjg4njgpLplovjgY88L2E+PGEgY2xhc3M9Im9mZmljaWFsIiBocmVmPSJodHRwczovL2Rwcm8tc2hvcC5jb20vc3lzdGVtcy9kYXlzZXJ2aWNlI2RlbW8iPuiqrOaYjjwvYT48L2Rpdj4KICA8L2FydGljbGU+CgogIDxhcnRpY2xlIGNsYXNzPSJjYXJkIj4KICAgIDxkaXYgY2xhc3M9ImNhcmQtbnVtYmVyIj4wMyAvIE9XTkVSIFBDPC9kaXY+CiAgICA8aDM+5pa96Kit566h55CGUEM8YnI+5LuK5pel44Gu54q25rOB44O75a625peP6YCj57WhPC9oMz4KICAgIDxwPuWIqeeUqOS6iOWumuOAgeadpeaJgOOAgeWIqeeUqOS4reOAgeOBiuS8keOBv+OAgeacquWvvuW/nOWutuaXj+mAo+e1oeOAgeWIqeeUqOiAheaknOe0ouOAgeS6iOWumueZu+mMsuOCkueiuuiqjeOBl+OBvuOBmeOAgjwvcD4KICAgIDxkaXYgY2xhc3M9InBpbGxzIj48c3Bhbj7ku4rml6XjgoTjgovjgZPjgag8L3NwYW4+PHNwYW4+5a625peP6YCj57WhPC9zcGFuPjxzcGFuPuWIqeeUqOiAheODu+WutuaXj+aknOe0ojwvc3Bhbj48L2Rpdj4KICAgIDxkaXYgY2xhc3M9ImNhcmQtbm90ZSI+PGI+44OH44Oi566h55CG44Kz44O844OJ77yaPC9iPjEyMzQ8L2Rpdj4KICAgIDxkaXYgY2xhc3M9ImNhcmQtYWN0aW9ucyI+PGEgY2xhc3M9Im9wZW4iIGhyZWY9Im93bmVyLmh0bWwiPuaWveioreeuoeeQhuOCkumWi+OBjzwvYT48YSBjbGFzcz0ib2ZmaWNpYWwiIGhyZWY9Imh0dHBzOi8vZHByby1zaG9wLmNvbS9zeXN0ZW1zL2RheXNlcnZpY2Ujcm9sZXMiPuiqrOaYjjwvYT48L2Rpdj4KICA8L2FydGljbGU+CgogIDxhcnRpY2xlIGNsYXNzPSJjYXJkIj4KICAgIDxkaXYgY2xhc3M9ImNhcmQtbnVtYmVyIj4wNCAvIFNUQUZGIElQQUQ8L2Rpdj4KICAgIDxoMz7jgrnjgr/jg4Pjg5VpUGFkPGJyPuWIqeeUqOeKtuazgeODu+aXpeW4uOeiuuiqjTwvaDM+CiAgICA8cD7mnaXmiYDjgIHliKnnlKjkuK3jgIHluLDlroXmupblgpnjgIHpgIHov47lh7rnmbrjgIHluLDlroXlrozkuobjgIHmmLzpo5/jgIHlhaXmtbTjgIHjg6zjgq/jgarjganjgpLmk43kvZzjgZfjgb7jgZnjgII8L3A+CiAgICA8ZGl2IGNsYXNzPSJwaWxscyI+PHNwYW4+5aSn44GN44Gq44Oc44K/44OzPC9zcGFuPjxzcGFuPuWIqeeUqOeKtuazgTwvc3Bhbj48c3Bhbj7mmLzpo5/jg7vlhaXmtbTjg7vjg6zjgq88L3NwYW4+PC9kaXY+CiAgICA8ZGl2IGNsYXNzPSJjYXJkLW5vdGUiPjxiPuODh+ODoueuoeeQhuOCs+ODvOODie+8mjwvYj4xMjM044CC44K544K/44OD44OV5ZCN44Gv5p6256m644Gu5ZCN5YmN44KS5YWl5Yqb44GX44Gm44GP44Gg44GV44GE44CCPC9kaXY+CiAgICA8ZGl2IGNsYXNzPSJjYXJkLWFjdGlvbnMiPjxhIGNsYXNzPSJvcGVuIiBocmVmPSJvd25lci1pcGFkLmh0bWwiPuOCueOCv+ODg+ODlWlQYWTjgpLplovjgY88L2E+PGEgY2xhc3M9Im9mZmljaWFsIiBocmVmPSJodHRwczovL2Rwcm8tc2hvcC5jb20vc3lzdGVtcy9kYXlzZXJ2aWNlI3Njb3BlIj7lr77osaHnr4Tlm7I8L2E+PC9kaXY+CiAgPC9hcnRpY2xlPgo8L3NlY3Rpb24+Cgo8c2VjdGlvbiBjbGFzcz0ic2NvcGUiPgogIDxzdHJvbmc+44GT44Gu44K344K544OG44Og44Gu5a++6LGh56+E5ZuyPC9zdHJvbmc+CiAgPHA+5a625peP6YCj57Wh44CB6YCB6L+O5qGI5YaF44CB5LuK5pel44Gu5Yip55So54q25rOB44KS6KOc5Yqp44GZ44KL44K344K544OG44Og44Gn44GZ44CC5Yy755mC5Yik5pat44CB5pyN6Jas44Gu5Y6z5a+G566h55CG44CB5q2j5byP44Gq5LuL6K236KiY6Yyy44CB5rOV5a6a5biz56Wo44CB5LuL6K235L+d6Zm66KuL5rGC44Gu5Luj5pu/44Gn44Gv44GC44KK44G+44Gb44KT44CCPC9wPgo8L3NlY3Rpb24+Cgo8ZGl2IGNsYXNzPSJmb290ZXIiPkRQUk8g44OH44Kk44K144O844OT44K5IExJTkXvvZxQVUJMSUMgT1BFUkFUSU9OIERFTU88L2Rpdj4KPC9tYWluPgo8L2JvZHk+CjwvaHRtbD4=").decode("utf-8")
+          banner = base64.b64decode("PHNlY3Rpb24gY2xhc3M9ImRheXNlcnZpY2Utb3BlcmF0aW9uLWRlbW8tYmFubmVyIiBhcmlhLWxhYmVsPSLlhazplovmk43kvZzjg4fjg6Ljga7moYjlhoUiPgogIDxkaXYgY2xhc3M9ImRheXNlcnZpY2Utb3BlcmF0aW9uLWRlbW8tY29weSI+CiAgICA8c21hbGw+UFVCTElDIE9QRVJBVElPTiBERU1PPC9zbWFsbD4KICAgIDxzdHJvbmc+44GT44KM44GvRFBSTyDjg4fjgqTjgrXjg7zjg5PjgrkgTElOReOBruWFrOmWi+aTjeS9nOODh+ODouOBp+OBmTwvc3Ryb25nPgogICAgPHNwYW4+5p6256m65oOF5aCx44Gg44GR44KS5L2/55So44GX44CB5a6f5Zyo44GZ44KL5Yip55So6ICF44O75a625peP44O76Zu76Kmx55Wq5Y+344O75YGl5bq35oOF5aCx44Gv5YWl5Yqb44GX44Gq44GE44Gn44GP44Gg44GV44GE44CCPC9zcGFuPgogIDwvZGl2PgogIDxkaXYgY2xhc3M9ImRheXNlcnZpY2Utb3BlcmF0aW9uLWRlbW8tYWN0aW9ucyI+CiAgICA8YSBocmVmPSJkZW1vLWd1aWRlLmh0bWwiPuWFrOmWi+ODh+ODoueUu+mdouS4gOimpzwvYT4KICAgIDxhIGhyZWY9Imh0dHBzOi8vZHByby1zaG9wLmNvbS9zeXN0ZW1zL2RheXNlcnZpY2UiPuWFrOW8j+OBruapn+iDveiqrOaYjjwvYT4KICA8L2Rpdj4KPC9zZWN0aW9uPg==").decode("utf-8")
+          shared_css = base64.b64decode("Ci8qIERQUk8tU1lTVEVNUy05IERBWVNFUlZJQ0UgT1BFUkFUSU9OIERFTU8gKi8KLmRheXNlcnZpY2Utb3BlcmF0aW9uLWRlbW8tYmFubmVyewogIHdpZHRoOm1pbigxNDgwcHgsY2FsYygxMDAlIC0gMjRweCkpOwogIG1hcmdpbjoxNHB4IGF1dG8gMDsKICBwYWRkaW5nOjE0cHggMTZweDsKICBkaXNwbGF5OmZsZXg7CiAgYWxpZ24taXRlbXM6Y2VudGVyOwogIGp1c3RpZnktY29udGVudDpzcGFjZS1iZXR3ZWVuOwogIGdhcDoxNnB4OwogIGNvbG9yOiMxNzM1MWY7CiAgYm9yZGVyOjFweCBzb2xpZCAjYmVkZmNhOwogIGJvcmRlci1yYWRpdXM6MTZweDsKICBiYWNrZ3JvdW5kOgogICAgcmFkaWFsLWdyYWRpZW50KGNpcmNsZSBhdCA5MiUgMCxyZ2JhKDIzLDEwMCw1OCwuMTMpLHRyYW5zcGFyZW50IDMxJSksCiAgICBsaW5lYXItZ3JhZGllbnQoMTM1ZGVnLCNmZmYsI2VmZjlmMik7CiAgYm94LXNoYWRvdzowIDExcHggMjhweCByZ2JhKDI5LDc2LDQ2LC4wOSk7CiAgZm9udC1mYW1pbHk6LWFwcGxlLXN5c3RlbSxCbGlua01hY1N5c3RlbUZvbnQsIlNlZ29lIFVJIiwiSGlyYWdpbm8gU2FucyIsIll1IEdvdGhpYyIsTWVpcnlvLHNhbnMtc2VyaWY7Cn0KLmRheXNlcnZpY2Utb3BlcmF0aW9uLWRlbW8tY29weXsKICBtaW4td2lkdGg6MDsKICBkaXNwbGF5OmZsZXg7CiAgZmxleC1kaXJlY3Rpb246Y29sdW1uOwp9Ci5kYXlzZXJ2aWNlLW9wZXJhdGlvbi1kZW1vLWNvcHkgc21hbGx7CiAgY29sb3I6IzE3NjQzYTsKICBmb250LXNpemU6OXB4OwogIGZvbnQtd2VpZ2h0OjEwMDA7CiAgbGV0dGVyLXNwYWNpbmc6LjE0ZW07Cn0KLmRheXNlcnZpY2Utb3BlcmF0aW9uLWRlbW8tY29weSBzdHJvbmd7CiAgbWFyZ2luLXRvcDozcHg7CiAgZm9udC1zaXplOjE1cHg7CiAgbGluZS1oZWlnaHQ6MS40NTsKfQouZGF5c2VydmljZS1vcGVyYXRpb24tZGVtby1jb3B5IHNwYW57CiAgbWFyZ2luLXRvcDozcHg7CiAgY29sb3I6IzYxNzQ2YTsKICBmb250LXNpemU6MTBweDsKICBmb250LXdlaWdodDo3NjA7CiAgbGluZS1oZWlnaHQ6MS42Owp9Ci5kYXlzZXJ2aWNlLW9wZXJhdGlvbi1kZW1vLWFjdGlvbnN7CiAgZmxleDowIDAgYXV0bzsKICBkaXNwbGF5OmZsZXg7CiAgZ2FwOjdweDsKICBmbGV4LXdyYXA6d3JhcDsKfQouZGF5c2VydmljZS1vcGVyYXRpb24tZGVtby1hY3Rpb25zIGF7CiAgbWluLWhlaWdodDozOHB4OwogIGRpc3BsYXk6aW5saW5lLWZsZXg7CiAgYWxpZ24taXRlbXM6Y2VudGVyOwogIGp1c3RpZnktY29udGVudDpjZW50ZXI7CiAgcGFkZGluZzo3cHggMTJweDsKICBjb2xvcjojZmZmIWltcG9ydGFudDsKICBib3JkZXI6MCFpbXBvcnRhbnQ7CiAgYm9yZGVyLXJhZGl1czo5OTlweDsKICBiYWNrZ3JvdW5kOiMxNzY0M2EhaW1wb3J0YW50OwogIHRleHQtZGVjb3JhdGlvbjpub25lIWltcG9ydGFudDsKICBmb250LXNpemU6OXB4OwogIGZvbnQtd2VpZ2h0Ojk1MDsKICBib3gtc2hhZG93OjAgN3B4IDE3cHggcmdiYSgyMywxMDAsNTgsLjE3KTsKfQouZGF5c2VydmljZS1vcGVyYXRpb24tZGVtby1hY3Rpb25zIGE6bGFzdC1jaGlsZHsKICBjb2xvcjojMGU0YzJhIWltcG9ydGFudDsKICBib3JkZXI6MXB4IHNvbGlkICNiZWRmY2EhaW1wb3J0YW50OwogIGJhY2tncm91bmQ6I2VhZjdlZiFpbXBvcnRhbnQ7CiAgYm94LXNoYWRvdzpub25lOwp9CmJvZHkuZGF5c2VydmljZS1vcGVyYXRpb24tZGVtby1wYWdlIC52ZXJzaW9uLWJhZGdlewogIGNvbG9yOiMxNzY0M2E7CiAgYmFja2dyb3VuZDojZWFmN2VmOwp9CmJvZHkuZGF5c2VydmljZS1vcGVyYXRpb24tZGVtby1wYWdlIC5mb290ZXI+ZGl2Om50aC1jaGlsZChuKzIpewogIGRpc3BsYXk6bm9uZSFpbXBvcnRhbnQ7Cn0KQG1lZGlhKG1heC13aWR0aDo3MDBweCl7CiAgLmRheXNlcnZpY2Utb3BlcmF0aW9uLWRlbW8tYmFubmVyewogICAgYWxpZ24taXRlbXM6ZmxleC1zdGFydDsKICAgIGZsZXgtZGlyZWN0aW9uOmNvbHVtbjsKICB9CiAgLmRheXNlcnZpY2Utb3BlcmF0aW9uLWRlbW8tYWN0aW9uc3sKICAgIHdpZHRoOjEwMCU7CiAgICBkaXNwbGF5OmdyaWQ7CiAgICBncmlkLXRlbXBsYXRlLWNvbHVtbnM6MWZyIDFmcjsKICB9Cn0KQG1lZGlhKG1heC13aWR0aDo0MTBweCl7CiAgLmRheXNlcnZpY2Utb3BlcmF0aW9uLWRlbW8tYWN0aW9uc3sKICAgIGdyaWQtdGVtcGxhdGUtY29sdW1uczoxZnI7CiAgfQp9CkBtZWRpYSBwcmludHsKICAuZGF5c2VydmljZS1vcGVyYXRpb24tZGVtby1iYW5uZXJ7ZGlzcGxheTpub25lIWltcG9ydGFudH0KfQo=").decode("utf-8")
+          css_marker = "/* DPRO-SYSTEMS-9 DAYSERVICE OPERATION DEMO */"
+
+          screen_files = [
+              "index.html",
+              "member.html",
+              "owner.html",
+              "owner-ipad.html",
+          ]
+
+          for filename in screen_files:
+              if not Path(filename).exists():
+                  raise SystemExit(f"ERROR: required public screen not found: {filename}")
+
+          Path("demo-guide.html").write_text(portal, encoding="utf-8")
+
+          def add_body_class(text, filename):
+              match = re.search(r"<body([^>]*)>", text, flags=re.I)
+              if not match:
+                  raise SystemExit(f"ERROR: body tag not found: {filename}")
+              attrs = match.group(1)
+              if "dayservice-operation-demo-page" in attrs:
+                  return text
+
+              class_match = re.search(r'class="([^"]*)"', attrs)
+              if class_match:
+                  classes = class_match.group(1).strip()
+                  new_classes = (classes + " dayservice-operation-demo-page").strip()
+                  updated_attrs = (
+                      attrs[:class_match.start()] +
+                      f'class="{new_classes}"' +
+                      attrs[class_match.end():]
+                  )
+              else:
+                  updated_attrs = attrs + ' class="dayservice-operation-demo-page"'
+
+              return text[:match.start()] + "<body" + updated_attrs + ">" + text[match.end():]
+
+          def add_title_label(text, filename):
+              match = re.search(r"<title>(.*?)</title>", text, flags=re.I | re.S)
+              if not match:
+                  raise SystemExit(f"ERROR: title tag not found: {filename}")
+              title = match.group(1).strip()
+              if "公開操作デモ" in title:
+                  return text
+              replacement = f"<title>{title}｜公開操作デモ</title>"
+              return text[:match.start()] + replacement + text[match.end():]
+
+          def add_demo_meta(text, filename):
+              if 'name="robots" content="noindex,nofollow,noarchive"' not in text:
+                  head_close = re.search(r"</head>", text, flags=re.I)
+                  if not head_close:
+                      raise SystemExit(f"ERROR: head closing tag not found: {filename}")
+                  meta = (
+                      '\n<meta name="robots" content="noindex,nofollow,noarchive">'
+                      f'\n<link rel="canonical" href="{official_url}">\n'
+                  )
+                  text = text[:head_close.start()] + meta + text[head_close.start():]
+              elif f'href="{official_url}"' not in text:
+                  head_close = re.search(r"</head>", text, flags=re.I)
+                  if not head_close:
+                      raise SystemExit(f"ERROR: head closing tag not found: {filename}")
+                  text = (
+                      text[:head_close.start()] +
+                      f'\n<link rel="canonical" href="{official_url}">\n' +
+                      text[head_close.start():]
+                  )
+              return text
+
+          def add_css(text, filename):
+              if css_marker in text:
+                  return text
+              close = re.search(r"</style>", text, flags=re.I)
+              if not close:
+                  raise SystemExit(f"ERROR: style closing tag not found: {filename}")
+              return text[:close.start()] + "\n" + shared_css.strip() + "\n" + text[close.start():]
+
+          def add_banner(text, filename):
+              element_pattern = re.compile(
+                  r'<section\b[^>]*class="[^"]*\bdayservice-operation-demo-banner\b[^"]*"[^>]*>',
+                  flags=re.I,
+              )
+              if element_pattern.search(text):
+                  return text
+
+              body = re.search(r"<body[^>]*>", text, flags=re.I)
+              if not body:
+                  raise SystemExit(f"ERROR: body tag not found for banner: {filename}")
+              return text[:body.end()] + "\n" + banner + "\n" + text[body.end():]
+
+          def replace_visible_versions(text):
+              badge_pattern = re.compile(
+                  r'(<div\b[^>]*class="[^"]*\bversion-badge\b[^"]*"[^>]*>).*?(</div>)',
+                  flags=re.I | re.S,
+              )
+              text = badge_pattern.sub(
+                  r'\1PUBLIC OPERATION DEMO\2',
+                  text,
+              )
+
+              footer_pattern = re.compile(
+                  r'(<footer\b[^>]*class="[^"]*\bfooter\b[^"]*"[^>]*>)(.*?)(</footer>)',
+                  flags=re.I | re.S,
+              )
+
+              def update_footer(match):
+                  inner = re.sub(
+                      r'STEP DAYCARE-[A-Z0-9._-]+',
+                      'PUBLIC OPERATION DEMO',
+                      match.group(2),
+                      count=1,
+                  )
+                  return match.group(1) + inner + match.group(3)
+
+              return footer_pattern.sub(update_footer, text)
+
+          def remove_public_system_check_links(text):
+              pattern = re.compile(
+                  r'<a\b[^>]*href=["\'][^"\']*system-check\.html[^"\']*["\'][^>]*>.*?</a>',
+                  flags=re.I | re.S,
+              )
+              return pattern.sub("", text)
+
+          for filename in screen_files:
+              text = Path(filename).read_text(encoding="utf-8")
+              text = add_title_label(text, filename)
+              text = add_demo_meta(text, filename)
+              text = add_body_class(text, filename)
+              text = add_css(text, filename)
+              text = add_banner(text, filename)
+              text = replace_visible_versions(text)
+              text = remove_public_system_check_links(text)
+              Path(filename).write_text(text, encoding="utf-8")
+
+          guide = Path("demo-guide.html").read_text(encoding="utf-8")
+          assert "公開操作デモ・画面一覧" in guide
+          assert "施設側デモ管理コード：1234" in guide
+          assert "090-9999-1111" in guide
+          assert "DAY-DEMO-001" in guide
+          assert guide.count('class="card"') == 4
+          assert "system-check" not in guide
+          for target in screen_files:
+              assert f'href="{target}' in guide
+
+          banner_element_pattern = re.compile(
+              r'<section\b[^>]*class="[^"]*\bdayservice-operation-demo-banner\b[^"]*"[^>]*>',
+              flags=re.I,
+          )
+          public_check_link_pattern = re.compile(
+              r'<a\b[^>]*href=["\'][^"\']*system-check\.html[^"\']*["\'][^>]*>',
+              flags=re.I,
+          )
+          visible_step_pattern = re.compile(
+              r'<(?:div|footer)\b[^>]*(?:version-badge|footer)[^>]*>.*?STEP DAYCARE-.*?</(?:div|footer)>',
+              flags=re.I | re.S,
+          )
+
+          for filename in screen_files:
+              content = Path(filename).read_text(encoding="utf-8")
+              title_match = re.search(r"<title>(.*?)</title>", content, flags=re.I | re.S)
+              assert title_match and "公開操作デモ" in title_match.group(1), filename
+              assert 'name="robots" content="noindex,nofollow,noarchive"' in content, filename
+              assert f'<link rel="canonical" href="{official_url}">' in content, filename
+              assert "dayservice-operation-demo-page" in content, filename
+              assert banner_element_pattern.search(content), filename
+              assert css_marker in content, filename
+              assert "demo-guide.html" in content, filename
+              assert official_url in content, filename
+              assert not public_check_link_pattern.search(content), filename
+              assert not visible_step_pattern.search(content), filename
+
+          family = Path("index.html").read_text(encoding="utf-8")
+          member = Path("member.html").read_text(encoding="utf-8")
+          owner = Path("owner.html").read_text(encoding="utf-8")
+          ipad = Path("owner-ipad.html").read_text(encoding="utf-8")
+
+          assert "デモ情報を入力" in family
+          assert "090-9999-1111" in family
+          assert "DAY-DEMO-001" in family
+          assert "デモ情報を入力" in member
+          assert "デモ管理コード 1234" in owner
+          assert "デモ管理コード 1234" in ipad
+
+          # 内部検査画面と内部バージョン定数は変更対象外
+          assert Path("system-check.html").exists()
+          assert "SCREEN_VERSION" in member
+          assert "SCREEN_VERSION" in ipad
+
+      - name: Commit changes
+        shell: bash
+        run: |
+          git config user.name "dpro-systems-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add demo-guide.html index.html member.html owner.html owner-ipad.html
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git commit -m "STEP DPRO-SYSTEMS-9 clarify day service operation demo"
+          git push
