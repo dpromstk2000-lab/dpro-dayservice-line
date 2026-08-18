@@ -1,228 +1,206 @@
 <!doctype html>
+<!-- DPRO LIVE DEMO COMMON TEMPLATE V1.0 LOCK / CONFIGURABLE TEMPLATE -->
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#17643a">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<link rel="canonical" href="https://dpro-shop.com/systems/dayservice">
-<title>DPRO デイサービス LINE｜公開操作デモ・画面一覧</title>
+<title id="pageTitle">DPRO 公開操作デモ・画面一覧</title>
 <style>
 :root{
-  --bg:#f1f7f3;
-  --card:#fff;
-  --text:#16251b;
-  --muted:#647269;
-  --line:#d7e6dc;
-  --brand:#17643a;
-  --brand-dark:#0e4c2a;
-  --soft:#eaf7ef;
-  --warn:#fff7e6;
-  --shadow:0 16px 40px rgba(27,73,45,.10);
+  --bg:#f1f7f3;--card:#fff;--ink:#16251b;--muted:#647269;--line:#d7e6dc;
+  --brand:#17643a;--deep:#0e4c2a;--brand2:#23844c;--soft:#eaf7ef;
+  --shadow:0 16px 46px rgba(44,37,32,.10)
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;background:var(--bg)}
-body{
-  margin:0;
-  min-height:100vh;
-  color:var(--text);
-  background:
-    radial-gradient(circle at 8% 0,rgba(23,100,58,.14),transparent 31%),
-    radial-gradient(circle at 95% 11%,rgba(68,154,96,.11),transparent 29%),
-    var(--bg);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
-  line-height:1.65;
-}
-a{color:inherit}
-.page{width:min(1120px,calc(100% - 24px));margin:0 auto;padding:20px 0 46px}
-.hero{
-  position:relative;
-  overflow:hidden;
-  padding:34px;
-  color:#fff;
-  border-radius:27px;
-  background:
-    linear-gradient(135deg,rgba(255,255,255,.10),transparent 45%),
-    linear-gradient(135deg,#0d4829,#17643a 58%,#23844c);
-  box-shadow:0 22px 55px rgba(23,100,58,.22);
-}
-.hero:after{
-  content:"";
-  position:absolute;
-  width:260px;height:260px;
-  right:-82px;bottom:-132px;
-  border-radius:50%;
-  background:rgba(255,255,255,.07);
-}
-.kicker{font-size:11px;font-weight:1000;letter-spacing:.14em;opacity:.9}
-.hero h1{position:relative;z-index:1;margin:10px 0 0;font-size:clamp(28px,5vw,48px);line-height:1.25}
-.hero p{position:relative;z-index:1;max-width:820px;margin:13px 0 0;font-size:14px;opacity:.93}
-.hero-actions{position:relative;z-index:1;display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}
-.button{
-  min-height:45px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:9px 15px;
-  border-radius:999px;
-  text-decoration:none;
-  font-size:12px;
-  font-weight:950;
-}
-.button-light{color:var(--brand-dark);background:#fff}
-.button-ghost{color:#fff;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.10)}
-.notice{
-  margin-top:15px;
-  padding:15px 17px;
-  border:1px solid #ead8a7;
-  border-radius:15px;
-  background:var(--warn);
-  color:#735112;
-  font-size:12px;
-  font-weight:760;
-}
-.demo-info{
-  margin-top:16px;
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:10px;
-}
-.demo-info>div{
-  padding:14px;
-  border:1px solid var(--line);
-  border-radius:15px;
-  background:rgba(255,255,255,.94);
-  box-shadow:var(--shadow);
-}
-.demo-info small{display:block;color:var(--brand);font-size:9px;font-weight:1000;letter-spacing:.08em}
-.demo-info strong{display:block;margin-top:4px;font-size:14px}
-.section-head{margin:32px 0 15px}
-.section-head small{color:var(--brand);font-size:10px;font-weight:1000;letter-spacing:.12em}
-.section-head h2{margin:5px 0 0;font-size:clamp(23px,4vw,34px)}
-.section-head p{max-width:820px;margin:7px 0 0;color:var(--muted);font-size:13px}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
-.card{
-  min-width:0;
-  padding:20px;
-  border:1px solid var(--line);
-  border-radius:20px;
-  background:rgba(255,255,255,.97);
-  box-shadow:var(--shadow);
-}
-.card-number{color:var(--brand);font-size:10px;font-weight:1000;letter-spacing:.1em}
-.card h3{margin:7px 0 0;font-size:21px;line-height:1.4}
-.card p{margin:8px 0 0;color:var(--muted);font-size:12px}
-.pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
-.pills span{padding:5px 8px;border-radius:999px;background:var(--soft);color:var(--brand-dark);font-size:9px;font-weight:900}
-.card-note{margin-top:13px;padding:11px;border-radius:12px;background:#f4f9f6;color:#50665a;font-size:11px}
-.card-note b{color:var(--brand-dark)}
-.card-actions{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:15px}
-.open,.official{
-  min-height:44px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:9px 13px;
-  border-radius:12px;
-  text-decoration:none;
-  font-size:10px;
-  font-weight:950;
-}
-.open{color:#fff;background:linear-gradient(135deg,var(--brand-dark),var(--brand))}
-.official{color:var(--brand-dark);border:1px solid var(--line);background:var(--soft)}
-.scope{
-  margin-top:14px;
-  padding:18px;
-  border:1px solid var(--line);
-  border-radius:19px;
-  background:#fff;
-  box-shadow:var(--shadow);
-}
-.scope strong{display:block;color:var(--brand-dark)}
-.scope p{margin:6px 0 0;color:var(--muted);font-size:12px}
-.footer{margin-top:26px;color:#73837a;font-size:10px;text-align:center}
-@media(max-width:760px){
-  .hero{padding:25px 20px}
-  .demo-info,.grid{grid-template-columns:1fr}
-}
-@media(max-width:420px){
-  .page{width:min(100% - 16px,1120px)}
-  .card-actions{grid-template-columns:1fr}
-}
+html{background:var(--bg);scroll-behavior:smooth}
+body{margin:0;min-height:100vh;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP","Yu Gothic UI",Meiryo,sans-serif;line-height:1.65;background:linear-gradient(180deg,#fff 0%,var(--bg) 100%)}
+a{color:inherit}.page{width:min(1140px,calc(100% - 24px));margin:0 auto;padding:20px 0 48px}
+.hero{position:relative;overflow:hidden;padding:34px;border-radius:28px;color:#fff;background:linear-gradient(135deg,var(--deep),var(--brand) 63%,var(--brand2));box-shadow:0 23px 58px rgba(35,30,27,.20)}
+.hero:after{content:"";position:absolute;right:-95px;bottom:-150px;width:290px;height:290px;border-radius:50%;background:rgba(255,255,255,.07)}
+.kicker{position:relative;z-index:1;font-size:11px;font-weight:1000;letter-spacing:.14em;opacity:.9}
+.hero h1{position:relative;z-index:1;margin:10px 0 0;font-size:clamp(28px,5vw,49px);line-height:1.24}.hero p{position:relative;z-index:1;max-width:830px;margin:13px 0 0;font-size:14px;opacity:.93}
+.hero-actions{position:relative;z-index:1;display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}.button{min-height:45px;display:inline-flex;align-items:center;justify-content:center;padding:9px 15px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:950}
+.button-light{color:var(--deep);background:#fff}.button-ghost{color:#fff;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.09)}
+.notice{margin-top:15px;padding:15px 17px;border:1px solid #e5cda3;border-radius:15px;background:#fff5e5;color:#725013;font-size:12px;font-weight:760}
+.demo-info{margin-top:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.demo-info>div{padding:14px;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.96);box-shadow:var(--shadow)}
+.demo-info small{display:block;color:var(--brand);font-size:9px;font-weight:1000;letter-spacing:.08em}.demo-info strong{display:block;margin-top:4px;font-size:14px}
+.section-head{margin:32px 0 15px}.section-head small{color:var(--brand);font-size:10px;font-weight:1000;letter-spacing:.12em}.section-head h2{margin:5px 0 0;font-size:clamp(23px,4vw,34px)}.section-head p{max-width:840px;margin:7px 0 0;color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.card{min-width:0;padding:20px;border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.98);box-shadow:var(--shadow)}
+.card-number{color:var(--brand);font-size:10px;font-weight:1000;letter-spacing:.1em}.card h3{margin:7px 0 0;font-size:21px;line-height:1.4}.card p{margin:8px 0 0;color:var(--muted);font-size:12px}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.pills span{padding:5px 8px;border-radius:999px;background:var(--soft);color:var(--deep);font-size:9px;font-weight:900}
+.card-note{margin-top:13px;padding:11px;border-radius:12px;background:var(--soft);color:#675a54;font-size:11px}.card-note b{color:var(--deep)}
+.card-actions{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:15px}.open,.official{min-height:44px;display:flex;align-items:center;justify-content:center;padding:9px 13px;border-radius:12px;text-decoration:none;font-size:10px;font-weight:950}
+.open{color:#fff;background:linear-gradient(135deg,var(--deep),var(--brand2))}.official{color:var(--deep);border:1px solid var(--line);background:var(--soft)}
+.flow{margin-top:14px;padding:19px;border:1px solid var(--line);border-radius:19px;background:#fff;box-shadow:var(--shadow)}.flow-grid{display:grid;grid-template-columns:repeat(var(--flow-cols,5),minmax(0,1fr));gap:8px}
+.flow-step{padding:12px;border-radius:12px;background:var(--soft)}.flow-step b{display:block;color:var(--brand);font-size:10px}.flow-step strong{display:block;margin-top:4px;font-size:11px}.flow-step.same{border:1px dashed #cdbfb6}
+.footer{margin-top:26px;color:#82736c;font-size:10px;text-align:center}
+@media(max-width:900px){.flow-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.hero{padding:25px 20px}.demo-info,.grid,.flow-grid{grid-template-columns:1fr}}
+@media(max-width:420px){.page{width:min(100% - 16px,1140px)}.card-actions{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <main class="page">
 <section class="hero">
-  <div class="kicker">PUBLIC OPERATION DEMO</div>
-  <h1>DPRO デイサービス LINE<br>公開操作デモ・画面一覧</h1>
-  <p>ご家族からの欠席・変更連絡、利用者カード、施設管理PC、スタッフiPadを、架空データで実際に確認できます。</p>
+  <div class="kicker">PUBLIC OPERATION DEMO / V1.0</div>
+  <h1 id="heroTitle"></h1>
+  <p id="heroCopy"></p>
   <div class="hero-actions">
-    <a class="button button-light" href="https://dpro-shop.com/systems/dayservice">公式の機能・料金説明を見る</a>
-    <a class="button button-ghost" href="index.html?phone=090-9999-1111&amp;user_number=DAY-DEMO-001">家族画面から始める</a>
+    <a class="button button-light" id="officialLink">公式の機能・料金説明を見る</a>
+    <a class="button button-ghost" id="primaryDemoLink">まず体験する</a>
   </div>
 </section>
-
-<div class="notice">
-  これは公開デモです。実在する利用者名、家族名、電話番号、健康情報、送迎情報などは入力しないでください。医療判断、正式な介護記録、介護請求には使用しません。
-</div>
-
-<section class="demo-info" aria-label="デモ利用情報">
-  <div><small>FAMILY DEMO</small><strong>電話：090-9999-1111<br>利用者番号：DAY-DEMO-001</strong></div>
-  <div><small>ADMIN CODE</small><strong>施設側デモ管理コード：1234</strong></div>
-  <div><small>DEMO DATA</small><strong>表示・入力する情報はすべて架空</strong></div>
-</section>
-
-<div class="section-head">
-  <small>CHOOSE A SCREEN</small>
-  <h2>確認する画面を選択</h2>
-  <p>ご家族向け画面はデモ情報を自動入力できます。施設管理PCとスタッフiPadは管理コード1234で開きます。</p>
-</div>
-
-<section class="grid">
-  <article class="card">
-    <div class="card-number">01 / FAMILY PORTAL</div>
-    <h3>ご家族向け<br>欠席・送迎・施設連絡</h3>
-    <p>お休み、利用日変更希望、送迎時間、持ち物、施設への連絡を操作します。</p>
-    <div class="pills"><span>お休み連絡</span><span>利用日変更</span><span>送迎・持ち物</span></div>
-    <div class="card-note"><b>デモ情報：</b>電話番号 090-9999-1111／利用者番号 DAY-DEMO-001</div>
-    <div class="card-actions"><a class="open" href="index.html?phone=090-9999-1111&amp;user_number=DAY-DEMO-001">家族画面を開く</a><a class="official" href="https://dpro-shop.com/systems/dayservice#features">説明</a></div>
-  </article>
-
-  <article class="card">
-    <div class="card-number">02 / MEMBER CARD</div>
-    <h3>利用者カード<br>予定・送迎・連絡履歴</h3>
-    <p>次回利用、今後の予定、送迎時間、欠席・変更希望履歴、持ち物、お知らせを確認します。</p>
-    <div class="pills"><span>次回利用</span><span>送迎予定</span><span>家族連絡履歴</span></div>
-    <div class="card-note"><b>本人確認済みURL：</b>デモ情報を付けて直接開きます。</div>
-    <div class="card-actions"><a class="open" href="member.html?phone=090-9999-1111&amp;user_number=DAY-DEMO-001">利用者カードを開く</a><a class="official" href="https://dpro-shop.com/systems/dayservice#demo">説明</a></div>
-  </article>
-
-  <article class="card">
-    <div class="card-number">03 / OWNER PC</div>
-    <h3>施設管理PC<br>今日の状況・家族連絡</h3>
-    <p>利用予定、来所、利用中、お休み、未対応家族連絡、利用者検索、予定登録を確認します。</p>
-    <div class="pills"><span>今日やること</span><span>家族連絡</span><span>利用者・家族検索</span></div>
-    <div class="card-note"><b>デモ管理コード：</b>1234</div>
-    <div class="card-actions"><a class="open" href="owner.html">施設管理を開く</a><a class="official" href="https://dpro-shop.com/systems/dayservice#roles">説明</a></div>
-  </article>
-
-  <article class="card">
-    <div class="card-number">04 / STAFF IPAD</div>
-    <h3>スタッフiPad<br>利用状況・日常確認</h3>
-    <p>来所、利用中、帰宅準備、送迎出発、帰宅完了、昼食、入浴、レクなどを操作します。</p>
-    <div class="pills"><span>大きなボタン</span><span>利用状況</span><span>昼食・入浴・レク</span></div>
-    <div class="card-note"><b>デモ管理コード：</b>1234。スタッフ名は架空の名前を入力してください。</div>
-    <div class="card-actions"><a class="open" href="owner-ipad.html">スタッフiPadを開く</a><a class="official" href="https://dpro-shop.com/systems/dayservice#scope">対象範囲</a></div>
-  </article>
-</section>
-
-<section class="scope">
-  <strong>このシステムの対象範囲</strong>
-  <p>家族連絡、送迎案内、今日の利用状況を補助するシステムです。医療判断、服薬の厳密管理、正式な介護記録、法定帳票、介護保険請求の代替ではありません。</p>
-</section>
-
-<div class="footer">DPRO デイサービス LINE｜PUBLIC OPERATION DEMO</div>
+<div class="notice" id="notice"></div>
+<section class="demo-info" id="quickInfo" aria-label="デモ利用情報"></section>
+<div class="section-head"><small>CHOOSE A SCREEN</small><h2>確認する画面を選択</h2><p id="screenIntro"></p></div>
+<section class="grid" id="screenGrid"></section>
+<div class="section-head"><small>RECOMMENDED JOURNEY</small><h2>おすすめの確認順</h2><p id="journeyIntro"></p></div>
+<section class="flow"><div class="flow-grid" id="flowGrid"></div></section>
+<div class="footer" id="footer"></div>
 </main>
+<script>
+/* DPRO LIVE DEMO COMMON TEMPLATE V1.0 — CONFIG/COLOR ONLY */
+const CONFIG = {
+  "systemName": "DPRO デイサービス LINE",
+  "pageTitle": "DPRO デイサービス LINE｜公開操作デモ・画面一覧",
+  "heroCopy": "ご家族からのLINE連絡・利用予定を、スタッフiPadの今日の業務・送迎、施設管理PCまで直結させる流れを、実在する4画面で確認できます。",
+  "officialUrl": "https://dpromstk2000-lab.github.io/dpro-line-systems-site/lp-daycare.html",
+  "primaryDemoUrl": "index.html?phone=090-9999-1111&user_number=DAY-DEMO-001",
+  "notice": "公開デモでは実在する利用者名、家族名、電話番号、健康情報、送迎情報などを入力せず、必ず架空の情報を使用してください。医療判断、正式な介護記録、介護請求には使用しません。",
+  "screenIntro": "01の家族LINE連絡・利用予定から始め、02→03→04→05の順に進むと、家族連絡が現場と管理へ反映される流れを確認できます。",
+  "journeyIntro": "「家族連絡が現場へ伝わらず、利用予定や送迎へ反映漏れする」課題を、家族→現場→管理の順で確認します。",
+  "adminCode": "1234",
+  "quickInfo": [
+    {
+      "label": "FAMILY FLOW",
+      "text": "家族連絡・利用予定 → 利用者カード → スタッフiPad → 管理PC"
+    },
+    {
+      "label": "DEMO INFO",
+      "text": "電話 090-9999-1111 / DAY-DEMO-001｜管理コード 1234"
+    },
+    {
+      "label": "SCREEN STRUCTURE",
+      "text": "4実画面で5ステップ（04–05は同じOwner PC）"
+    }
+  ],
+  "screens": [
+    {
+      "step": "01 / PRIMARY EXPERIENCE",
+      "title": "ご家族｜LINE連絡・利用予定",
+      "description": "お休み、利用日変更、送迎時間、持ち物、施設への連絡を家族向け画面から確認・送信します。",
+      "tags": [
+        "お休み連絡",
+        "利用日変更",
+        "送迎・施設連絡"
+      ],
+      "note": "<b>デモ情報付き：<\/b>090-9999-1111 / DAY-DEMO-001 を付けて開きます。実在する健康・送迎情報は入力しないでください。",
+      "url": "index.html?phone=090-9999-1111&user_number=DAY-DEMO-001",
+      "cta": "家族LINE連絡を開く",
+      "officialUrl": "https://dpromstk2000-lab.github.io/dpro-line-systems-site/lp-daycare.html#features"
+    },
+    {
+      "step": "02 / FAMILY CONFIRMATION",
+      "title": "ご家族｜利用者カード・予定確認",
+      "description": "次回利用、送迎予定、お休み・変更希望の履歴、持ち物、施設からのお知らせを確認します。",
+      "tags": [
+        "次回利用",
+        "送迎予定",
+        "連絡履歴"
+      ],
+      "note": "<b>本人確認済みデモ：<\/b>同じデモ電話番号・利用者番号を付けて直接開きます。",
+      "url": "member.html?phone=090-9999-1111&user_number=DAY-DEMO-001",
+      "cta": "利用者カードを開く",
+      "officialUrl": "https://dpromstk2000-lab.github.io/dpro-line-systems-site/lp-daycare.html#features"
+    },
+    {
+      "step": "03 / STAFF IPAD",
+      "title": "スタッフiPad｜今日の業務・送迎",
+      "description": "利用予定、来所、利用中、帰宅準備、送迎出発、帰宅完了と、家族連絡ありを現場で確認します。",
+      "tags": [
+        "今日の利用者",
+        "家族連絡あり",
+        "送迎・利用状況"
+      ],
+      "note": "<b>デモ管理コード：<\/b>1234。スタッフ名は必ず架空の名前を入力してください。",
+      "url": "owner-ipad.html",
+      "cta": "スタッフiPadを開く",
+      "officialUrl": "https://dpromstk2000-lab.github.io/dpro-line-systems-site/lp-daycare.html#features"
+    },
+    {
+      "step": "04 / OWNER DASHBOARD",
+      "title": "施設管理PC｜今日の状況・家族連絡",
+      "description": "今日の利用者、家族からの連絡、送迎予定を施設管理者PCでまとめて確認します。",
+      "tags": [
+        "今日の状況",
+        "家族からの連絡",
+        "利用予定"
+      ],
+      "note": "<b>デモ管理コード：<\/b>1234。家族連絡が管理側へ集約される状態を確認します。",
+      "url": "owner.html",
+      "cta": "施設管理PCを開く",
+      "officialUrl": "https://dpromstk2000-lab.github.io/dpro-line-systems-site/lp-daycare.html#features"
+    },
+    {
+      "step": "05 / SAME OWNER PC",
+      "title": "同じOwner PC｜利用者・家族検索／予定登録",
+      "description": "同じ管理画面で、利用者・家族検索、利用予定登録、家族連絡文面まで続けて確認します。",
+      "tags": [
+        "利用者・家族検索",
+        "利用予定登録",
+        "家族連絡文面"
+      ],
+      "note": "<b>SAME SCREEN：<\/b>04と同じ owner.html です。管理業務を別画面として新設せず、実在する同一画面内で確認します。",
+      "url": "owner.html",
+      "cta": "検索・予定登録を見る",
+      "officialUrl": "https://dpromstk2000-lab.github.io/dpro-line-systems-site/lp-daycare.html#features"
+    }
+  ],
+  "journey": [
+    {
+      "step": "01",
+      "text": "家族が連絡・利用予定を送る"
+    },
+    {
+      "step": "02",
+      "text": "家族が利用者カードで予定確認"
+    },
+    {
+      "step": "03",
+      "text": "スタッフが今日の業務・送迎を処理"
+    },
+    {
+      "step": "04",
+      "text": "管理PCで今日の状況・家族連絡を確認"
+    },
+    {
+      "step": "05",
+      "text": "検索・予定登録・連絡文面を確認",
+      "sameScreen": true
+    }
+  ]
+};
+document.documentElement.style.setProperty("--flow-cols", String(Math.min(CONFIG.journey.length, 7)));
+document.title = CONFIG.pageTitle;
+document.getElementById("heroTitle").innerHTML = `${CONFIG.systemName}<br>公開操作デモ・画面一覧`;
+document.getElementById("heroCopy").textContent = CONFIG.heroCopy;
+document.getElementById("officialLink").href = CONFIG.officialUrl;
+document.getElementById("primaryDemoLink").href = CONFIG.primaryDemoUrl;
+document.getElementById("notice").textContent = CONFIG.notice;
+document.getElementById("screenIntro").textContent = CONFIG.screenIntro;
+document.getElementById("journeyIntro").textContent = CONFIG.journeyIntro;
+document.getElementById("footer").textContent = `${CONFIG.systemName}｜PUBLIC OPERATION DEMO V1.0`;
+document.getElementById("quickInfo").innerHTML = CONFIG.quickInfo.map(x => `<div><small>${x.label}</small><strong>${x.text}</strong></div>`).join("");
+document.getElementById("screenGrid").innerHTML = CONFIG.screens.map(x => `
+  <article class="card">
+    <div class="card-number">${x.step}</div><h3>${x.title}</h3><p>${x.description}</p>
+    <div class="pills">${x.tags.map(t => `<span>${t}</span>`).join("")}</div>
+    <div class="card-note">${x.note}</div>
+    <div class="card-actions"><a class="open" href="${x.url}">${x.cta}</a><a class="official" href="${x.officialUrl}">説明</a></div>
+  </article>`).join("");
+document.getElementById("flowGrid").innerHTML = CONFIG.journey.map(x => `
+  <div class="flow-step${x.sameScreen ? " same" : ""}"><b>${x.step}${x.sameScreen ? " / SAME SCREEN" : ""}</b><strong>${x.text}</strong></div>`).join("");
+</script>
 </body>
 </html>
