@@ -3,7 +3,7 @@
  * DPRO デイサービス LINE
  * STEP DAYCARE-3
  * Cloudflare Worker API 完全版
- * Version: DAYCARE-3-R3-INTEGRATION-CHECK-20260713
+ * Version: DAYCARE-3-R5-PRODUCT-READY-R3-LINE-IDTOKEN-20260823
  * ============================================================
  *
  * Cloudflare Worker名:
@@ -19,6 +19,7 @@
  * 任意Variables:
  *   DEFAULT_FACILITY_CODE = dpro_dayservice_demo
  *   ALLOWED_ORIGINS = https://dpromstk2000-lab.github.io
+ *   LINE_LOGIN_CHANNEL_ID = <customer LINE Login Channel ID; contract-time server binding>
  *
  * 重要:
  *   SUPABASE_SERVICE_ROLE_KEYは、HTML・config.js・GitHubへ絶対に置かない。
@@ -30,7 +31,7 @@
  */
 
 const SERVICE_NAME = "DPRO Dayservice LINE API";
-const VERSION = "DAYCARE-3-R4-PRODUCT-READY-R2-20260823";
+const VERSION = "DAYCARE-3-R5-PRODUCT-READY-R3-LINE-IDTOKEN-20260823";
 const FRONTEND_VERSION = "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8 / IPAD-9 / SYSTEM-CHECK-10";
 const DATABASE_VERSION_EXPECTED = "DAYCARE-DB-R2-20260823-01";
 const ADAPTER_VERSION = "DPRO-CONTROL-ADAPTER-1.0";
@@ -228,9 +229,9 @@ async function routeRequest(context) {
     };
   }
 
-  if (path === "/api/line/verify" && method === "GET") {
+  if (path === "/api/line/verify" && method === "POST") {
     return {
-      body: await handleLineIdentityVerify(request, env, url),
+      body: await handleLineIdentityVerify(env, url, body),
     };
   }
 
@@ -424,6 +425,7 @@ async function handleHealth(env, url) {
       transport_status_api: true,
       special_day_calendar: true,
       line_identity_server_verify: true,
+      line_identity_id_token_sub_authority: true,
     },
     timezone: JST_TIME_ZONE,
     time: new Date().toISOString(),
@@ -518,26 +520,69 @@ async function handlePublicCalendar(env, url) {
   };
 }
 
-async function handleLineIdentityVerify(request, env, url) {
-  const token = getBearerToken(request);
-  if (!token) {
-    throw new ApiError(401, "LINEアクセストークンが必要です。");
+async function handleLineIdentityVerify(env, url, body) {
+  const idToken = cleanText(body?.id_token, 12000);
+  if (!idToken) {
+    throw new ApiError(400, "LINE ID Tokenが必要です。", {
+      code: "id_token_required",
+    });
   }
-  const profileResponse = await fetch("https://api.line.me/v2/profile", {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+
+  // Contract-time binding only. The expected LINE Login Channel ID must stay on the server.
+  const expectedChannelId = cleanText(env.LINE_LOGIN_CHANNEL_ID, 200);
+  if (!expectedChannelId) {
+    throw new ApiError(409, "LINE Login Channelが未設定です。", {
+      code: "contract_binding_required",
+    });
+  }
+
+  const verifyBody = new URLSearchParams({
+    id_token: idToken,
+    client_id: expectedChannelId,
   });
-  if (!profileResponse.ok) {
-    throw new ApiError(401, "LINE本人確認に失敗しました。");
+  const verifyResponse = await fetch("https://api.line.me/oauth2/v2.1/verify", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: verifyBody.toString(),
+  });
+
+  if (!verifyResponse.ok) {
+    throw new ApiError(401, "LINE ID Tokenの本人確認に失敗しました。", {
+      code: "id_token_verification_failed",
+    });
   }
-  const profile = await profileResponse.json();
-  const verifiedUserId = cleanText(profile?.userId, 200);
-  if (!verifiedUserId) {
-    throw new ApiError(401, "LINE本人確認結果が不正です。");
+
+  const verified = await verifyResponse.json();
+  const verifiedSub = cleanText(verified?.sub, 200);
+  const verifiedAud = verified?.aud;
+  const expiresAt = Number(verified?.exp);
+  const nowEpoch = Math.floor(Date.now() / 1000);
+  const audienceMatches = Array.isArray(verifiedAud)
+    ? verifiedAud.map(String).includes(expectedChannelId)
+    : String(verifiedAud || "") === expectedChannelId;
+
+  if (!verifiedSub) {
+    throw new ApiError(401, "LINE ID Tokenのsubが確認できません。", {
+      code: "verified_sub_missing",
+    });
+  }
+  if (!audienceMatches) {
+    throw new ApiError(401, "LINE ID Tokenのaudが一致しません。", {
+      code: "audience_mismatch",
+    });
+  }
+  if (!Number.isFinite(expiresAt) || expiresAt <= nowEpoch) {
+    throw new ApiError(401, "LINE ID Tokenの有効期限が切れています。", {
+      code: "id_token_expired",
+    });
   }
 
   const facilityCode = getFacilityCode(url, env);
   const facility = await getFacilityByCode(env, facilityCode);
-  const identityHash = await sha256Hex(verifiedUserId);
+  const identityHash = await sha256Hex(verifiedSub);
   const bindings = await supabaseRequest(env, TABLES.lineIdentities, {
     query: {
       select: "id,family_member_id,user_id,is_active,bound_at",
@@ -553,8 +598,11 @@ async function handleLineIdentityVerify(request, env, url) {
     service: SERVICE_NAME,
     version: VERSION,
     verified: true,
-    identity_source: "LINE_PROFILE_API",
+    identity_source: "LINE_ID_TOKEN_OAUTH_VERIFY",
+    identity_authority: "verified_sub",
     server_verified: true,
+    audience_verified: true,
+    expiry_verified: true,
     client_line_user_id_trusted: false,
     bound: Boolean(bindings[0]),
     customer_binding_deferred: !bindings[0],
@@ -609,12 +657,6 @@ function resolveEffectiveBusinessDay(date, weekly, special) {
 
 function weekdayFromIsoDate(date) {
   return new Date(`${date}T12:00:00Z`).getUTCDay();
-}
-
-function getBearerToken(request) {
-  const auth = request.headers.get("Authorization") || "";
-  const match = auth.match(/^Bearer\s+(.+)$/i);
-  return match ? match[1].trim() : "";
 }
 
 /* ============================================================
