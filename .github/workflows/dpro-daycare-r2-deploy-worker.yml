@@ -48,7 +48,7 @@ jobs:
             echo "::add-mask::$aid"
             code=$(curl -sS -o /tmp/current-worker -w '%{http_code}' \
               -H "Authorization: Bearer $CF_TOKEN" \
-              "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/content")
+              "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/content/v2")
             if [ "$code" = "200" ]; then
               found="$aid"
               break
