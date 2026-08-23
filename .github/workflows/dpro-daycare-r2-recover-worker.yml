@@ -1,0 +1,124 @@
+name: DPRO DAYCARE R2 Recover Deployed Worker
+
+on:
+  push:
+    paths:
+      - '.github/workflows/dpro-daycare-r2-recover-worker.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SCRIPT_NAME: dpro-dayservice-line-api
+      CF_TOKEN_A: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_TOKEN_B: ${{ secrets.CF_API_TOKEN }}
+      CF_TOKEN_C: ${{ secrets.CLOUDFLARE_TOKEN }}
+      CF_ACCOUNT_A: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CF_ACCOUNT_B: ${{ secrets.CF_ACCOUNT_ID }}
+    steps:
+      - name: Recover current deployed Worker without printing source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          TOKEN="${CF_TOKEN_A:-${CF_TOKEN_B:-${CF_TOKEN_C:-}}}"
+          ACCOUNT="${CF_ACCOUNT_A:-${CF_ACCOUNT_B:-}}"
+
+          fail_json () {
+            python3 - "$1" <<'PY'
+          import json,sys
+          from pathlib import Path
+          Path('evidence/recovery.json').write_text(
+              json.dumps({'ok':False,'reason':sys.argv[1]},ensure_ascii=False,indent=2)+'\n',
+              encoding='utf-8')
+          PY
+          }
+
+          if [ -z "$TOKEN" ]; then
+            fail_json cloudflare_api_token_secret_not_found
+            exit 2
+          fi
+
+          try_account () {
+            local aid="$1"
+            local code
+            echo "::add-mask::$aid"
+            code=$(curl -sS \
+              -D evidence/worker-headers.txt \
+              -o evidence/worker-current.raw \
+              -w '%{http_code}' \
+              -H "Authorization: Bearer $TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME")
+            if [ "$code" = "200" ]; then
+              printf '%s' "$aid" > /tmp/dpro-account-id
+              return 0
+            fi
+            rm -f evidence/worker-current.raw evidence/worker-headers.txt
+            return 1
+          }
+
+          if [ -n "$ACCOUNT" ]; then
+            try_account "$ACCOUNT" || {
+              fail_json configured_account_cannot_read_target_worker
+              exit 3
+            }
+          else
+            curl -fsS -H "Authorization: Bearer $TOKEN" \
+              https://api.cloudflare.com/client/v4/accounts > /tmp/accounts.json || {
+                fail_json cloudflare_accounts_query_failed
+                exit 4
+              }
+            python3 - <<'PY' > /tmp/account-ids
+          import json
+          d=json.load(open('/tmp/accounts.json'))
+          for row in d.get('result') or []:
+              aid=row.get('id')
+              if aid: print(aid)
+          PY
+            found=0
+            while IFS= read -r aid; do
+              [ -n "$aid" ] || continue
+              if try_account "$aid"; then found=1; break; fi
+            done < /tmp/account-ids
+            if [ "$found" != "1" ]; then
+              fail_json target_worker_not_found_in_accessible_accounts
+              exit 5
+            fi
+          fi
+
+          python3 - <<'PY'
+          import hashlib,json,re
+          from pathlib import Path
+          raw=Path('evidence/worker-current.raw')
+          headers=Path('evidence/worker-headers.txt').read_text(errors='replace')
+          status=0
+          matches=re.findall(r'HTTP/\S+\s+(\d+)',headers)
+          if matches: status=int(matches[-1])
+          cts=re.findall(r'(?im)^content-type:\s*(.+)$',headers)
+          ct=cts[-1].strip() if cts else ''
+          out={
+            'ok':status==200,
+            'httpStatus':status,
+            'scriptName':'dpro-dayservice-line-api',
+            'contentType':ct,
+            'bytes':raw.stat().st_size,
+            'sha256':hashlib.sha256(raw.read_bytes()).hexdigest(),
+            'sourcePrintedToLog':False
+          }
+          Path('evidence/recovery.json').write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(out,ensure_ascii=False))
+          if not out['ok']: raise SystemExit(6)
+          PY
+
+      - name: Upload Worker recovery artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dpro-daycare-r2-worker-recovery
+          path: evidence
+          if-no-files-found: error
