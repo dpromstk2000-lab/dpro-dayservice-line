@@ -1,0 +1,165 @@
+name: DPRO DAYCARE Product READY R2 Live QA
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["DPRO DAYCARE R2 Deploy Worker"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FRONT_BASE: https://dpromstk2000-lab.github.io/dpro-dayservice-line
+      PRODUCT_URL: https://dpromstk2000-lab.github.io/dpro-line-systems-site/systems/dayservice.html
+      API_BASE: https://dpro-dayservice-line-api.dpromstk2000.workers.dev
+      BASELINE_SOURCE: 31c9223277dd048b8c461f77d2e4226fe6894fcf
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Record source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p product-ready-evidence/r2
+          git rev-parse HEAD | tee product-ready-evidence/r2/source-head.txt
+
+      - name: Runtime, CORS and public URL evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import os,json,urllib.request,urllib.error
+          from pathlib import Path
+          out={"ok":True,"worker":{},"cors":{},"public":{}}
+
+          def req(url,method="GET",headers=None,timeout=25):
+              r=urllib.request.Request(url,method=method,headers=headers or {})
+              try:
+                  with urllib.request.urlopen(r,timeout=timeout) as x:
+                      return x.status,dict(x.headers),x.read()
+              except urllib.error.HTTPError as e:
+                  return e.code,dict(e.headers),e.read()
+              except Exception as e:
+                  return None,{},str(e).encode()
+
+          api=os.environ["API_BASE"].rstrip("/")
+          for path in ("/api/health","/health"):
+              s,h,b=req(api+path,headers={"Accept":"application/json","User-Agent":"DPRO-R2-QA"})
+              if s==200:
+                  out["worker"]["healthPath"]=path
+                  out["worker"]["status"]=s
+                  try: out["worker"]["json"]=json.loads(b.decode())
+                  except Exception: out["worker"]["raw"]=b[:4000].decode("utf-8","replace")
+                  break
+          else:
+              out["worker"]["status"]=s
+              out["ok"]=False
+
+          allowed="https://dpromstk2000-lab.github.io"
+          hp=out["worker"].get("healthPath","/api/health")
+          s,h,b=req(api+hp,method="OPTIONS",headers={"Origin":allowed,"Access-Control-Request-Method":"GET"})
+          ah=h.get("Access-Control-Allow-Origin") or h.get("access-control-allow-origin")
+          s2,h2,b2=req(api+hp,method="OPTIONS",headers={"Origin":"https://evil.example","Access-Control-Request-Method":"GET"})
+          dh=h2.get("Access-Control-Allow-Origin") or h2.get("access-control-allow-origin")
+          out["cors"]={"allowedOrigin":ah,"evilOrigin":dh,"wildcardForbidden":ah!="*" and dh!="*",
+                       "evilOriginRejected":dh!="*" and dh!="https://evil.example"}
+          if not out["cors"]["wildcardForbidden"] or not out["cors"]["evilOriginRejected"]:
+              out["ok"]=False
+
+          urls={
+              "product":os.environ["PRODUCT_URL"],
+              "demo":"https://dpromstk2000-lab.github.io/dpro-dayservice-line/index.html?phone=090-9999-1111&user_number=DAY-DEMO-001",
+              "system_check":"https://dpromstk2000-lab.github.io/dpro-dayservice-line/system-check.html?v=daycare-10",
+              "official":"https://dpro-shop.com/systems/dayservice"
+          }
+          for k,u in urls.items():
+              s,h,b=req(u,headers={"User-Agent":"DPRO-R2-QA"})
+              out["public"][k]={"status":s,"contentType":h.get("Content-Type") or h.get("content-type"),"bytes":len(b)}
+              if k in ("product","demo","system_check") and s!=200:
+                  out["ok"]=False
+
+          health=out["worker"].get("json") or {}
+          data=health.get("data",health) if isinstance(health,dict) else {}
+          required=["workerVersion","databaseVersion","frontendVersion","adapterVersion","versionsAligned"]
+          missing=[k for k in required if not data.get(k) and data.get(k) is not False]
+          out["versionContract"]={"missing":missing,"values":{k:data.get(k) for k in required}}
+          if missing or data.get("versionsAligned") is not True:
+              out["ok"]=False
+
+          Path("product-ready-evidence/r2/runtime-public.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          if not out["ok"]:
+              raise SystemExit(1)
+          PY
+
+      - name: Browser QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/dpro-browser product-ready-evidence/r2/screens
+          cd /tmp/dpro-browser
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          cat > qa.js <<'JS'
+          const { chromium } = require('playwright');
+          const fs = require('fs');
+          const base=process.env.FRONT_BASE;
+          const candidates = [
+            {key:'pc', paths:['/owner.html?demo=1','/dashboard.html?embed_demo=1','/reception.html?demo=1'], viewport:{width:1440,height:1000}},
+            {key:'mobile390', paths:['/index.html?demo=1','/reception.html?demo=1'], viewport:{width:390,height:844}},
+            {key:'mobile320', paths:['/index.html?demo=1','/reception.html?demo=1'], viewport:{width:320,height:720}},
+            {key:'ipad', paths:['/owner-ipad.html?demo=1','/owner-ipad.html?embed_demo=1','/item-photo-ipad.html?demo=1'], viewport:{width:1024,height:768}},
+            {key:'system-check', paths:['/system-check.html?demo=1','/system-check.html'], viewport:{width:390,height:844}},
+          ];
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const results=[];
+            for(const c of candidates){
+              let best=null;
+              for(const path of c.paths){
+                const page=await browser.newPage({viewport:c.viewport});
+                const jsErrors=[]; page.on('pageerror',e=>jsErrors.push(String(e)));
+                let status=null,loadError=null;
+                try{const r=await page.goto(base+path,{waitUntil:'networkidle',timeout:45000});status=r?.status()??null;}
+                catch(e){loadError=String(e)}
+                const m=await page.evaluate(()=>({
+                  innerWidth:window.innerWidth,
+                  scrollWidth:Math.max(document.documentElement.scrollWidth,document.body?.scrollWidth||0),
+                  text:(document.body?.innerText||'').slice(0,6000)
+                })).catch(()=>({}));
+                const overflow=(m.scrollWidth||0)>(m.innerWidth||0)+2;
+                const technical=/service[_ -]?role|supabase[_ -]?key|channel[_ -]?secret|stack trace/i.test(m.text||'');
+                const ok=status===200&&!loadError&&!overflow&&jsErrors.length===0&&!technical;
+                if(ok) await page.screenshot({path:`${process.env.GITHUB_WORKSPACE}/product-ready-evidence/r2/screens/${c.key}.png`,fullPage:true}).catch(()=>{});
+                await page.close();
+                best={key:c.key,path,status,loadError,overflow,technical,jsErrors,ok};
+                if(ok) break;
+              }
+              results.push(best);
+            }
+            await browser.close();
+            const out={ok:results.every(x=>x&&x.ok),results};
+            fs.writeFileSync(process.env.GITHUB_WORKSPACE+'/product-ready-evidence/r2/browser.json',JSON.stringify(out,null,2)+'\n');
+            if(!out.ok) process.exitCode=1;
+          })();
+          JS
+          node qa.js
+
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dpro-daycare-product-ready-r2-qa
+          path: product-ready-evidence/r2
+          if-no-files-found: error

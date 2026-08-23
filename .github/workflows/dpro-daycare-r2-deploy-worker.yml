@@ -1,0 +1,144 @@
+name: DPRO DAYCARE R2 Deploy Worker
+
+on:
+  push:
+    paths:
+      - '.github/workflows/dpro-daycare-r2-deploy-worker.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SCRIPT_NAME: dpro-dayservice-line-api
+      API_BASE: https://dpro-dayservice-line-api.dpromstk2000.workers.dev
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate source and token
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s worker.js
+          test -n "${CF_TOKEN:-}" || { echo 'CLOUDFLARE_API_TOKEN is missing'; exit 2; }
+          node --check <(cp worker.js /dev/stdout) 2>/dev/null || true
+          mkdir -p product-ready-evidence/r2-deploy
+          sha256sum worker.js | tee product-ready-evidence/r2-deploy/worker-source.sha256
+
+      - name: Find account containing target Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $CF_TOKEN" \
+            https://api.cloudflare.com/client/v4/accounts > /tmp/accounts.json
+          python3 - <<'PY' > /tmp/account-ids
+          import json
+          d=json.load(open('/tmp/accounts.json'))
+          for row in d.get('result') or []:
+              if row.get('id'): print(row['id'])
+          PY
+          found=''
+          while IFS= read -r aid; do
+            [ -n "$aid" ] || continue
+            echo "::add-mask::$aid"
+            code=$(curl -sS -o /tmp/current-worker -w '%{http_code}' \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/content")
+            if [ "$code" = "200" ]; then
+              found="$aid"
+              break
+            fi
+          done < /tmp/account-ids
+          [ -n "$found" ] || { echo 'Target Worker not found in accessible accounts'; exit 3; }
+          printf '%s' "$found" > /tmp/dpro-account-id
+
+      - name: Deploy Worker content only
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/dpro-account-id)
+          code=$(curl -sS \
+            -o product-ready-evidence/r2-deploy/cloudflare-deploy-response.json \
+            -w '%{http_code}' \
+            -X PUT \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            -F 'metadata={"main_module":"worker.js"};type=application/json' \
+            -F 'worker.js=@worker.js;type=application/javascript+module' \
+            "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/content")
+          echo "HTTP $code"
+          [ "$code" = "200" ] || { cat product-ready-evidence/r2-deploy/cloudflare-deploy-response.json; exit 4; }
+          python3 - <<'PY'
+          import json
+          p='product-ready-evidence/r2-deploy/cloudflare-deploy-response.json'
+          d=json.load(open(p))
+          print({'success':d.get('success'), 'errors':d.get('errors'), 'messages':d.get('messages')})
+          if d.get('success') is not True: raise SystemExit(5)
+          PY
+
+      - name: R2 live contract checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json,time,urllib.request,urllib.error
+          from pathlib import Path
+          api='https://dpro-dayservice-line-api.dpromstk2000.workers.dev'
+          allowed='https://dpromstk2000-lab.github.io'
+          def req(path, method='GET', headers=None):
+              r=urllib.request.Request(api+path,method=method,headers=headers or {})
+              try:
+                  with urllib.request.urlopen(r,timeout=25) as x:
+                      return x.status,dict(x.headers),x.read()
+              except urllib.error.HTTPError as e:
+                  return e.code,dict(e.headers),e.read()
+          health=None
+          for _ in range(12):
+              s,h,b=req('/api/health?facility_code=dpro_dayservice_demo',headers={'Accept':'application/json'})
+              try: d=json.loads(b.decode())
+              except Exception: d={}
+              if s==200 and d.get('workerVersion')=='DAYCARE-3-R4-PRODUCT-READY-R2-20260823':
+                  health=d; break
+              time.sleep(2)
+          if not health: raise SystemExit('new Worker version did not become live')
+          required={
+            'workerVersion':'DAYCARE-3-R4-PRODUCT-READY-R2-20260823',
+            'databaseVersion':'DAYCARE-DB-R2-20260823-01',
+            'frontendVersion':'DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8 / IPAD-9 / SYSTEM-CHECK-10',
+            'adapterVersion':'DPRO-CONTROL-ADAPTER-1.0',
+            'versionsAligned':True,
+          }
+          for k,v in required.items():
+              if health.get(k)!=v: raise SystemExit(f'version contract mismatch {k}: {health.get(k)!r}')
+          s,h,b=req('/api/health',method='OPTIONS',headers={'Origin':allowed,'Access-Control-Request-Method':'GET'})
+          ao=h.get('Access-Control-Allow-Origin') or h.get('access-control-allow-origin')
+          if ao!=allowed: raise SystemExit(f'allowed CORS mismatch: {ao!r}')
+          s,h,b=req('/api/health',method='OPTIONS',headers={'Origin':'https://evil.example','Access-Control-Request-Method':'GET'})
+          evil=h.get('Access-Control-Allow-Origin') or h.get('access-control-allow-origin')
+          if evil in ('*','https://evil.example'): raise SystemExit(f'unsafe CORS: {evil!r}')
+          cal={}
+          for date,expect_open,expect_type in [('2099-12-29',False,'closed'),('2099-12-30',True,'special_hours')]:
+              s,h,b=req('/api/public/calendar?facility_code=dpro_dayservice_demo&date='+date)
+              d=json.loads(b.decode())
+              eff=d.get('effective') or {}
+              cal[date]=d
+              if s!=200 or eff.get('is_open') is not expect_open or eff.get('day_type')!=expect_type:
+                  raise SystemExit(f'calendar mismatch {date}: {d}')
+          s,h,b=req('/api/line/verify?facility_code=dpro_dayservice_demo',headers={'Authorization':'Bearer definitely-invalid-token'})
+          if s!=401: raise SystemExit(f'forged LINE token was not rejected: HTTP {s}')
+          out={'health':health,'cors':{'allowed':ao,'evil':evil},'calendar':cal,'forgedLineStatus':s,'ok':True}
+          Path('product-ready-evidence/r2-deploy/live-contract.json').write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          PY
+
+      - name: Upload deployment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dpro-daycare-r2-deploy-evidence
+          path: product-ready-evidence/r2-deploy
+          if-no-files-found: error
