@@ -1,0 +1,99 @@
+name: DPRO DAYCARE Product READY R3 LINE ID Token Final
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["DPRO DAYCARE R3 Deploy Worker"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  line-idtoken-final:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Static LINE identity contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import re,json,sys
+          s=Path('worker.js').read_text(encoding='utf-8')
+          checks={
+            'id_token_input': bool(re.search(r'id[_-]?token',s,re.I)),
+            'line_oauth_verify': 'https://api.line.me/oauth2/v2.1/verify' in s,
+            'client_id_verification': bool(re.search(r'client_id',s,re.I)),
+            'verified_sub': bool(re.search(r'\bsub\b',s)),
+            'audience_check': bool(re.search(r'\baud\b|audience',s,re.I)),
+            'expected_channel_binding': bool(re.search(r'LINE.*CHANNEL.*ID|CHANNEL.*ID.*LINE',s,re.I)),
+            'no_profile_api_identity_authority': 'https://api.line.me/v2/profile' not in s,
+            'client_line_id_not_authority': not bool(re.search(r'line[_A-Za-z]*user[_A-Za-z]*id\s*[:=].*body',s,re.I)),
+          }
+          out={'ok':all(checks.values()),'checks':checks}
+          Path('daycare-r3-static.json').write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          if not out['ok']: sys.exit(1)
+          PY
+
+      - name: Live runtime and negative security checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json,urllib.request,urllib.error
+          from pathlib import Path
+          BASE='https://dpro-dayservice-line-api.dpromstk2000.workers.dev'
+          ORIGIN='https://dpromstk2000-lab.github.io'
+          def req(path,method='GET',headers=None,body=None):
+            h={'Accept':'application/json','User-Agent':'DPRO-DAYCARE-R3-QA'}
+            h.update(headers or {})
+            data=None if body is None else json.dumps(body).encode()
+            if data is not None: h['Content-Type']='application/json'
+            r=urllib.request.Request(BASE+path,method=method,headers=h,data=data)
+            try:
+              with urllib.request.urlopen(r,timeout=25) as x:
+                raw=x.read(); return x.status,dict(x.headers),raw
+            except urllib.error.HTTPError as e:
+              return e.code,dict(e.headers),e.read()
+          out={'ok':True,'checks':{}}
+          s,h,b=req('/api/health')
+          d=json.loads(b.decode()) if b else {}
+          out['health']=d
+          out['checks']['health_200']=s==200 and d.get('ok') is True
+          out['checks']['database_version']=d.get('databaseVersion')=='DAYCARE-DB-R2-20260823-01'
+          out['checks']['adapter_version']=d.get('adapterVersion')=='DPRO-CONTROL-ADAPTER-1.0'
+          out['checks']['versions_aligned']=d.get('versionsAligned') is True
+          s,h,b=req('/api/health','OPTIONS',{'Origin':ORIGIN,'Access-Control-Request-Method':'GET'})
+          allow=h.get('Access-Control-Allow-Origin') or h.get('access-control-allow-origin')
+          out['checks']['cors_allowlist']=allow==ORIGIN
+          s2,h2,b2=req('/api/health','OPTIONS',{'Origin':'https://evil.example','Access-Control-Request-Method':'GET'})
+          evil=h2.get('Access-Control-Allow-Origin') or h2.get('access-control-allow-origin')
+          out['checks']['cors_evil_not_allowed']=evil not in ('*','https://evil.example')
+          # Missing/forged ID Token must never authenticate. 400/401/403/409 are all fail-closed.
+          s,h,b=req('/api/line/verify','POST',{}, {'line_user_id':'UFORGED'})
+          out['checks']['client_line_user_id_rejected']=s in (400,401,403,409)
+          s,h,b=req('/api/line/verify','POST',{}, {'id_token':'eyJhbGciOiJub25lIn0.eyJzdWIiOiJVRk9SR0VEIiwiYXVkIjoiZmFrZSJ9.'})
+          out['checks']['forged_id_token_rejected']=s in (400,401,403,409)
+          out['ok']=all(out['checks'].values())
+          Path('daycare-r3-live.json').write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          if not out['ok']: raise SystemExit(1)
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dpro-daycare-product-ready-r3-line-idtoken
+          path: |
+            daycare-r3-static.json
+            daycare-r3-live.json
+          if-no-files-found: error
