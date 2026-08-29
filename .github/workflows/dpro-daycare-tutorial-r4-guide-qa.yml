@@ -1,0 +1,282 @@
+name: DPRO DAYCARE Tutorial R4 Guide QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'guide-center.html'
+      - 'tutorial-daycare.js'
+      - 'tutorial-daycare.css'
+      - '.github/workflows/dpro-daycare-tutorial-r4-guide-qa.yml'
+
+permissions:
+  contents: write
+
+env:
+  FRONT_BASE: https://dpromstk2000-lab.github.io/dpro-dayservice-line
+  EXPECTED_TUTORIAL_VERSION: DPRO-TUTORIAL-DAYCARE-R3-V1.1-20260829
+  EXPECTED_GUIDE_VERSION: DPRO-GUIDE-CENTER-DAYCARE-R4-V1.0-20260829
+
+jobs:
+  guide-qa:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Record forward-only R4 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p tutorial-evidence/r4
+          git rev-parse HEAD | tee tutorial-evidence/r4/source-head-before.txt
+          git rev-parse HEAD^{tree} | tee tutorial-evidence/r4/source-tree-before.txt
+          git log -1 --pretty=%s | tee tutorial-evidence/r4/source-commit-before.txt
+
+      - name: Validate R3 lock and R4 shared contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tutorial-daycare.js
+          python3 <<'PY'
+          from pathlib import Path
+          js=Path('tutorial-daycare.js').read_text(encoding='utf-8')
+          css=Path('tutorial-daycare.css').read_text(encoding='utf-8')
+          guide=Path('guide-center.html').read_text(encoding='utf-8')
+          checks={
+            'FIRST10_COUNT_10': js.count("id:'DAYCARE-F10-")==10,
+            'TUTORIAL_VERSION_LOCK': "DPRO-TUTORIAL-DAYCARE-R3-V1.1-20260829" in js,
+            'GUIDE_VERSION': "DPRO-GUIDE-CENTER-DAYCARE-R4-V1.0-20260829" in js and "DPRO-GUIDE-CENTER-DAYCARE-R4-V1.0-20260829" in guide,
+            'SAME_STORAGE_CONTRACT': "dpro_daycare_tutorial_state_v11" in js and "dpro_daycare_tutorial_position_v11" in js,
+            'GUIDE_USES_TUTORIAL_API': all(x in js for x in ["guideStart", "guideResume", "guideReplay", "guideNavigate"]),
+            'NO_SECOND_STEP_COPY': "DAYCARE-F10-" not in guide,
+            'NO_SECOND_STORAGE_WRITES': "localStorage.setItem" not in guide and "localStorage.removeItem" not in guide,
+            'NO_FETCH_FROM_TUTORIAL_OR_GUIDE': "fetch(" not in js and ".fetch(" not in js and "fetch(" not in guide,
+            'GUIDE_LINK': "dpro-tutorial-guide-link" in js and "dpro-tutorial-guide-link" in css,
+            'INDEX_ONLY_TUTORIAL_UI': "const isIndex=" in js,
+          }
+          out='\n'.join(f'{k}={"PASS" if v else "FAIL"}' for k,v in checks.items())+'\n'
+          Path('tutorial-evidence/r4/static-contract.txt').write_text(out,encoding='utf-8')
+          failed=[k for k,v in checks.items() if not v]
+          if failed: raise SystemExit('R4 static contract failed: '+','.join(failed))
+          PY
+
+      - name: Apply R4 cache-safe loaders to index only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          before=s
+          if 'tutorial-daycare.css' not in s or 'tutorial-daycare.js' not in s:
+              raise SystemExit('R3 tutorial loaders are missing from index.html')
+          s=re.sub(r'tutorial-daycare\.css\?v=[^"\']+', 'tutorial-daycare.css?v=r4-20260829', s, count=1)
+          s=re.sub(r'tutorial-daycare\.js\?v=[^"\']+', 'tutorial-daycare.js?v=r4-20260829', s, count=1)
+          p.write_text(s,encoding='utf-8')
+          Path('tutorial-evidence/r4/index-cache-patch.txt').write_text(
+              f'changed={s!=before}\ncss_r4={"tutorial-daycare.css?v=r4-20260829" in s}\njs_r4={"tutorial-daycare.js?v=r4-20260829" in s}\n', encoding='utf-8')
+          PY
+
+      - name: Commit R4 index cache loader forward-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- index.html; then
+            echo 'No R4 index cache loader change needed.'
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add index.html
+            git commit -m 'Integrate DAYCARE Guide Center R4 [skip ci]'
+            git push origin HEAD:main
+          fi
+          git rev-parse HEAD | tee tutorial-evidence/r4/source-head-applied.txt
+          git rev-parse HEAD^{tree} | tee tutorial-evidence/r4/source-tree-applied.txt
+
+      - name: Wait for public GitHub Pages R4 deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          ok=0
+          for i in $(seq 1 72); do
+            html="$(curl -fsSL --max-time 20 "$FRONT_BASE/index.html?dpro_r4_deploy=$GITHUB_RUN_ID-$i" || true)"
+            guide="$(curl -fsSL --max-time 20 "$FRONT_BASE/guide-center.html?dpro_r4_deploy=$GITHUB_RUN_ID-$i" || true)"
+            js="$(curl -fsSL --max-time 20 "$FRONT_BASE/tutorial-daycare.js?dpro_r4_deploy=$GITHUB_RUN_ID-$i" || true)"
+            if grep -q 'tutorial-daycare.js?v=r4-20260829' <<<"$html" \
+              && grep -q "$EXPECTED_GUIDE_VERSION" <<<"$guide" \
+              && grep -q "$EXPECTED_GUIDE_VERSION" <<<"$js" \
+              && grep -q 'guideNavigate' <<<"$js"; then
+              echo "PUBLIC_R4_DEPLOY=PASS attempt=$i" | tee tutorial-evidence/r4/public-deploy.txt
+              ok=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "$ok" != 1 ]; then
+            echo 'PUBLIC_R4_DEPLOY=FAIL' | tee tutorial-evidence/r4/public-deploy.txt
+            exit 1
+          fi
+
+      - name: Exact LIVE Guide Center browser QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/dpro-r4-browser tutorial-evidence/r4/screens
+          cd /tmp/dpro-r4-browser
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          cat > qa.js <<'JS'
+          const { chromium } = require('playwright');
+          const fs = require('fs');
+          const path = require('path');
+          const base=process.env.FRONT_BASE;
+          const outDir=path.join(process.env.GITHUB_WORKSPACE,'tutorial-evidence/r4');
+          const viewports=[
+            {key:'pc1440',width:1440,height:1000,touch:false},
+            {key:'tablet1024',width:1024,height:768,touch:false},
+            {key:'mobile390',width:390,height:844,touch:true},
+            {key:'mobile320',width:320,height:720,touch:true},
+          ];
+          const expectedIds=Array.from({length:10},(_,i)=>`DAYCARE-F10-${String(i+1).padStart(2,'0')}`);
+          const safeMethods=new Set(['GET','HEAD','OPTIONS']);
+          async function currentIndex(page){return page.evaluate(()=>window.DPRO_DAYCARE_TUTORIAL?.getActiveStep?.());}
+          async function currentId(page){return page.evaluate(()=>{const api=window.DPRO_DAYCARE_TUTORIAL;const i=api?.getActiveStep?.();return i===null||i===undefined?null:api.steps[i].id;});}
+          async function waitGuide(page){await page.waitForFunction(()=>document.documentElement.dataset.dproGuideReady==='true'&&window.DPRO_DAYCARE_TUTORIAL?.steps?.length===10,{timeout:30000});}
+          async function waitTutorial(page){await page.waitForFunction(()=>window.DPRO_DAYCARE_TUTORIAL?.steps?.length===10&&document.querySelector('#dpro-tutorial-launcher'),{timeout:30000});}
+          async function gotoGuide(page,tag){await page.goto(`${base}/guide-center.html?dpro_r4_qa=${tag}-${Date.now()}`,{waitUntil:'networkidle',timeout:60000});await waitGuide(page);}
+          async function clean(page,tag){await gotoGuide(page,tag);await page.evaluate(()=>{localStorage.removeItem('dpro_daycare_tutorial_state_v11');localStorage.removeItem('dpro_daycare_tutorial_position_v11');});await page.reload({waitUntil:'networkidle'});await waitGuide(page);}
+          async function widths(page){return page.evaluate(()=>({innerWidth:innerWidth,deScrollWidth:document.documentElement.scrollWidth,bodyScrollWidth:document.body.scrollWidth}));}
+          function noOverflow(w){return w.deScrollWidth<=w.innerWidth&&w.bodyScrollWidth<=w.innerWidth;}
+          async function runViewport(browser,v){
+            const context=await browser.newContext({viewport:{width:v.width,height:v.height},hasTouch:v.touch,isMobile:false});
+            const page=await context.newPage();
+            const pageErrors=[];const consoleErrors=[];const unsafe=[];
+            page.on('pageerror',e=>pageErrors.push(String(e)));
+            page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
+            page.on('request',r=>{if(!safeMethods.has(r.method()))unsafe.push({method:r.method(),url:r.url()})});
+            const checks={};
+            await clean(page,v.key);
+            checks.guideVersion=(await page.getAttribute('body','data-guide-version'))==='DPRO-GUIDE-CENTER-DAYCARE-R4-V1.0-20260829';
+            checks.guideCount=(await page.locator('.step').count())===10;
+            const alignment=await page.evaluate(()=>{
+              const api=window.DPRO_DAYCARE_TUTORIAL;const nodes=[...document.querySelectorAll('.step')];
+              return nodes.map((n,i)=>({
+                id:n.dataset.stepId===api.steps[i].id,
+                route:n.dataset.route===api.steps[i].route,
+                primary:n.dataset.primary===api.steps[i].primary,
+                fallback:n.dataset.fallback===api.steps[i].fallback.join('||'),
+                title:n.querySelector('h4')?.textContent===api.steps[i].title,
+                copy:n.querySelector('.step-copy')?.textContent===api.steps[i].copy,
+              }));
+            });
+            checks.authoritativeAlignment=alignment.length===10&&alignment.every(x=>Object.values(x).every(Boolean));
+            checks.stepIds=JSON.stringify(await page.locator('.step').evaluateAll(ns=>ns.map(n=>n.dataset.stepId)))===JSON.stringify(expectedIds);
+            checks.noExtraLegacy=(await page.locator('.step').count())===10;
+            checks.resumeHiddenWhenClean=!(await page.isVisible('#guideResume'));
+            checks.replayHiddenWhenClean=!(await page.isVisible('#guideReplay'));
+            checks.startVisible=await page.isVisible('#guideStart');
+            const guideWidthsClean=await widths(page);checks.guideOverflowClean=noOverflow(guideWidthsClean);
+
+            // Keyboard focus on Guide Center and Start -> Step 1.
+            await page.keyboard.press('Tab');await page.keyboard.press('Tab');
+            const focusData=await page.evaluate(()=>{const e=document.activeElement;const s=getComputedStyle(e);return {id:e?.id,outline:s.outlineStyle,width:s.outlineWidth};});
+            checks.guideFocusVisible=focusData.id==='guideStart'&&focusData.outline!=='none'&&parseFloat(focusData.width||'0')>0;
+            await page.keyboard.press('Enter');
+            await waitTutorial(page);
+            await page.waitForSelector('#dpro-tutorial-card[aria-hidden="false"]');
+            checks.startToStep1=(await currentId(page))===expectedIds[0];
+            checks.productRegression=await page.evaluate(()=>['#credentialSection','#phoneInput','#userNumberInput','#quickSection','.bottom-nav'].every(s=>document.querySelector(s)));
+            const indexWidthsStart=await widths(page);checks.indexOverflowStart=noOverflow(indexWidthsStart);
+
+            // Pause at Step 3 -> Guide Resume -> same Step 3.
+            await page.click('#dpro-tutorial-next');await page.click('#dpro-tutorial-next');
+            const pausedId=await currentId(page);
+            await page.click('#dpro-tutorial-close');
+            checks.tutorialCloseFocus=(await page.evaluate(()=>document.activeElement?.id))==='dpro-tutorial-launcher';
+            await page.click('#dpro-tutorial-guide-link');await waitGuide(page);
+            checks.resumeVisible=await page.isVisible('#guideResume');
+            checks.resumeStatus=/3\s*\/\s*10/.test(await page.textContent('#guideStatus'));
+            checks.resumeProgress=(await page.getAttribute('#guideProgress','style')||'').includes('30%');
+            await page.click('#guideResume');await waitTutorial(page);await page.waitForSelector('#dpro-tutorial-card[aria-hidden="false"]');
+            checks.resumeSameStep=(await currentId(page))===pausedId&&pausedId===expectedIds[2];
+
+            // Complete -> Guide Replay -> Step 1.
+            while((await currentIndex(page))<9)await page.click('#dpro-tutorial-next');
+            await page.click('#dpro-tutorial-next');
+            checks.completedState=(await page.evaluate(()=>window.DPRO_DAYCARE_TUTORIAL.getState()?.status))==='completed';
+            await page.click('#dpro-tutorial-done');
+            await page.click('#dpro-tutorial-guide-link');await waitGuide(page);
+            checks.completedResumeHidden=!(await page.isVisible('#guideResume'));
+            checks.completedReplayVisible=await page.isVisible('#guideReplay');
+            checks.completedProgress=(await page.getAttribute('#guideProgress','style')||'').includes('100%');
+            await page.click('#guideReplay');await waitTutorial(page);await page.waitForSelector('#dpro-tutorial-card[aria-hidden="false"]');
+            checks.completeReplayStep1=(await currentId(page))===expectedIds[0];
+
+            // Skip -> Guide Replay -> Step 1.
+            await page.click('#dpro-tutorial-skip');
+            checks.skippedState=(await page.evaluate(()=>window.DPRO_DAYCARE_TUTORIAL.getState()?.status))==='skipped';
+            await page.click('#dpro-tutorial-guide-link');await waitGuide(page);
+            checks.skippedResumeHidden=!(await page.isVisible('#guideResume'));
+            checks.skippedReplayVisible=await page.isVisible('#guideReplay');
+            await page.click('#guideReplay');await waitTutorial(page);await page.waitForSelector('#dpro-tutorial-card[aria-hidden="false"]');
+            checks.skipReplayStep1=(await currentId(page))===expectedIds[0];
+
+            // Guide Close and Escape behavior where applicable.
+            await page.click('#dpro-tutorial-close');await page.click('#dpro-tutorial-guide-link');await waitGuide(page);
+            await page.click('#guideClose');await waitTutorial(page);checks.guideClose=(new URL(page.url())).pathname.endsWith('/index.html');
+            await page.click('#dpro-tutorial-guide-link');await waitGuide(page);await page.keyboard.press('Escape');await waitTutorial(page);checks.guideEsc=(new URL(page.url())).pathname.endsWith('/index.html');
+
+            await gotoGuide(page,`${v.key}-final`);
+            const guideWidthsFinal=await widths(page);checks.guideOverflowFinal=noOverflow(guideWidthsFinal);
+            checks.pageErrors=pageErrors.length===0;checks.consoleErrors=consoleErrors.length===0;checks.unsafeWriteRequests=unsafe.length===0;checks.businessMutation=unsafe.length===0;
+            await page.screenshot({path:path.join(outDir,'screens',`${v.key}-guide.png`),fullPage:true}).catch(()=>{});
+            const must=['guideVersion','guideCount','authoritativeAlignment','stepIds','noExtraLegacy','resumeHiddenWhenClean','replayHiddenWhenClean','startVisible','guideOverflowClean','guideFocusVisible','startToStep1','productRegression','indexOverflowStart','tutorialCloseFocus','resumeVisible','resumeStatus','resumeProgress','resumeSameStep','completedState','completedResumeHidden','completedReplayVisible','completedProgress','completeReplayStep1','skippedState','skippedResumeHidden','skippedReplayVisible','skipReplayStep1','guideClose','guideEsc','guideOverflowFinal','pageErrors','consoleErrors','unsafeWriteRequests','businessMutation'];
+            const result={key:v.key,viewport:v,checks,guideWidthsClean,indexWidthsStart,guideWidthsFinal,pageErrors,consoleErrors,unsafeRequests:unsafe,pass:must.every(k=>checks[k]===true)};
+            await context.close();return result;
+          }
+          (async()=>{
+            const browser=await chromium.launch({headless:true});const results=[];
+            for(const v of viewports)results.push(await runViewport(browser,v));
+            await browser.close();
+            const summary={standard:'R4-V1.0',guideCount:10,first10Count:10,tutorialVersion:'DPRO-TUTORIAL-DAYCARE-R3-V1.1-20260829',guideVersion:'DPRO-GUIDE-CENTER-DAYCARE-R4-V1.0-20260829',sameStateMachine:true,results,pass:results.every(r=>r.pass)};
+            fs.writeFileSync(path.join(outDir,'live-qa.json'),JSON.stringify(summary,null,2)+'\n');console.log(JSON.stringify(summary,null,2));if(!summary.pass)process.exitCode=1;
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node qa.js
+
+      - name: Build R4 gate summary
+        if: always()
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('tutorial-evidence/r4/live-qa.json')
+          if not p.exists():
+              Path('tutorial-evidence/r4/R4_GATE.txt').write_text('R4=HOLD\nLIVE_QA=NOT_COMPLETED\n',encoding='utf-8')
+              raise SystemExit(0)
+          d=json.loads(p.read_text(encoding='utf-8'))
+          lines=[f'R4={"PASS" if d.get("pass") else "HOLD"}','R3=PASS','FIRST10_COUNT=10','GUIDE_COUNT=10','SAME_STATE_MACHINE=PASS']
+          for r in d.get('results',[]):
+              lines.append(f'{r["key"]}={"PASS" if r.get("pass") else "FAIL"}')
+              if r['key'] in ('mobile390','mobile320'):
+                  for prefix in ('guideWidthsFinal','indexWidthsStart'):
+                      w=r.get(prefix,{})
+                      lines.extend([f'{r["key"]}_{prefix}_innerWidth={w.get("innerWidth")}',f'{r["key"]}_{prefix}_documentElement_scrollWidth={w.get("deScrollWidth")}',f'{r["key"]}_{prefix}_body_scrollWidth={w.get("bodyScrollWidth")}'])
+          lines.extend(['UNSAFE_WRITE_REQUEST=0' if all(not r.get('unsafeRequests') for r in d.get('results',[])) else 'UNSAFE_WRITE_REQUEST=FAIL','BUSINESS_MUTATION=0' if all(not r.get('unsafeRequests') for r in d.get('results',[])) else 'BUSINESS_MUTATION=FAIL','R5=NOT_STARTED_NOT_AUTHORIZED','R6=NOT_STARTED_NOT_AUTHORIZED','R7=NOT_AUTHORIZED_NOT_EXECUTED'])
+          Path('tutorial-evidence/r4/R4_GATE.txt').write_text('\n'.join(lines)+'\n',encoding='utf-8')
+          PY
+
+      - name: Upload R4 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dpro-daycare-tutorial-r4-evidence
+          path: tutorial-evidence/r4
+          if-no-files-found: error
