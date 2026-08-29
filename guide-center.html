@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17643a">
+  <meta name="description" content="DPROデイサービスの操作ガイドセンター。First10の進行状況、開始、再開、再生を安全に管理します。">
+  <title>DPRO デイサービス｜Guide Center</title>
+  <style>
+    :root{--brand:#17643a;--deep:#0e4c2a;--bg:#f3f7f4;--surface:#fff;--line:#dce8e0;--muted:#637269;--blue:#245bb8;--soft:#eef8f2;--shadow:0 14px 38px rgba(20,36,26,.08)}
+    *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}body{margin:0;min-height:100vh;background:radial-gradient(circle at top right,rgba(23,100,58,.08),transparent 30rem),var(--bg);color:#14241a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif;line-height:1.65}
+    button,a{font:inherit}a{color:inherit}.wrap{width:min(860px,calc(100% - 24px));margin:0 auto;padding:18px 0 48px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.brand{display:flex;align-items:center;gap:10px}.mark{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:linear-gradient(145deg,#21864d,#0d4b29);color:#fff;font-size:20px;font-weight:900}.brand h1{margin:0;font-size:17px;line-height:1.25}.brand p{margin:2px 0 0;color:var(--muted);font-size:10px}.close-link{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 11px;border:1px solid var(--line);border-radius:11px;background:#fff;text-decoration:none;font-size:11px;font-weight:850}.hero,.panel{border:1px solid var(--line);border-radius:22px;background:var(--surface);box-shadow:var(--shadow)}.hero{padding:clamp(20px,5vw,30px);background:linear-gradient(135deg,#fff,#f0faf4)}.eyebrow{margin:0;color:var(--brand);font-size:10px;font-weight:900;letter-spacing:.08em}.hero h2{margin:4px 0 0;font-size:clamp(25px,6vw,38px);line-height:1.25}.hero-copy{margin:10px 0 0;color:#506057;font-size:13px}.status-grid{display:grid;grid-template-columns:1fr auto;gap:13px;align-items:end;margin-top:18px}.status-label{color:var(--muted);font-size:10px;font-weight:800}.status-main{margin-top:3px;color:var(--deep);font-size:15px;font-weight:900}.progress{height:8px;margin-top:9px;border-radius:999px;background:#e7efea;overflow:hidden}.progress>span{display:block;width:0;height:100%;background:var(--brand);transition:width .16s ease}.actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 13px;border:1px solid var(--line);border-radius:11px;background:#fff;color:#213228;font-weight:850;font-size:11px;cursor:pointer}.btn-primary{border-color:var(--brand);background:var(--brand);color:#fff}.btn[hidden]{display:none!important}.btn:focus-visible,.close-link:focus-visible,.step:focus-visible{outline:3px solid rgba(36,91,184,.32);outline-offset:2px}.panel{margin-top:14px;padding:18px}.panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.panel h3{margin:0;font-size:18px}.count{padding:5px 9px;border-radius:999px;background:var(--soft);color:var(--brand);font-size:10px;font-weight:900}.steps{display:grid;gap:9px}.step{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:12px;border:1px solid #e2ebe6;border-radius:14px;background:#fbfdfc}.num{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:var(--soft);color:var(--brand);font-size:11px;font-weight:900}.step h4{margin:0;font-size:13px;line-height:1.45}.step-id{margin:2px 0 0;color:#7a887f;font-size:9px;font-weight:800}.step-copy{margin:5px 0 0;color:#56665d;font-size:11px}.step-meta{margin:6px 0 0;color:#718078;font-size:9px;overflow-wrap:anywhere}.foot{margin:14px 2px 0;color:#728078;font-size:10px}.loading{padding:18px;text-align:center;color:var(--muted);font-size:12px}.error{padding:12px;border:1px solid #efc1bd;border-radius:12px;background:#fff3f1;color:#8d2c24;font-size:11px}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+    @media(max-width:640px){.status-grid{grid-template-columns:1fr}.actions{justify-content:stretch}.actions .btn{flex:1}.top{align-items:flex-start}.brand p{display:none}}
+    @media(max-width:360px){.wrap{width:calc(100% - 16px)}.hero,.panel{border-radius:17px}.step{grid-template-columns:30px 1fr;padding:10px}.num{width:30px;height:30px}}
+    @media(prefers-reduced-motion:reduce){.progress>span{transition:none}}
+  </style>
+  <script src="./tutorial-daycare.js?v=r4-20260829-guide" defer></script>
+</head>
+<body data-guide-version="DPRO-GUIDE-CENTER-DAYCARE-R4-V1.0-20260829">
+  <main class="wrap">
+    <div class="top">
+      <div class="brand"><div class="mark" aria-hidden="true">D</div><div><h1>DPRO デイサービス</h1><p>Guide Center / First10</p></div></div>
+      <a id="guideClose" class="close-link" href="./index.html">閉じて戻る</a>
+    </div>
+    <section class="hero" aria-labelledby="guideTitle">
+      <p class="eyebrow">DPRO GUIDE CENTER</p>
+      <h2 id="guideTitle">操作ガイド First10</h2>
+      <p class="hero-copy">公開デモの主要導線を、送信・保存・業務更新を行わずに確認します。Tutorialと同じ10ステップ・同じ進行状態を使用します。</p>
+      <div class="status-grid">
+        <div>
+          <div class="status-label">進行状況</div>
+          <div id="guideStatus" class="status-main">読み込み中…</div>
+          <div class="progress" aria-hidden="true"><span id="guideProgress"></span></div>
+        </div>
+        <div class="actions" aria-label="操作ガイドの操作">
+          <button id="guideStart" class="btn btn-primary" type="button">開始</button>
+          <button id="guideResume" class="btn btn-primary" type="button" hidden>再開</button>
+          <button id="guideReplay" class="btn" type="button" hidden>最初から見る</button>
+        </div>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="stepListTitle">
+      <div class="panel-head"><div><h3 id="stepListTitle">First10 ステップ一覧</h3><div class="foot">Tutorialの正本データから表示しています。</div></div><span id="guideCount" class="count">0 / 10</span></div>
+      <div id="guideSteps" class="steps"><div class="loading">ガイド情報を読み込んでいます…</div></div>
+      <div id="guideError" class="error" hidden></div>
+    </section>
+    <p class="foot">EscキーでもGuide Centerを閉じて家族向け画面へ戻れます。First10の操作中に業務データの更新は行いません。</p>
+    <div id="guideLive" class="sr" aria-live="polite"></div>
+  </main>
+  <script>
+  (()=>{
+    'use strict';
+    const $=s=>document.querySelector(s);
+    function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+    function statusText(s){if(!s)return '未開始';if(s.status==='in_progress')return `進行中：${Number(s.index||0)+1} / 10`;if(s.status==='completed')return '完了：10 / 10';if(s.status==='skipped')return `スキップ済み：${Number(s.index||0)+1} / 10`;return '未開始';}
+    function render(){
+      const api=window.DPRO_DAYCARE_TUTORIAL;
+      if(!api||api.steps?.length!==10){$('#guideSteps').innerHTML='';$('#guideError').hidden=false;$('#guideError').textContent='操作ガイドの正本を読み込めませんでした。家族向け画面へ戻って再読み込みしてください。';return;}
+      document.documentElement.dataset.dproGuideReady='true';
+      const state=api.getState();
+      $('#guideStatus').textContent=statusText(state);
+      const progress=state?.status==='completed'?100:state?((Number(state.index||0)+1)/10)*100:0;$('#guideProgress').style.width=`${progress}%`;
+      $('#guideStart').hidden=!!state;
+      $('#guideResume').hidden=state?.status!=='in_progress';
+      $('#guideReplay').hidden=!state||state?.status==='in_progress';
+      $('#guideCount').textContent=`${api.steps.length} / 10`;
+      $('#guideSteps').innerHTML=api.steps.map((step,i)=>`<article class="step" tabindex="0" data-step-id="${esc(step.id)}" data-route="${esc(step.route)}" data-primary="${esc(step.primary)}" data-fallback="${esc(step.fallback.join('||'))}"><div class="num">${String(i+1).padStart(2,'0')}</div><div><h4>${esc(step.title)}</h4><p class="step-id">${esc(step.id)}</p><p class="step-copy">${esc(step.copy)}</p><p class="step-meta">${esc(step.route)} ｜ ${esc(step.primary)} ｜ fallback: ${esc(step.fallback.join(' / '))}</p></div></article>`).join('');
+      $('#guideStart').onclick=()=>api.guideStart();$('#guideResume').onclick=()=>api.guideResume();$('#guideReplay').onclick=()=>api.guideReplay();
+      $('#guideLive').textContent=statusText(state);
+    }
+    window.addEventListener('DOMContentLoaded',()=>{render();document.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();location.assign('./index.html');}});});
+  })();
+  </script>
+</body>
+</html>

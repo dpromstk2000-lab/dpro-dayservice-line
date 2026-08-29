@@ -21,3 +21,8 @@
 @media(max-width:330px){.dpro-tutorial-complete-actions{grid-template-columns:1fr}.dpro-tutorial-actions{gap:6px}.dpro-tutorial-actions button{padding:7px 8px}}
 @media(prefers-reduced-motion:reduce){#dpro-tutorial-highlight,.dpro-tutorial-bar>span{transition:none!important}}
 @media print{#dpro-tutorial-root,#dpro-tutorial-launcher{display:none!important}}
+/* DPRO GUIDE CENTER / DAYCARE / R4 */
+#dpro-tutorial-guide-link{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(136px,calc(env(safe-area-inset-bottom) + 128px));z-index:2147482998;display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:7px 11px;border:1px solid #d8e7dd;border-radius:999px;background:#f8fbf9;color:#365342;box-shadow:0 7px 18px rgba(15,52,31,.10);font:800 10px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;text-decoration:none}
+#dpro-tutorial-guide-link:hover{background:#eef7f1}#dpro-tutorial-guide-link:focus-visible{outline:3px solid rgba(36,91,184,.35);outline-offset:2px}
+@media(max-width:390px){#dpro-tutorial-guide-link{right:8px;bottom:max(132px,calc(env(safe-area-inset-bottom) + 124px))}}
+@media print{#dpro-tutorial-guide-link{display:none!important}}
