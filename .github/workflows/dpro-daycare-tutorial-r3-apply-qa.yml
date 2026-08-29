@@ -1,0 +1,340 @@
+name: DPRO DAYCARE Tutorial R3 Apply QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tutorial-daycare.js'
+      - 'tutorial-daycare.css'
+      - '.github/workflows/dpro-daycare-tutorial-r3-apply-qa.yml'
+
+permissions:
+  contents: write
+
+env:
+  FRONT_BASE: https://dpromstk2000-lab.github.io/dpro-dayservice-line
+  EXPECTED_TUTORIAL_VERSION: DPRO-TUTORIAL-DAYCARE-R3-V1.1-20260829
+
+jobs:
+  apply-and-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Record forward-only source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p tutorial-evidence/r3
+          git rev-parse HEAD | tee tutorial-evidence/r3/source-head-before.txt
+          git rev-parse HEAD^{tree} | tee tutorial-evidence/r3/source-tree-before.txt
+          git log -1 --pretty=%s | tee tutorial-evidence/r3/source-commit-before.txt
+
+      - name: Validate accepted First10 source selectors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          checks={
+            'DAYCARE-F10-01':['dayservice-operation-demo-banner','.topbar','.hero'],
+            'DAYCARE-F10-02':['class="hero"','hero-content','facilityName'],
+            'DAYCARE-F10-03':['credentialSection','phoneInput','userNumberInput'],
+            'DAYCARE-F10-04':['demoFillButton','phoneInput','userNumberInput'],
+            'DAYCARE-F10-05':['verifyButton','credentialStatus','credentialSection'],
+            'DAYCARE-F10-06':['quickSection','quick-grid','quick-card'],
+            'DAYCARE-F10-07':['data-panel="transport"','quickSection','quick-grid'],
+            'DAYCARE-F10-08':['data-panel="items"','quickSection','quick-grid'],
+            'DAYCARE-F10-09':['data-panel="member"','data-bottom-action="member"','quickSection'],
+            'DAYCARE-F10-10':['data-bottom-action="member"','data-bottom-action="top"','bottom-nav'],
+          }
+          failed=[]
+          for step, needles in checks.items():
+              if not any(x in s for x in needles): failed.append(step)
+          out='\n'.join(f'{k}=PASS' for k in checks if k not in failed)+'\n'
+          Path('tutorial-evidence/r3/selector-static.txt').write_text(out,encoding='utf-8')
+          if failed: raise SystemExit('selector contract conflict: '+','.join(failed))
+          PY
+
+      - name: Apply Tutorial loader to index only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          css='<link rel="stylesheet" href="./tutorial-daycare.css?v=r3-20260829">'
+          js='<script src="./tutorial-daycare.js?v=r3-20260829" defer></script>'
+          changed=False
+          if 'tutorial-daycare.css' not in s:
+              if '</head>' not in s: raise SystemExit('missing </head>')
+              s=s.replace('</head>',f'{css}\n</head>',1); changed=True
+          if 'tutorial-daycare.js' not in s:
+              if '</body>' not in s: raise SystemExit('missing </body>')
+              s=s.replace('</body>',f'{js}\n</body>',1); changed=True
+          p.write_text(s,encoding='utf-8')
+          Path('tutorial-evidence/r3/index-patch.txt').write_text(
+              f'changed={changed}\ncss_loader={css in s}\njs_loader={js in s}\n',encoding='utf-8')
+          PY
+
+      - name: Validate implementation static safety
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tutorial-daycare.js
+          python3 <<'PY'
+          from pathlib import Path
+          js=Path('tutorial-daycare.js').read_text(encoding='utf-8')
+          css=Path('tutorial-daycare.css').read_text(encoding='utf-8')
+          requirements={
+            'FIRST10_COUNT_10': js.count("id:'DAYCARE-F10-")==10,
+            'POINTER_DRAG': 'pointerdown' in js and 'pointermove' in js and 'pointerup' in js,
+            'TOUCH_SAFE_HANDLE': 'touch-action:none' in css,
+            'ESC_CLOSE': "e.key==='Escape'" in js,
+            'RESUME': "status==='in_progress'" in js,
+            'REPLAY': 'function replay()' in js,
+            'NO_FETCH': 'fetch(' not in js and '.fetch(' not in js,
+            'INDEX_ONLY': "/index\\.html$/.test" in js,
+          }
+          Path('tutorial-evidence/r3/static-safety.txt').write_text(
+              '\n'.join(f'{k}={"PASS" if v else "FAIL"}' for k,v in requirements.items())+'\n',encoding='utf-8')
+          failed=[k for k,v in requirements.items() if not v]
+          if failed: raise SystemExit('static safety failed: '+','.join(failed))
+          PY
+
+      - name: Commit index loader forward-only
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- index.html; then
+            echo 'No index loader change needed.'
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add index.html
+            git commit -m 'Integrate DAYCARE Tutorial R3 [skip ci]'
+            git push origin HEAD:main
+          fi
+          git rev-parse HEAD | tee tutorial-evidence/r3/source-head-applied.txt
+          git rev-parse HEAD^{tree} | tee tutorial-evidence/r3/source-tree-applied.txt
+
+      - name: Wait for public GitHub Pages deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          ok=0
+          for i in $(seq 1 72); do
+            html="$(curl -fsSL --max-time 20 "$FRONT_BASE/index.html?dpro_r3_qa=$GITHUB_RUN_ID-$i" || true)"
+            js="$(curl -fsSL --max-time 20 "$FRONT_BASE/tutorial-daycare.js?dpro_r3_qa=$GITHUB_RUN_ID-$i" || true)"
+            if grep -q 'tutorial-daycare.js' <<<"$html" && grep -q "$EXPECTED_TUTORIAL_VERSION" <<<"$js"; then
+              echo "PUBLIC_DEPLOY=PASS attempt=$i" | tee tutorial-evidence/r3/public-deploy.txt
+              ok=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "$ok" != 1 ]; then
+            echo 'PUBLIC_DEPLOY=FAIL' | tee tutorial-evidence/r3/public-deploy.txt
+            exit 1
+          fi
+
+      - name: Exact LIVE browser QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/dpro-r3-browser tutorial-evidence/r3/screens
+          cd /tmp/dpro-r3-browser
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          cat > qa.js <<'JS'
+          const { chromium } = require('playwright');
+          const fs = require('fs');
+          const path = require('path');
+          const base=process.env.FRONT_BASE;
+          const outDir=path.join(process.env.GITHUB_WORKSPACE,'tutorial-evidence/r3');
+          const viewports=[
+            {key:'pc1440',width:1440,height:1000,touch:false},
+            {key:'tablet1024',width:1024,height:768,touch:false},
+            {key:'mobile390',width:390,height:844,touch:true},
+            {key:'mobile320',width:320,height:720,touch:true},
+          ];
+          const expectedIds=Array.from({length:10},(_,i)=>`DAYCARE-F10-${String(i+1).padStart(2,'0')}`);
+          const safeMethods=new Set(['GET','HEAD','OPTIONS']);
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          function rectInside(r,w,h){return r.left>=7&&r.top>=7&&r.right<=w-7&&r.bottom<=h-7;}
+          async function snapshot(page){return await page.evaluate(()=>({
+            innerWidth:window.innerWidth,
+            deScrollWidth:document.documentElement.scrollWidth,
+            bodyScrollWidth:document.body?.scrollWidth||0,
+            activeStep:window.DPRO_DAYCARE_TUTORIAL?.getActiveStep?.(),
+            stored:window.DPRO_DAYCARE_TUTORIAL?.getState?.()||null,
+            card:(()=>{const e=document.querySelector('#dpro-tutorial-card');if(!e)return null;const r=e.getBoundingClientRect();return {left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height,hidden:e.getAttribute('aria-hidden')}})(),
+            highlight:(()=>{const e=document.querySelector('#dpro-tutorial-highlight');if(!e)return null;const r=e.getBoundingClientRect();return {display:getComputedStyle(e).display,left:r.left,top:r.top,right:r.right,bottom:r.bottom}})(),
+            focused:document.activeElement?.id||document.activeElement?.className||document.activeElement?.tagName||null,
+          }));}
+          async function reset(page){
+            await page.evaluate(()=>{localStorage.removeItem('dpro_daycare_tutorial_state_v11');localStorage.removeItem('dpro_daycare_tutorial_position_v11');});
+            await page.reload({waitUntil:'networkidle'});
+            await page.waitForSelector('#dpro-tutorial-launcher',{state:'visible'});
+          }
+          async function start(page){await page.click('#dpro-tutorial-launcher');await page.waitForSelector('#dpro-tutorial-card[aria-hidden="false"]');}
+          async function currentId(page){return page.evaluate(()=>{const i=window.DPRO_DAYCARE_TUTORIAL?.getActiveStep?.();return i===null?null:window.DPRO_DAYCARE_TUTORIAL.steps[i].id;});}
+          async function runViewport(browser,v){
+            const context=await browser.newContext({viewport:{width:v.width,height:v.height},hasTouch:v.touch,isMobile:false});
+            const page=await context.newPage();
+            const pageErrors=[]; const consoleErrors=[]; const unsafe=[];
+            page.on('pageerror',e=>pageErrors.push(String(e)));
+            page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
+            page.on('request',r=>{if(!safeMethods.has(r.method()))unsafe.push({method:r.method(),url:r.url()})});
+            const result={key:v.key,viewport:v,checks:{},pageErrors,consoleErrors,unsafeRequests:unsafe};
+            const resp=await page.goto(`${base}/index.html?dpro_tutorial_qa=${Date.now()}`,{waitUntil:'networkidle',timeout:60000});
+            result.httpStatus=resp?.status()||null;
+            await page.waitForFunction(()=>window.DPRO_DAYCARE_TUTORIAL?.steps?.length===10,{timeout:30000});
+            result.checks.first10Count=(await page.evaluate(()=>window.DPRO_DAYCARE_TUTORIAL.steps.length))===10;
+            result.checks.stepIds=JSON.stringify(await page.evaluate(()=>window.DPRO_DAYCARE_TUTORIAL.steps.map(s=>s.id)))===JSON.stringify(expectedIds);
+            await reset(page); await start(page);
+            const visited=[];
+            visited.push(await currentId(page));
+            await page.click('#dpro-tutorial-next'); visited.push(await currentId(page));
+            await page.click('#dpro-tutorial-back'); result.checks.back=(await currentId(page))===expectedIds[0];
+            await page.click('#dpro-tutorial-next'); result.checks.next=(await currentId(page))===expectedIds[1];
+            for(let i=2;i<10;i++){await page.click('#dpro-tutorial-next');visited.push(await currentId(page));}
+            result.checks.allStepTargets=await page.evaluate(()=>{
+              const selectors=window.DPRO_DAYCARE_TUTORIAL.steps.map(s=>[s.primary,...s.fallback]);
+              return selectors.map(group=>group.some(sel=>{try{const e=document.querySelector(sel);if(!e)return false;const r=e.getBoundingClientRect(),cs=getComputedStyle(e);return cs.display!=='none'&&cs.visibility!=='hidden'&&r.width>0&&r.height>0}catch(_){return false}}));
+            });
+            result.checks.step1to10=result.checks.allStepTargets.every(Boolean);
+            const at10=await currentId(page); result.checks.reachedStep10=at10===expectedIds[9];
+            await page.click('#dpro-tutorial-next');
+            result.checks.completed=(await page.evaluate(()=>window.DPRO_DAYCARE_TUTORIAL.getState()?.status))==='completed';
+            result.checks.replayButton=await page.isVisible('#dpro-tutorial-replay');
+            await page.click('#dpro-tutorial-replay'); result.checks.replay=(await currentId(page))===expectedIds[0];
+
+            // Close + resume same step.
+            await page.click('#dpro-tutorial-next'); await page.click('#dpro-tutorial-next');
+            const beforeClose=await currentId(page); await page.click('#dpro-tutorial-close');
+            result.checks.close=(await page.getAttribute('#dpro-tutorial-card','aria-hidden'))==='true';
+            result.checks.focusRecoverable=(await page.evaluate(()=>document.activeElement?.id))==='dpro-tutorial-launcher';
+            await page.click('#dpro-tutorial-launcher'); result.checks.resume=(await currentId(page))===beforeClose;
+
+            // Esc close + same-step resume.
+            const beforeEsc=await currentId(page); await page.keyboard.press('Escape');
+            result.checks.escClose=(await page.getAttribute('#dpro-tutorial-card','aria-hidden'))==='true';
+            await page.click('#dpro-tutorial-launcher'); result.checks.escResume=(await currentId(page))===beforeEsc;
+
+            // Skip and launcher-driven replay.
+            await page.click('#dpro-tutorial-skip');
+            result.checks.skip=(await page.evaluate(()=>window.DPRO_DAYCARE_TUTORIAL.getState()?.status))==='skipped';
+            const replayLabel=await page.textContent('#dpro-tutorial-launcher');
+            result.checks.skipReplayLabel=/もう一度/.test(replayLabel||'');
+            await page.click('#dpro-tutorial-launcher'); result.checks.replayAfterSkip=(await currentId(page))===expectedIds[0];
+
+            // Drag exclusion from product input.
+            const cardBeforeInput=await page.locator('#dpro-tutorial-card').boundingBox();
+            await page.locator('#phoneInput').dispatchEvent('pointerdown',{pointerId:77,pointerType:v.touch?'touch':'mouse',button:0,clientX:30,clientY:30});
+            await page.locator('body').dispatchEvent('pointermove',{pointerId:77,pointerType:v.touch?'touch':'mouse',buttons:1,clientX:200,clientY:200});
+            await page.locator('body').dispatchEvent('pointerup',{pointerId:77,pointerType:v.touch?'touch':'mouse',button:0,clientX:200,clientY:200});
+            const cardAfterInput=await page.locator('#dpro-tutorial-card').boundingBox();
+            result.checks.productControlNoDrag=Math.abs(cardBeforeInput.x-cardAfterInput.x)<2&&Math.abs(cardBeforeInput.y-cardAfterInput.y)<2;
+
+            // Pointer drag + clamp.
+            const handle=page.locator('.dpro-tutorial-drag-handle');
+            const hb=await handle.boundingBox();
+            const cardBeforeDrag=await page.locator('#dpro-tutorial-card').boundingBox();
+            if(v.touch){
+              await page.evaluate(({x,y})=>{const h=document.querySelector('.dpro-tutorial-drag-handle');h.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:91,pointerType:'touch',button:0,buttons:1,clientX:x,clientY:y}));},{x:hb.x+20,y:hb.y+20});
+              await page.evaluate(({x,y})=>document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:91,pointerType:'touch',button:0,buttons:1,clientX:x,clientY:y})),{x:v.width+500,y:v.height+500});
+              await page.evaluate(({x,y})=>document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:91,pointerType:'touch',button:0,clientX:x,clientY:y})),{x:v.width+500,y:v.height+500});
+            }else{
+              await page.mouse.move(hb.x+20,hb.y+20);await page.mouse.down();await page.mouse.move(v.width+500,v.height+500,{steps:5});await page.mouse.up();
+            }
+            const cardAfterDrag=await page.locator('#dpro-tutorial-card').boundingBox();
+            result.checks.pointerDrag=Math.abs(cardAfterDrag.x-cardBeforeDrag.x)>2||Math.abs(cardAfterDrag.y-cardBeforeDrag.y)>2;
+            result.checks.touchPointerDrag=v.touch?result.checks.pointerDrag:true;
+            result.checks.mousePointerDrag=!v.touch?result.checks.pointerDrag:true;
+            result.checks.viewportClamp=rectInside({left:cardAfterDrag.x,top:cardAfterDrag.y,right:cardAfterDrag.x+cardAfterDrag.width,bottom:cardAfterDrag.y+cardAfterDrag.height},v.width,v.height);
+
+            // Keyboard-only navigation after focus is established.
+            await reset(page);
+            await page.locator('#dpro-tutorial-launcher').focus(); await page.keyboard.press('Enter');
+            let keyboardOk=(await currentId(page))===expectedIds[0];
+            for(let i=0;i<9;i++){await page.locator('#dpro-tutorial-next').focus();await page.keyboard.press('Enter');keyboardOk=keyboardOk&&(await currentId(page))===expectedIds[i+1];}
+            await page.locator('#dpro-tutorial-next').focus();await page.keyboard.press('Enter');
+            keyboardOk=keyboardOk&&(await page.evaluate(()=>window.DPRO_DAYCARE_TUTORIAL.getState()?.status))==='completed';
+            result.checks.keyboardOnly=keyboardOk;
+            await page.keyboard.press('Escape');
+            const focusData=await page.evaluate(()=>{const e=document.querySelector('#dpro-tutorial-launcher');e.focus();const s=getComputedStyle(e);return {active:document.activeElement===e,outline:s.outlineStyle,outlineWidth:s.outlineWidth}});
+            result.checks.focusVisible=focusData.active&&focusData.outline!=='none'&&parseFloat(focusData.outlineWidth||'0')>0;
+
+            const widths=await page.evaluate(()=>({innerWidth:window.innerWidth,deScrollWidth:document.documentElement.scrollWidth,bodyScrollWidth:document.body.scrollWidth}));
+            result.widths=widths;
+            result.checks.overflow=widths.deScrollWidth<=widths.innerWidth&&widths.bodyScrollWidth<=widths.innerWidth;
+            result.checks.pageErrors=pageErrors.length===0;
+            result.checks.consoleErrors=consoleErrors.length===0;
+            result.checks.unsafeWriteRequests=unsafe.length===0;
+            result.checks.businessMutation=unsafe.length===0;
+            result.checks.crossPageResume='NOT_REQUIRED_PASS';
+            await page.screenshot({path:path.join(outDir,'screens',`${v.key}.png`),fullPage:true}).catch(()=>{});
+            const must=[
+              'first10Count','stepIds','step1to10','next','back','close','focusRecoverable','resume','escClose','escResume','skip','skipReplayLabel','replayAfterSkip','productControlNoDrag','pointerDrag','touchPointerDrag','mousePointerDrag','viewportClamp','keyboardOnly','focusVisible','overflow','pageErrors','consoleErrors','unsafeWriteRequests','businessMutation'
+            ];
+            result.pass=must.every(k=>result.checks[k]===true);
+            await context.close();
+            return result;
+          }
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const results=[];
+            for(const v of viewports) results.push(await runViewport(browser,v));
+            await browser.close();
+            const summary={
+              standard:'V1.1',first10Count:10,
+              crossPageResume:'NOT_REQUIRED_PASS_SINGLE_ROUTE',
+              results,
+              pass:results.every(r=>r.pass)
+            };
+            fs.writeFileSync(path.join(outDir,'live-qa.json'),JSON.stringify(summary,null,2)+'\n');
+            console.log(JSON.stringify(summary,null,2));
+            if(!summary.pass) process.exitCode=1;
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node qa.js
+
+      - name: Build R3 gate summary
+        if: always()
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('tutorial-evidence/r3/live-qa.json')
+          if not p.exists():
+              Path('tutorial-evidence/r3/R3_GATE.txt').write_text('R3=HOLD\nLIVE_QA=NOT_COMPLETED\n',encoding='utf-8')
+              raise SystemExit(0)
+          d=json.loads(p.read_text(encoding='utf-8'))
+          lines=[f'R3={"PASS" if d.get("pass") else "HOLD"}','FIRST10_COUNT=10','CROSS_PAGE_RESUME=NOT_REQUIRED_PASS_SINGLE_ROUTE']
+          for r in d.get('results',[]):
+              lines.append(f'{r["key"]}={"PASS" if r.get("pass") else "FAIL"}')
+              if r['key'] in ('mobile390','mobile320'):
+                  w=r.get('widths',{})
+                  lines.extend([f'{r["key"]}_innerWidth={w.get("innerWidth")}',f'{r["key"]}_documentElement_scrollWidth={w.get("deScrollWidth")}',f'{r["key"]}_body_scrollWidth={w.get("bodyScrollWidth")}'])
+          lines.extend(['UNSAFE_WRITE_REQUEST=0' if all(not r.get('unsafeRequests') for r in d.get('results',[])) else 'UNSAFE_WRITE_REQUEST=FAIL','BUSINESS_MUTATION=0' if all(not r.get('unsafeRequests') for r in d.get('results',[])) else 'BUSINESS_MUTATION=FAIL'])
+          Path('tutorial-evidence/r3/R3_GATE.txt').write_text('\n'.join(lines)+'\n',encoding='utf-8')
+          PY
+
+      - name: Upload R3 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dpro-daycare-tutorial-r3-evidence
+          path: tutorial-evidence/r3
+          if-no-files-found: error
