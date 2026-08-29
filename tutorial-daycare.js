@@ -1,4 +1,4 @@
-/* DPRO TUTORIAL STANDARD V1.1 / DAYCARE / R3 */
+/* DPRO TUTORIAL STANDARD V1.1 / DAYCARE / R3 / REPLAY-FOCUS SYNC FIX */
 (function dproDaycareTutorial(global){
   'use strict';
   if(!global.document || global.__DPRO_DAYCARE_TUTORIAL_V11__) return;
@@ -44,9 +44,10 @@
     $('#dpro-tutorial-count').textContent=`${state.index+1} / ${STEPS.length}`;$('#dpro-tutorial-bar-fill').style.width=`${((state.index+1)/STEPS.length)*100}%`;
     $('#dpro-tutorial-back').disabled=state.index===0;$('#dpro-tutorial-next').textContent=state.index===STEPS.length-1?'完了':'次へ';
     saveState('in_progress',state.index);announce(`${state.index+1}番目、${step.title}`);if(focus){setTimeout(()=>$('#dpro-tutorial-next')?.focus({preventScroll:true}),40);}}
-  function showTutorial(index){state.lastFocus=document.activeElement;state.active=true;const card=$('#dpro-tutorial-card');card.setAttribute('aria-hidden','false');card.innerHTML=card.dataset.stepMarkup;const savedPos=readJSON(POSITION_KEY,null);requestAnimationFrame(()=>{applyPosition(savedPos||defaultPosition());renderStep(index,true);});updateLauncher();}
-  function pauseTutorial(){if(!state.active)return;const persisted=readState();if(!persisted||!['completed','skipped'].includes(persisted.status))saveState('in_progress',state.index);state.active=false;clearHighlight();const card=$('#dpro-tutorial-card');card.setAttribute('aria-hidden','true');card.innerHTML='';updateLauncher();setTimeout(()=>$('#dpro-tutorial-launcher')?.focus({preventScroll:true}),20);}
-  function skipTutorial(){saveState('skipped',state.index);state.active=false;clearHighlight();const card=$('#dpro-tutorial-card');card.setAttribute('aria-hidden','true');card.innerHTML='';updateLauncher();setTimeout(()=>$('#dpro-tutorial-launcher')?.focus({preventScroll:true}),20);}
+  function focusLauncher(){const launcher=$('#dpro-tutorial-launcher');if(!launcher)return;launcher.focus({preventScroll:true});requestAnimationFrame(()=>{if(document.activeElement!==launcher)launcher.focus({preventScroll:true});});}
+  function showTutorial(index){state.lastFocus=document.activeElement;state.active=true;state.drag=null;const card=$('#dpro-tutorial-card');if(!card)return;card.setAttribute('aria-hidden','false');card.innerHTML=card.dataset.stepMarkup;const savedPos=readJSON(POSITION_KEY,null);const initialIndex=clamp(Number(index)||0,0,STEPS.length-1);state.index=initialIndex;applyPosition(savedPos||defaultPosition());renderStep(initialIndex,true);updateLauncher();}
+  function pauseTutorial(){if(!state.active)return;const persisted=readState();if(!persisted||!['completed','skipped'].includes(persisted.status))saveState('in_progress',state.index);state.active=false;state.drag=null;clearHighlight();const card=$('#dpro-tutorial-card');card.setAttribute('aria-hidden','true');card.innerHTML='';updateLauncher();focusLauncher();}
+  function skipTutorial(){saveState('skipped',state.index);state.active=false;state.drag=null;clearHighlight();const card=$('#dpro-tutorial-card');card.setAttribute('aria-hidden','true');card.innerHTML='';updateLauncher();focusLauncher();}
   function completeTutorial(){saveState('completed',STEPS.length-1);clearHighlight();const card=$('#dpro-tutorial-card');card.innerHTML=`<div class="dpro-tutorial-complete"><p class="dpro-tutorial-kicker">FIRST10 COMPLETE</p><h2>10ステップ完了</h2><p>家族向け画面の安全な主要導線を確認しました。送信・保存・業務更新はチュートリアルから実行していません。</p><div class="dpro-tutorial-complete-actions"><button type="button" id="dpro-tutorial-replay" class="dpro-primary">最初から見る</button><button type="button" id="dpro-tutorial-done">閉じる</button></div></div>`;clearHighlight();updateLauncher();setTimeout(()=>$('#dpro-tutorial-replay')?.focus({preventScroll:true}),30);}
   function replay(){showTutorial(0);}
   function startOrResume(){const s=readState();if(s?.status==='in_progress')showTutorial(s.index);else showTutorial(0);}
