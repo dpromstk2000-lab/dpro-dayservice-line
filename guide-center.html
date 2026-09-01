@@ -68,7 +68,22 @@
       $('#guideStart').onclick=()=>api.guideStart();$('#guideResume').onclick=()=>api.guideResume();$('#guideReplay').onclick=()=>api.guideReplay();
       $('#guideLive').textContent=statusText(state);
     }
-    window.addEventListener('DOMContentLoaded',()=>{render();document.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();location.assign('./index.html');}});});
+    window.addEventListener('DOMContentLoaded',()=>{
+      const fromOwner=new URLSearchParams(location.search).get('from')==='owner';
+      document.documentElement.setAttribute('data-dpro-chat-b-owner-return-mode',fromOwner?'owner':'public');
+      const close=$('#guideClose');
+      if(fromOwner&&close){
+        close.href='./owner.html';
+        close.textContent='Owner PCへ戻る';
+      }
+      render();
+      document.addEventListener('keydown',e=>{
+        if(e.key==='Escape'){
+          e.preventDefault();
+          location.assign(fromOwner?'./owner.html':'./index.html');
+        }
+      });
+    });
   })();
   </script>
 </body>
