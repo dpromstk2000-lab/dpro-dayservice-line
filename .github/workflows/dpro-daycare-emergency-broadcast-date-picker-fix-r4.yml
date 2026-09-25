@@ -1,0 +1,260 @@
+name: DPRO DAYCARE Emergency Broadcast Date Picker Fix R4
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dpro-daycare-emergency-broadcast-date-picker-fix-r4
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Protected source drift lock
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD:owner.html)" = "5e08f8a0c1d7aee9d400ea06e3c4ec3f3e7aa5ca"
+          echo "OWNER SOURCE DRIFT LOCK PASS"
+
+      - name: Apply date picker fix
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def rep(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: marker count={count}")
+              return text.replace(old, new, 1)
+
+          owner = Path("owner.html").read_text(encoding="utf-8")
+
+          owner = rep(
+              owner,
+              'const SCREEN_VERSION = "DAYCARE-8-R3-EMERGENCY-BROADCAST-R2-20260925";',
+              'const SCREEN_VERSION = "DAYCARE-8-R3-EMERGENCY-BROADCAST-R3-DATE-PICKER-20260925";',
+              "owner version",
+          )
+
+          owner = rep(
+              owner,
+          '''    .broadcast-date-picker {
+                width: 100%;
+                min-height: 44px;
+                justify-content: flex-start;
+                font-size: 11px;
+              }
+          ''',
+          '''    .broadcast-date-picker {
+                width: 100%;
+                min-height: 44px;
+                justify-content: flex-start;
+                font-size: 11px;
+              }
+
+              .broadcast-date-picker input[type="date"],
+              .broadcast-date-picker input[type="datetime-local"] {
+                pointer-events: none;
+              }
+
+              .broadcast-date-picker:focus-visible {
+                outline: 3px solid rgba(36,91,184,.26);
+                outline-offset: 2px;
+              }
+          ''',
+              "broadcast picker css",
+          )
+
+          owner = rep(
+              owner,
+          '''                    <label class="date-picker-button broadcast-date-picker">
+                                <span id="broadcastDateDisplay">日付を選択</span>
+                                <input id="broadcastDate" type="date" aria-label="一斉連絡の対象日を選ぶ">
+                              </label>
+          ''',
+          '''                    <div
+                                class="date-picker-button broadcast-date-picker"
+                                id="broadcastDatePicker"
+                                role="button"
+                                tabindex="0"
+                                aria-label="一斉連絡の対象日を選ぶ"
+                              >
+                                <span id="broadcastDateDisplay">日付を選択</span>
+                                <input id="broadcastDate" type="date" aria-hidden="true" tabindex="-1">
+                              </div>
+          ''',
+              "target picker html",
+          )
+
+          owner = rep(
+              owner,
+          '''                    <label class="date-picker-button broadcast-date-picker">
+                                <span id="broadcastScheduledDisplay">予約日時を選択</span>
+                                <input id="broadcastScheduledAt" type="datetime-local" aria-label="一斉連絡の予約配信日時を選ぶ">
+                              </label>
+          ''',
+          '''                    <div
+                                class="date-picker-button broadcast-date-picker"
+                                id="broadcastScheduledPicker"
+                                role="button"
+                                tabindex="0"
+                                aria-label="一斉連絡の予約配信日時を選ぶ"
+                              >
+                                <span id="broadcastScheduledDisplay">予約日時を選択</span>
+                                <input id="broadcastScheduledAt" type="datetime-local" aria-hidden="true" tabindex="-1">
+                              </div>
+          ''',
+              "schedule picker html",
+          )
+
+          owner = rep(
+              owner,
+          '''        broadcastDate: $("#broadcastDate"),
+                  broadcastDateDisplay: $("#broadcastDateDisplay"),
+                  broadcastTemplate: $("#broadcastTemplate"),
+          ''',
+          '''        broadcastDate: $("#broadcastDate"),
+                  broadcastDateDisplay: $("#broadcastDateDisplay"),
+                  broadcastDatePicker: $("#broadcastDatePicker"),
+                  broadcastTemplate: $("#broadcastTemplate"),
+          ''',
+              "date picker element",
+          )
+
+          owner = rep(
+              owner,
+          '''        broadcastScheduledAt: $("#broadcastScheduledAt"),
+                  broadcastScheduledDisplay: $("#broadcastScheduledDisplay"),
+                  broadcastPreviewButton: $("#broadcastPreviewButton"),
+          ''',
+          '''        broadcastScheduledAt: $("#broadcastScheduledAt"),
+                  broadcastScheduledDisplay: $("#broadcastScheduledDisplay"),
+                  broadcastScheduledPicker: $("#broadcastScheduledPicker"),
+                  broadcastPreviewButton: $("#broadcastPreviewButton"),
+          ''',
+              "schedule picker element",
+          )
+
+          owner = rep(
+              owner,
+          '''      function formatTime(value) {
+          ''',
+          '''      function openNativePicker(input) {
+                  if (!input) return;
+                  try {
+                    if (typeof input.showPicker === "function") {
+                      input.showPicker();
+                      return;
+                    }
+                  } catch (_) {
+                    // Fallback below.
+                  }
+                  input.focus();
+                  input.click();
+                }
+
+                function invalidateBroadcastPreview() {
+                  state.broadcastPreview = null;
+                  if (els.broadcastPreviewPanel) {
+                    els.broadcastPreviewPanel.style.display = "none";
+                    els.broadcastPreviewPanel.innerHTML = "";
+                  }
+                }
+
+                function activatePickerOnKeyboard(event, input) {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openNativePicker(input);
+                  }
+                }
+
+                function formatTime(value) {
+          ''',
+              "picker helpers",
+          )
+
+          owner = rep(
+              owner,
+          '''        els.broadcastTemplate.addEventListener("change", applyBroadcastTemplate);
+                  els.broadcastDate.addEventListener("change", updateBroadcastDateLabels);
+                  els.broadcastScheduledAt.addEventListener("change", updateBroadcastDateLabels);
+                  els.broadcastPreviewButton.addEventListener(
+          ''',
+          '''        els.broadcastTemplate.addEventListener("change", applyBroadcastTemplate);
+
+                  els.broadcastDatePicker.addEventListener(
+                    "click",
+                    () => openNativePicker(els.broadcastDate)
+                  );
+                  els.broadcastDatePicker.addEventListener(
+                    "keydown",
+                    (event) => activatePickerOnKeyboard(event, els.broadcastDate)
+                  );
+                  els.broadcastScheduledPicker.addEventListener(
+                    "click",
+                    () => openNativePicker(els.broadcastScheduledAt)
+                  );
+                  els.broadcastScheduledPicker.addEventListener(
+                    "keydown",
+                    (event) => activatePickerOnKeyboard(event, els.broadcastScheduledAt)
+                  );
+
+                  els.broadcastTargetType.addEventListener("change", invalidateBroadcastPreview);
+                  els.broadcastDate.addEventListener("change", () => {
+                    updateBroadcastDateLabels();
+                    invalidateBroadcastPreview();
+                  });
+                  els.broadcastScheduledAt.addEventListener(
+                    "change",
+                    updateBroadcastDateLabels
+                  );
+
+                  els.broadcastPreviewButton.addEventListener(
+          ''',
+              "picker events",
+          )
+
+          Path("owner.html").write_text(owner, encoding="utf-8")
+
+          checks = [
+              ("version", "DATE-PICKER-20260925" in owner),
+              ("date picker id", 'id="broadcastDatePicker"' in owner),
+              ("schedule picker id", 'id="broadcastScheduledPicker"' in owner),
+              ("showPicker", "input.showPicker()" in owner),
+              ("preview invalidate", "invalidateBroadcastPreview" in owner),
+          ]
+          failed = [name for name, ok in checks if not ok]
+          if failed:
+              raise SystemExit("STATIC QA FAILED: " + ", ".join(failed))
+
+          print("DATE PICKER FIX STATIC QA PASS")
+
+          PY
+
+      - name: Static QA
+        shell: bash
+        run: |
+          grep -q 'broadcastDatePicker' owner.html
+          grep -q 'broadcastScheduledPicker' owner.html
+          grep -q 'showPicker' owner.html
+          grep -q 'invalidateBroadcastPreview' owner.html
+          echo "DATE PICKER FIX QA PASS"
+
+      - name: Commit
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm --ignore-unmatch ".github/workflows/dpro-daycare-emergency-broadcast-date-picker-fix-r4.yml"
+          git add owner.html
+          git commit -m "Fix DAYCARE broadcast date picker"
+          git push
