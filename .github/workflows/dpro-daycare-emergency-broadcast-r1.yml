@@ -1,4 +1,4 @@
-name: DPRO DAYCARE Emergency Broadcast R1
+name: DPRO DAYCARE Emergency Broadcast R2
 
 on:
   workflow_dispatch:
@@ -26,17 +26,29 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Baseline drift lock
+      - name: Baseline source drift lock
         shell: bash
         run: |
-          EXPECTED="34c5268c025becf47908efe181bae92d904a41ec"
-          ACTUAL="$(git rev-parse HEAD)"
-          echo "EXPECTED=$EXPECTED"
-          echo "ACTUAL=$ACTUAL"
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "BASELINE DRIFT DETECTED. Stop before patching." >&2
-            exit 2
-          fi
+          check_blob () {
+            FILE="$1"
+            EXPECTED="$2"
+            ACTUAL="$(git rev-parse "HEAD:$FILE")"
+            echo "$FILE expected=$EXPECTED actual=$ACTUAL"
+            if [ "$ACTUAL" != "$EXPECTED" ]; then
+              echo "BASELINE SOURCE DRIFT DETECTED: $FILE" >&2
+              exit 2
+            fi
+          }
+
+          # Workflow upload/replacement itself creates a new repository commit.
+          # Therefore we lock the protected application source blobs rather than HEAD.
+          check_blob "owner.html"  "5425e2289b2a228c4ee0cb4029a8f785518035ea"
+          check_blob "config.js"   "2709372b04b8fbd0aff4843e56ad587d8ef4c560"
+          check_blob "worker.js"   "50a26036184c3dda3648bf08258d2a524e81b223"
+          check_blob "index.html"  "029c7037a04969048e1d758675ec3528dcf0c4b8"
+          check_blob "member.html" "332433dc8b9c7c0d2d8f9340a31cd0afe6982e35"
+
+          echo "BASELINE SOURCE DRIFT LOCK: PASS"
 
       - name: Apply emergency broadcast standard R1
         shell: bash
