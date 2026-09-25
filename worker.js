@@ -3,7 +3,7 @@
  * DPRO デイサービス LINE
  * STEP DAYCARE-3
  * Cloudflare Worker API 完全版
- * Version: DAYCARE-3-R6-EMERGENCY-BROADCAST-R1-20260925
+ * Version: DAYCARE-3-R6-EMERGENCY-BROADCAST-R2-20260925
  * ============================================================
  *
  * Cloudflare Worker名:
@@ -34,8 +34,8 @@
  */
 
 const SERVICE_NAME = "DPRO Dayservice LINE API";
-const VERSION = "DAYCARE-3-R6-EMERGENCY-BROADCAST-R1-20260925";
-const FRONTEND_VERSION = "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8-R3-BROADCAST / IPAD-9 / SYSTEM-CHECK-10";
+const VERSION = "DAYCARE-3-R6-EMERGENCY-BROADCAST-R2-20260925";
+const FRONTEND_VERSION = "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8-R3-BROADCAST-R2 / IPAD-9 / SYSTEM-CHECK-10";
 const DATABASE_VERSION_EXPECTED = "DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01";
 const ADAPTER_VERSION = "DPRO-CONTROL-ADAPTER-1.0";
 const DEFAULT_ALLOWED_ORIGINS = Object.freeze([
@@ -4084,6 +4084,20 @@ async function resolveBroadcastRecipients(
   families = families.filter((family) => family.contact_allowed !== false);
 
   const familyIds = families.map((family) => family.id);
+
+  if (["all", "selected_families"].includes(targetType) && familyIds.length) {
+    relations = await supabaseRequest(env, TABLES.userFamilies, {
+      query: {
+        select: "user_id,family_member_id,is_primary_contact,is_active",
+        facility_id: `eq.${facility.id}`,
+        family_member_id: `in.(${familyIds.join(",")})`,
+        is_active: "eq.true",
+        limit: "4000",
+      },
+    });
+    userIds = unique(relations.map((row) => row.user_id).filter(Boolean));
+  }
+
   const deliveryTargets = familyIds.length
     ? await supabaseRequest(env, TABLES.lineDeliveryTargets, {
         query: {

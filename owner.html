@@ -433,7 +433,8 @@
       background: #fbfdfc;
     }
 
-    .date-picker-button input[type="date"] {
+    .date-picker-button input[type="date"],
+    .date-picker-button input[type="datetime-local"] {
       position: absolute;
       inset: 0;
       width: 100%;
@@ -441,6 +442,13 @@
       margin: 0;
       opacity: 0;
       cursor: pointer;
+    }
+
+    .broadcast-date-picker {
+      width: 100%;
+      min-height: 44px;
+      justify-content: flex-start;
+      font-size: 11px;
     }
 
     .card {
@@ -1751,7 +1759,10 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
                 <div class="two-columns">
                   <div class="field">
                     <label for="broadcastDate">対象日</label>
-                    <input class="input" id="broadcastDate" type="date">
+                    <label class="date-picker-button broadcast-date-picker">
+                      <span id="broadcastDateDisplay">日付を選択</span>
+                      <input id="broadcastDate" type="date" aria-label="一斉連絡の対象日を選ぶ">
+                    </label>
                   </div>
                   <div class="field">
                     <label for="broadcastTemplate">テンプレート</label>
@@ -1774,7 +1785,10 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
                 <div class="two-columns">
                   <div class="field">
                     <label for="broadcastScheduledAt">予約配信（任意）</label>
-                    <input class="input" id="broadcastScheduledAt" type="datetime-local">
+                    <label class="date-picker-button broadcast-date-picker">
+                      <span id="broadcastScheduledDisplay">予約日時を選択</span>
+                      <input id="broadcastScheduledAt" type="datetime-local" aria-label="一斉連絡の予約配信日時を選ぶ">
+                    </label>
                   </div>
                   <div class="form-note">
                     即時送信は「本送信」。予約する場合は日時を設定して「予約配信」を押します。
@@ -1879,7 +1893,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
     (function startOwnerAdmin() {
       "use strict";
 
-      const SCREEN_VERSION = "DAYCARE-8-R3-EMERGENCY-BROADCAST-R1-20260925";
+      const SCREEN_VERSION = "DAYCARE-8-R3-EMERGENCY-BROADCAST-R2-20260925";
       const CONFIG = window.DPRODaycare || window.DPRO_DAYCARE_CONFIG || null;
 
       const $ = (selector) => document.querySelector(selector);
@@ -1968,10 +1982,12 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         broadcastPriority: $("#broadcastPriority"),
         broadcastTargetType: $("#broadcastTargetType"),
         broadcastDate: $("#broadcastDate"),
+        broadcastDateDisplay: $("#broadcastDateDisplay"),
         broadcastTemplate: $("#broadcastTemplate"),
         broadcastSubject: $("#broadcastSubject"),
         broadcastBody: $("#broadcastBody"),
         broadcastScheduledAt: $("#broadcastScheduledAt"),
+        broadcastScheduledDisplay: $("#broadcastScheduledDisplay"),
         broadcastPreviewButton: $("#broadcastPreviewButton"),
         broadcastTestButton: $("#broadcastTestButton"),
         broadcastSendButton: $("#broadcastSendButton"),
@@ -2106,6 +2122,30 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         return CONFIG?.utils?.formatDateTimeJa
           ? CONFIG.utils.formatDateTimeJa(value)
           : String(value || "");
+      }
+
+      function formatBroadcastDateJa(value) {
+        if (!value) return "日付を選択";
+        const [y, m, d] = String(value).split("-").map(Number);
+        if (![y, m, d].every(Number.isFinite)) return String(value);
+        const weekday = ["日", "月", "火", "水", "木", "金", "土"][
+          new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay()
+        ];
+        return `${y}年${m}月${d}日（${weekday}）`;
+      }
+
+      function formatBroadcastDateTimeJa(value) {
+        if (!value) return "予約日時を選択";
+        const [datePart, timePart = ""] = String(value).split("T");
+        const dateLabel = formatBroadcastDateJa(datePart);
+        return timePart ? `${dateLabel} ${timePart.slice(0, 5)}` : dateLabel;
+      }
+
+      function updateBroadcastDateLabels() {
+        els.broadcastDateDisplay.textContent =
+          formatBroadcastDateJa(els.broadcastDate.value || today());
+        els.broadcastScheduledDisplay.textContent =
+          formatBroadcastDateTimeJa(els.broadcastScheduledAt.value);
       }
 
       function formatTime(value) {
@@ -3286,6 +3326,8 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         );
 
         els.broadcastTemplate.addEventListener("change", applyBroadcastTemplate);
+        els.broadcastDate.addEventListener("change", updateBroadcastDateLabels);
+        els.broadcastScheduledAt.addEventListener("change", updateBroadcastDateLabels);
         els.broadcastPreviewButton.addEventListener(
           "click",
           () => previewBroadcast().catch(showError)
@@ -3425,6 +3467,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         els.scheduleDate.value = todayText;
         els.broadcastDate.value = todayText;
         updateDateLabels();
+        updateBroadcastDateLabels();
 
         const params = new URLSearchParams(window.location.search);
         const demoPreview = params.get("demo") === "1";

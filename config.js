@@ -26,8 +26,8 @@
   const APP = Object.freeze({
     serviceName: "DPRO デイサービス LINE",
     subtitle: "デイサービス向け 家族連絡・お休み連絡・送迎案内システム",
-    appVersion: "DAYCARE-4-R3-EMERGENCY-BROADCAST-R1-20260925",
-    workerVersion: "DAYCARE-3-R6-EMERGENCY-BROADCAST-R1-20260925",
+    appVersion: "DAYCARE-4-R3-EMERGENCY-BROADCAST-R2-20260925",
+    workerVersion: "DAYCARE-3-R6-EMERGENCY-BROADCAST-R2-20260925",
     facilityCode: "dpro_dayservice_demo",
     facilityName: "DPROデイサービス",
     timezone: "Asia/Tokyo",
