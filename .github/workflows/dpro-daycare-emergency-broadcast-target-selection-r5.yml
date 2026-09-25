@@ -1,0 +1,655 @@
+name: DPRO DAYCARE Emergency Broadcast Target Selection R5
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dpro-daycare-emergency-broadcast-target-selection-r5
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Protected source drift lock
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD:owner.html)" = "1a04192e75b528e8aca9dba526f410bc19fa0827"
+          echo "OWNER SOURCE DRIFT LOCK PASS"
+
+      - name: Apply target selection R5
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def rep(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: marker count={count}")
+              return text.replace(old, new, 1)
+
+          owner = Path("owner.html").read_text(encoding="utf-8")
+
+          owner = rep(
+              owner,
+              'const SCREEN_VERSION = "DAYCARE-8-R3-EMERGENCY-BROADCAST-R3-DATE-PICKER-20260925";',
+              'const SCREEN_VERSION = "DAYCARE-8-R4-EMERGENCY-BROADCAST-TARGET-SELECTION-20260925";',
+              "owner version",
+          )
+
+          owner = rep(
+              owner,
+          '''    .broadcast-date-picker:focus-visible {
+                outline: 3px solid rgba(36,91,184,.26);
+                outline-offset: 2px;
+              }
+          ''',
+          '''    .broadcast-date-picker:focus-visible {
+                outline: 3px solid rgba(36,91,184,.26);
+                outline-offset: 2px;
+              }
+
+              .broadcast-target-panel {
+                padding: 14px;
+                border: 1px solid var(--line);
+                border-radius: 14px;
+                background: var(--surface-soft);
+              }
+
+              .broadcast-target-panel[hidden] {
+                display: none !important;
+              }
+
+              .broadcast-target-panel-head {
+                display: flex;
+                justify-content: space-between;
+                gap: 12px;
+                align-items: flex-start;
+                margin-bottom: 10px;
+              }
+
+              .broadcast-target-panel-head strong {
+                display: block;
+                font-size: 11px;
+              }
+
+              .broadcast-target-panel-head span {
+                display: block;
+                margin-top: 3px;
+                color: var(--muted);
+                font-size: 9px;
+                line-height: 1.5;
+              }
+
+              .broadcast-target-count {
+                flex: 0 0 auto;
+                padding: 5px 9px;
+                border-radius: 999px;
+                background: var(--brand-soft);
+                color: var(--brand-dark);
+                font-size: 9px;
+                font-weight: 900;
+              }
+
+              .broadcast-target-search-row {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                gap: 8px;
+              }
+
+              .broadcast-target-results,
+              .broadcast-target-selected {
+                display: grid;
+                gap: 7px;
+                margin-top: 10px;
+              }
+
+              .broadcast-target-result {
+                display: flex;
+                justify-content: space-between;
+                gap: 12px;
+                align-items: center;
+                padding: 9px 10px;
+                border: 1px solid var(--line);
+                border-radius: 11px;
+                background: #fff;
+              }
+
+              .broadcast-target-result strong {
+                display: block;
+                font-size: 10px;
+              }
+
+              .broadcast-target-result span {
+                display: block;
+                margin-top: 2px;
+                color: var(--muted);
+                font-size: 8px;
+              }
+
+              .broadcast-target-selected-title {
+                margin-top: 12px;
+                color: var(--muted);
+                font-size: 9px;
+                font-weight: 850;
+              }
+
+              .broadcast-target-chip {
+                display: flex;
+                justify-content: space-between;
+                gap: 10px;
+                align-items: center;
+                padding: 8px 10px;
+                border: 1px solid #bcd4c5;
+                border-radius: 11px;
+                background: #eef8f1;
+              }
+
+              .broadcast-target-chip strong {
+                font-size: 10px;
+              }
+
+              .broadcast-target-chip button {
+                border: 0;
+                background: transparent;
+                color: var(--red);
+                cursor: pointer;
+                font-size: 9px;
+                font-weight: 900;
+              }
+
+              @media(max-width:720px) {
+                .broadcast-target-search-row {
+                  grid-template-columns: 1fr;
+                }
+              }
+          ''',
+              "target selection css",
+          )
+
+          owner = rep(
+              owner,
+          '''                      <option value="transport">指定日の施設送迎対象家族</option>
+                              </select>
+          ''',
+          '''                      <option value="transport">指定日の施設送迎対象家族</option>
+                                <option value="selected_users">利用者を選択（複数可）</option>
+                                <option value="selected_families">家族を選択（複数可）</option>
+                              </select>
+          ''',
+              "target select options",
+          )
+
+          owner = rep(
+              owner,
+          '''                </div>
+
+                          <div class="two-columns">
+                            <div class="field">
+                              <label for="broadcastDate">対象日</label>
+          ''',
+          '''                </div>
+
+                          <div
+                            class="broadcast-target-panel"
+                            id="broadcastTargetPanel"
+                            hidden
+                          >
+                            <div class="broadcast-target-panel-head">
+                              <div>
+                                <strong id="broadcastTargetPanelTitle">送信対象を選択</strong>
+                                <span id="broadcastTargetPanelHelp">
+                                  検索して複数追加できます。
+                                </span>
+                              </div>
+                              <div class="broadcast-target-count" id="broadcastTargetSelectedCount">0名選択</div>
+                            </div>
+
+                            <div class="broadcast-target-search-row">
+                              <input
+                                class="input"
+                                id="broadcastTargetSearchInput"
+                                type="search"
+                                maxlength="100"
+                                placeholder="氏名・利用者番号・電話番号で検索"
+                              >
+                              <button
+                                class="btn btn-secondary"
+                                id="broadcastTargetSearchButton"
+                                type="button"
+                              >
+                                検索
+                              </button>
+                            </div>
+
+                            <div class="broadcast-target-results" id="broadcastTargetResults"></div>
+
+                            <div class="broadcast-target-selected-title">選択済み</div>
+                            <div class="broadcast-target-selected" id="broadcastSelectedTargets"></div>
+                          </div>
+
+                          <div class="two-columns">
+                            <div class="field">
+                              <label for="broadcastDate">対象日</label>
+          ''',
+              "target selection panel html",
+          )
+
+          owner = rep(
+              owner,
+          '''        broadcastHistory: [],
+                };
+          ''',
+          '''        broadcastHistory: [],
+                  broadcastTargetSearch: null,
+                  broadcastSelectedUsers: new Map(),
+                  broadcastSelectedFamilies: new Map(),
+                };
+          ''',
+              "target selection state",
+          )
+
+          owner = rep(
+              owner,
+          '''        broadcastTargetType: $("#broadcastTargetType"),
+                  broadcastDate: $("#broadcastDate"),
+          ''',
+          '''        broadcastTargetType: $("#broadcastTargetType"),
+                  broadcastTargetPanel: $("#broadcastTargetPanel"),
+                  broadcastTargetPanelTitle: $("#broadcastTargetPanelTitle"),
+                  broadcastTargetPanelHelp: $("#broadcastTargetPanelHelp"),
+                  broadcastTargetSelectedCount: $("#broadcastTargetSelectedCount"),
+                  broadcastTargetSearchInput: $("#broadcastTargetSearchInput"),
+                  broadcastTargetSearchButton: $("#broadcastTargetSearchButton"),
+                  broadcastTargetResults: $("#broadcastTargetResults"),
+                  broadcastSelectedTargets: $("#broadcastSelectedTargets"),
+                  broadcastDate: $("#broadcastDate"),
+          ''',
+              "target selection elements",
+          )
+
+          owner = rep(
+              owner,
+          '''      function activatePickerOnKeyboard(event, input) {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openNativePicker(input);
+                  }
+                }
+
+                function formatTime(value) {
+          ''',
+          '''      function activatePickerOnKeyboard(event, input) {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openNativePicker(input);
+                  }
+                }
+
+                function broadcastSelectionMode() {
+                  return els.broadcastTargetType.value;
+                }
+
+                function isBroadcastManualSelectionMode() {
+                  return ["selected_users", "selected_families"].includes(
+                    broadcastSelectionMode()
+                  );
+                }
+
+                function currentBroadcastSelectionMap() {
+                  return broadcastSelectionMode() === "selected_families"
+                    ? state.broadcastSelectedFamilies
+                    : state.broadcastSelectedUsers;
+                }
+
+                function renderBroadcastSelectedTargets() {
+                  if (!isBroadcastManualSelectionMode()) {
+                    els.broadcastSelectedTargets.innerHTML = "";
+                    els.broadcastTargetSelectedCount.textContent = "0名選択";
+                    return;
+                  }
+
+                  const mode = broadcastSelectionMode();
+                  const selected = Array.from(currentBroadcastSelectionMap().values());
+                  els.broadcastTargetSelectedCount.textContent = `${selected.length}名選択`;
+
+                  if (!selected.length) {
+                    els.broadcastSelectedTargets.innerHTML =
+                      emptyHtml("まだ送信対象を選択していません。");
+                    return;
+                  }
+
+                  els.broadcastSelectedTargets.innerHTML = selected.map((row) => {
+                    const meta = mode === "selected_families"
+                      ? [
+                          row.relationship || "家族",
+                          CONFIG.utils.formatPhone(row.phone) || "電話未登録",
+                        ].join("・")
+                      : [
+                          row.user_number || "利用者番号未設定",
+                          CONFIG.utils.transportModeLabel(
+                            row.standard_transport_mode
+                          ),
+                        ].join("・");
+
+                    return `
+                      <div class="broadcast-target-chip">
+                        <div>
+                          <strong>${escapeHtml(row.full_name || "名称未設定")}</strong>
+                          <div class="item-sub">${escapeHtml(meta)}</div>
+                        </div>
+                        <button
+                          type="button"
+                          data-broadcast-remove-target="${escapeHtml(row.id)}"
+                        >
+                          選択解除
+                        </button>
+                      </div>
+                    `;
+                  }).join("");
+                }
+
+                function renderBroadcastTargetResults(data = state.broadcastTargetSearch) {
+                  if (!isBroadcastManualSelectionMode()) {
+                    els.broadcastTargetResults.innerHTML = "";
+                    return;
+                  }
+
+                  const mode = broadcastSelectionMode();
+                  const rows = mode === "selected_families"
+                    ? (data?.families || [])
+                    : (data?.users || []);
+                  const activeRows = rows.filter((row) => row.is_active !== false);
+                  const selected = currentBroadcastSelectionMap();
+
+                  if (!data) {
+                    els.broadcastTargetResults.innerHTML =
+                      emptyHtml("氏名などを入力して検索してください。");
+                    return;
+                  }
+
+                  if (!activeRows.length) {
+                    els.broadcastTargetResults.innerHTML =
+                      emptyHtml(
+                        mode === "selected_families"
+                          ? "該当する家族は見つかりませんでした。"
+                          : "該当する利用者は見つかりませんでした。"
+                      );
+                    return;
+                  }
+
+                  els.broadcastTargetResults.innerHTML = activeRows.map((row) => {
+                    const isSelected = selected.has(row.id);
+                    const meta = mode === "selected_families"
+                      ? [
+                          row.relationship || "家族",
+                          CONFIG.utils.formatPhone(row.phone) || "電話未登録",
+                        ].join("・")
+                      : [
+                          row.user_number || "利用者番号未設定",
+                          CONFIG.utils.transportModeLabel(
+                            row.standard_transport_mode
+                          ),
+                        ].join("・");
+
+                    const attr = mode === "selected_families"
+                      ? "data-broadcast-add-family"
+                      : "data-broadcast-add-user";
+
+                    return `
+                      <div class="broadcast-target-result">
+                        <div>
+                          <strong>${escapeHtml(row.full_name || "名称未設定")}</strong>
+                          <span>${escapeHtml(meta)}</span>
+                        </div>
+                        <button
+                          class="btn ${isSelected ? "btn-secondary" : "btn-primary"} btn-small"
+                          type="button"
+                          ${attr}="${escapeHtml(row.id)}"
+                          ${isSelected ? "disabled" : ""}
+                        >
+                          ${isSelected ? "選択済み" : "追加"}
+                        </button>
+                      </div>
+                    `;
+                  }).join("");
+                }
+
+                function renderBroadcastTargetPanel() {
+                  const mode = broadcastSelectionMode();
+                  const visible = ["selected_users", "selected_families"].includes(mode);
+
+                  els.broadcastTargetPanel.hidden = !visible;
+                  if (!visible) {
+                    state.broadcastTargetSearch = null;
+                    els.broadcastTargetSearchInput.value = "";
+                    els.broadcastTargetResults.innerHTML = "";
+                    return;
+                  }
+
+                  const isFamily = mode === "selected_families";
+                  els.broadcastTargetPanelTitle.textContent = isFamily
+                    ? "送信する家族を選択"
+                    : "送信対象の利用者を選択";
+                  els.broadcastTargetPanelHelp.textContent = isFamily
+                    ? "家族名または電話番号で検索し、複数選択できます。"
+                    : "利用者名・カナ・利用者番号で検索し、複数選択できます。";
+                  els.broadcastTargetSearchInput.placeholder = isFamily
+                    ? "家族名・電話番号で検索"
+                    : "利用者名・カナ・利用者番号で検索";
+
+                  renderBroadcastTargetResults();
+                  renderBroadcastSelectedTargets();
+                }
+
+                async function searchBroadcastTargets() {
+                  if (!isBroadcastManualSelectionMode()) return;
+
+                  const query = els.broadcastTargetSearchInput.value.trim();
+                  if (!query) {
+                    throw new Error("検索文字を入力してください。");
+                  }
+
+                  await withButton(
+                    els.broadcastTargetSearchButton,
+                    "検索中…",
+                    async () => {
+                      const data = await CONFIG.API.adminGet(
+                        "adminSearch",
+                        { q: query }
+                      );
+                      state.broadcastTargetSearch = data;
+                      renderBroadcastTargetResults(data);
+                    }
+                  );
+                }
+
+                function addBroadcastTarget(kind, id) {
+                  const data = state.broadcastTargetSearch;
+                  if (!data) return;
+
+                  const isFamily = kind === "family";
+                  const source = isFamily ? (data.families || []) : (data.users || []);
+                  const row = source.find((item) => item.id === id);
+                  if (!row) return;
+
+                  const map = isFamily
+                    ? state.broadcastSelectedFamilies
+                    : state.broadcastSelectedUsers;
+                  map.set(row.id, row);
+
+                  invalidateBroadcastPreview();
+                  renderBroadcastTargetResults(data);
+                  renderBroadcastSelectedTargets();
+                }
+
+                function removeBroadcastTarget(id) {
+                  currentBroadcastSelectionMap().delete(id);
+                  invalidateBroadcastPreview();
+                  renderBroadcastTargetResults();
+                  renderBroadcastSelectedTargets();
+                }
+
+                function formatTime(value) {
+          ''',
+              "target selection functions",
+          )
+
+          owner = rep(
+              owner,
+          '''      function broadcastPayload() {
+                  const targetType = els.broadcastTargetType.value;
+                  const targetFilter = {};
+                  if (["date", "transport"].includes(targetType)) {
+                    targetFilter.service_date = els.broadcastDate.value || today();
+                  }
+                  return {
+          ''',
+          '''      function broadcastPayload() {
+                  const targetType = els.broadcastTargetType.value;
+                  const targetFilter = {};
+                  if (["date", "transport"].includes(targetType)) {
+                    targetFilter.service_date = els.broadcastDate.value || today();
+                  }
+                  if (targetType === "selected_users") {
+                    targetFilter.user_ids = Array.from(
+                      state.broadcastSelectedUsers.keys()
+                    );
+                  }
+                  if (targetType === "selected_families") {
+                    targetFilter.family_ids = Array.from(
+                      state.broadcastSelectedFamilies.keys()
+                    );
+                  }
+                  return {
+          ''',
+              "target selection payload",
+          )
+
+          owner = rep(
+              owner,
+          '''        els.broadcastTemplate.addEventListener("change", applyBroadcastTemplate);
+
+                  els.broadcastDatePicker.addEventListener(
+          ''',
+          '''        els.broadcastTemplate.addEventListener("change", applyBroadcastTemplate);
+
+                  els.broadcastTargetSearchButton.addEventListener(
+                    "click",
+                    () => searchBroadcastTargets().catch(showError)
+                  );
+                  els.broadcastTargetSearchInput.addEventListener(
+                    "keydown",
+                    (event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        searchBroadcastTargets().catch(showError);
+                      }
+                    }
+                  );
+
+                  els.broadcastTargetResults.addEventListener("click", (event) => {
+                    const userButton = event.target.closest("[data-broadcast-add-user]");
+                    if (userButton) {
+                      addBroadcastTarget("user", userButton.dataset.broadcastAddUser);
+                      return;
+                    }
+
+                    const familyButton = event.target.closest("[data-broadcast-add-family]");
+                    if (familyButton) {
+                      addBroadcastTarget("family", familyButton.dataset.broadcastAddFamily);
+                    }
+                  });
+
+                  els.broadcastSelectedTargets.addEventListener("click", (event) => {
+                    const removeButton = event.target.closest(
+                      "[data-broadcast-remove-target]"
+                    );
+                    if (removeButton) {
+                      removeBroadcastTarget(
+                        removeButton.dataset.broadcastRemoveTarget
+                      );
+                    }
+                  });
+
+                  els.broadcastDatePicker.addEventListener(
+          ''',
+              "target selection events",
+          )
+
+          owner = rep(
+              owner,
+          '''        els.broadcastTargetType.addEventListener("change", invalidateBroadcastPreview);
+          ''',
+          '''        els.broadcastTargetType.addEventListener("change", () => {
+                    state.broadcastTargetSearch = null;
+                    els.broadcastTargetSearchInput.value = "";
+                    invalidateBroadcastPreview();
+                    renderBroadcastTargetPanel();
+                  });
+          ''',
+              "target type change event",
+          )
+
+          owner = rep(
+              owner,
+          '''        els.broadcastDate.value = todayText;
+                  updateDateLabels();
+                  updateBroadcastDateLabels();
+          ''',
+          '''        els.broadcastDate.value = todayText;
+                  updateDateLabels();
+                  updateBroadcastDateLabels();
+                  renderBroadcastTargetPanel();
+          ''',
+              "target panel init",
+          )
+
+          Path("owner.html").write_text(owner, encoding="utf-8")
+
+          checks = [
+              ("version", "TARGET-SELECTION-20260925" in owner),
+              ("user option", 'option value="selected_users"' in owner),
+              ("family option", 'option value="selected_families"' in owner),
+              ("panel", 'id="broadcastTargetPanel"' in owner),
+              ("user ids payload", "targetFilter.user_ids" in owner),
+              ("family ids payload", "targetFilter.family_ids" in owner),
+              ("search", "searchBroadcastTargets" in owner),
+              ("multi select state", "broadcastSelectedUsers: new Map()" in owner),
+          ]
+          failed = [name for name, ok in checks if not ok]
+          if failed:
+              raise SystemExit("STATIC QA FAILED: " + ", ".join(failed))
+
+          print("TARGET SELECTION R5 STATIC QA PASS")
+
+          PY
+
+      - name: Static QA
+        shell: bash
+        run: |
+          grep -q 'selected_users' owner.html
+          grep -q 'selected_families' owner.html
+          grep -q 'broadcastTargetPanel' owner.html
+          grep -q 'targetFilter.user_ids' owner.html
+          grep -q 'targetFilter.family_ids' owner.html
+          grep -q 'TARGET-SELECTION-20260925' owner.html
+          echo "TARGET SELECTION R5 QA PASS"
+
+      - name: Commit
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm --ignore-unmatch ".github/workflows/dpro-daycare-emergency-broadcast-target-selection-r5.yml"
+          git add owner.html
+          git commit -m "Add DAYCARE broadcast manual target selection"
+          git push
