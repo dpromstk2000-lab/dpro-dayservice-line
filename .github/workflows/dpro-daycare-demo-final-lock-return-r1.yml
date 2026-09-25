@@ -1,0 +1,499 @@
+name: DPRO DAYCARE Demo Final Lock Return R1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  final-lock-return:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LOCK_SHA: "963ca94c52c4a325800185468bbc1310498396d8"
+      API_BASE: "https://dpro-dayservice-line-api.dpromstk2000.workers.dev"
+      FRONT_BASE: "https://dpromstk2000-lab.github.io/dpro-dayservice-line"
+    steps:
+      - name: Checkout locked source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.LOCK_SHA }}
+          fetch-depth: 1
+
+      - name: Static FINAL audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$LOCK_SHA"
+
+          cp worker.js /tmp/daycare-worker.mjs
+          node --check /tmp/daycare-worker.mjs
+          node --check config.js
+
+          grep -q 'DAYCARE-3-R7-EMERGENCY-BROADCAST-DEMO-SAFE-20260925' worker.js
+          grep -q 'DAYCARE-8-R5-EMERGENCY-BROADCAST-DEMO-SAFE-20260925' owner.html
+          grep -q 'DAYCARE-4-R4-EMERGENCY-BROADCAST-DEMO-SAFE-20260925' config.js
+          grep -q 'dispatchDemoBroadcastRow' worker.js
+          grep -q 'external_line_sent: false' worker.js
+          grep -q 'demo_simulated' worker.js
+          grep -q 'demo_scheduled' worker.js
+          grep -q 'selected_users' owner.html
+          grep -q 'selected_families' owner.html
+          grep -q '公開デモ：実際のLINEには送信されません。' owner.html
+
+          echo "STATIC FINAL AUDIT: PASS"
+
+      - name: Live runtime FINAL audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json
+          import urllib.request
+          from pathlib import Path
+
+          API="https://dpro-dayservice-line-api.dpromstk2000.workers.dev"
+          FRONT="https://dpromstk2000-lab.github.io/dpro-dayservice-line"
+
+          def get(url):
+              req=urllib.request.Request(
+                  url,
+                  headers={
+                      "Accept":"application/json,text/html,*/*",
+                      "User-Agent":"DPRO-DAYCARE-DEMO-FINAL-LOCK-R1",
+                  },
+              )
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  return r.status, dict(r.headers), r.read()
+
+          out={"ok":True,"checks":{}}
+
+          status, headers, body = get(API + "/api/health")
+          health=json.loads(body.decode("utf-8"))
+          out["health"]=health
+
+          out["checks"]["health_200"] = status == 200 and health.get("ok") is True
+          out["checks"]["worker_r7"] = (
+              health.get("workerVersion")
+              == "DAYCARE-3-R7-EMERGENCY-BROADCAST-DEMO-SAFE-20260925"
+          )
+          out["checks"]["database_r3"] = (
+              health.get("databaseVersion")
+              == "DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01"
+          )
+          out["checks"]["frontend_r5"] = (
+              health.get("frontendVersion")
+              == "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8-R5-BROADCAST-DEMO-SAFE / IPAD-9 / SYSTEM-CHECK-10"
+          )
+          out["checks"]["adapter_1_0"] = (
+              health.get("adapterVersion") == "DPRO-CONTROL-ADAPTER-1.0"
+          )
+          out["checks"]["versions_aligned"] = health.get("versionsAligned") is True
+
+          status, headers, body = get(FRONT + "/owner.html?demo=1")
+          html=body.decode("utf-8","replace")
+          out["checks"]["owner_200"] = status == 200
+          out["checks"]["owner_demo_safe"] = (
+              "公開デモ：実際のLINEには送信されません。" in html
+          )
+          out["checks"]["owner_manual_targets"] = (
+              'value="selected_users"' in html
+              and 'value="selected_families"' in html
+          )
+          out["checks"]["owner_date_picker"] = "broadcastDatePicker" in html
+
+          out["ok"]=all(out["checks"].values())
+
+          Path("FINAL_RUNTIME_QA.json").write_text(
+              json.dumps(out, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+
+          print(json.dumps(out, ensure_ascii=False, indent=2))
+          if not out["ok"]:
+              raise SystemExit(1)
+          PY
+
+      - name: Build RETURN R1 root files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import shutil
+          import hashlib
+
+          ret = Path("return")
+          ret.mkdir(exist_ok=True)
+
+          source_files = [
+              "worker.js",
+              "config.js",
+              "index.html",
+              "member.html",
+              "owner.html",
+              "owner-ipad.html",
+              "system-check.html",
+              "broadcast-ack.html",
+              "line-idtoken-helper.js",
+              "demo-guide.html",
+              "guide-center.html",
+              "tutorial-daycare.css",
+              "tutorial-daycare.js",
+              "DPRO_DAYCARE_EMERGENCY_BROADCAST_DB_R1.sql",
+              "FINAL_RUNTIME_QA.json",
+          ]
+          for filename in source_files:
+              shutil.copy2(filename, ret / filename)
+
+          text_copies = {
+              "worker.js": "worker_TEXT.txt",
+              "config.js": "config_TEXT.txt",
+              "index.html": "index_TEXT.txt",
+              "member.html": "member_TEXT.txt",
+              "owner.html": "owner_TEXT.txt",
+              "owner-ipad.html": "owner-ipad_TEXT.txt",
+              "system-check.html": "system-check_TEXT.txt",
+              "broadcast-ack.html": "broadcast-ack_TEXT.txt",
+              "line-idtoken-helper.js": "line-idtoken-helper_TEXT.txt",
+              "demo-guide.html": "demo-guide_TEXT.txt",
+              "guide-center.html": "guide-center_TEXT.txt",
+              "tutorial-daycare.css": "tutorial-daycare_CSS_TEXT.txt",
+              "tutorial-daycare.js": "tutorial-daycare_JS_TEXT.txt",
+              "DPRO_DAYCARE_EMERGENCY_BROADCAST_DB_R1.sql":
+                  "DPRO_DAYCARE_EMERGENCY_BROADCAST_DB_R1_SQL_TEXT.txt",
+          }
+          for src, dst in text_copies.items():
+              shutil.copy2(src, ret / dst)
+
+          docs = {
+          "00_START_HERE.txt": """DPRO DAYCARE / 緊急・一斉連絡
+          DEMO FINAL LOCK RETURN R1
+
+          FINAL LOCK SOURCE:
+          963ca94c52c4a325800185468bbc1310498396d8
+
+          LOCKED VERSIONS:
+          Worker:
+          DAYCARE-3-R7-EMERGENCY-BROADCAST-DEMO-SAFE-20260925
+
+          Frontend:
+          DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8-R5-BROADCAST-DEMO-SAFE / IPAD-9 / SYSTEM-CHECK-10
+
+          Database:
+          DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01
+
+          Adapter:
+          DPRO-CONTROL-ADAPTER-1.0
+
+          STATUS:
+          DEMO FINAL LOCK = PASS
+          HUMAN ACCEPTANCE = OK
+          RETURN R1 = READY
+
+          重要:
+          公開デモでは実際のLINEへ送信しない。
+          テスト送信・本送信・予約配信はデモ疑似動作として扱う。
+          本番契約時のみ顧客LINE公式 Messaging API を設定する。
+
+          このRETURN ZIPは直下のみで構成する。
+          フォルダ内フォルダは使用しない。
+          """,
+
+          "FINAL_AUDIT.txt": """DPRO DAYCARE 緊急・一斉連絡
+          FINAL AUDIT / DEMO FINAL LOCK
+          2026-09-26
+
+          ==============================
+          1. SOURCE LOCK
+          ==============================
+          PASS
+
+          GitHub Repository:
+          dpromstk2000-lab/dpro-dayservice-line
+
+          FINAL LOCK Commit:
+          963ca94c52c4a325800185468bbc1310498396d8
+
+          Commit:
+          Add DAYCARE demo-safe broadcast simulation
+
+          ==============================
+          2. VERSION CONTRACT
+          ==============================
+          PASS
+
+          Worker:
+          DAYCARE-3-R7-EMERGENCY-BROADCAST-DEMO-SAFE-20260925
+
+          Database:
+          DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01
+
+          Frontend:
+          DAYCARE screen set:
+          FAMILY-6 / MEMBER-7 / OWNER-8-R5-BROADCAST-DEMO-SAFE / IPAD-9 / SYSTEM-CHECK-10
+
+          Adapter:
+          DPRO-CONTROL-ADAPTER-1.0
+
+          versionsAligned:
+          true
+
+          ==============================
+          3. HUMAN ACCEPTANCE
+          ==============================
+          OK
+
+          確認済み:
+          - 全登録家族
+            対象利用者4 / 対象家族4
+          - 指定日利用者家族
+            2026年7月13日
+            対象利用者4 / 対象家族4
+          - 指定日施設送迎対象家族
+            2026年7月13日
+            対象利用者3 / 対象家族3
+          - 利用者複数選択
+            対象利用者2 / 対象家族2
+          - 家族複数選択
+            対象利用者2 / 対象家族2
+          - 選択解除
+            対象利用者1 / 対象家族1
+          - 日本語日付表示
+          - 日付ピッカー
+          - 台風接近テンプレート
+          - LINE未連携家族の一覧表示
+          - デモ用テスト送信
+          - デモ疑似本送信
+          - 一斉連絡履歴
+          - デモ予約配信
+          - 予約取消
+
+          ==============================
+          4. DEMO SAFE SEND
+          ==============================
+          PASS
+
+          Supabase監査結果:
+          demo_simulated:
+          status=sent
+          target_user_count=4
+          target_family_count=4
+          success_count=4
+          failed_count=0
+
+          line_request_summary:
+          mode=demo_safe_send
+          external_line_sent=false
+          simulated_recipients=4
+
+          demo_scheduled:
+          予約登録後に status=cancelled へ正常遷移。
+
+          公開デモでは実LINE送信を実行しない。
+
+          ==============================
+          5. PRODUCTION GUARD
+          ==============================
+          PASS
+
+          公開デモ:
+          LINE公式接続不要
+          外部LINE送信なし
+
+          本番:
+          Messaging API設定が必要
+          LINE送信可能な家族のみ本番送信
+          Cloudflare SecretsでChannel Access Tokenを管理
+
+          ==============================
+          6. OPEN DEFECT
+          ==============================
+          今回のDEMO FINAL LOCK範囲で
+          確認済みOPEN DEFECTなし。
+
+          ==============================
+          7. FINAL JUDGEMENT
+          ==============================
+          DEMO FINAL LOCK = PASS
+          HUMAN ACCEPTANCE = OK
+          RETURN R1 = READY
+          """,
+
+          "STATUS.txt": """DPRO DAYCARE STATUS
+
+          対象:
+          DPRO デイサービス LINE
+
+          機能:
+          緊急・一斉連絡 STANDARD BRUSHUP
+
+          現在状態:
+          DEMO FINAL LOCK
+
+          HUMAN ACCEPTANCE:
+          OK
+
+          FINAL LOCK Commit:
+          963ca94c52c4a325800185468bbc1310498396d8
+
+          Worker:
+          DAYCARE-3-R7-EMERGENCY-BROADCAST-DEMO-SAFE-20260925
+
+          Database:
+          DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01
+
+          Demo Rule:
+          外部LINE送信なし
+          疑似送信・疑似予約のみ
+
+          Production Rule:
+          顧客導入時にMessaging APIを設定
+          """,
+
+          "HANDOFF.txt": """DPRO DAYCARE HANDOFF
+
+          次チャット/CENTRALへ渡す指示:
+
+          「このZIPをDPRO DAYCARE 緊急・一斉連絡の
+          唯一のDEMO FINAL LOCK基準として継続してください。
+
+          FINAL LOCK commit
+          963ca94c52c4a325800185468bbc1310498396d8
+          を保護してください。
+
+          証明された不具合がない限り、
+          FINAL LOCK済み範囲を再実装しないでください。
+
+          公開デモでは実際のLINEへ送信せず、
+          疑似送信・疑似予約で操作体験できる状態を維持してください。
+
+          本番契約時のみ、
+          顧客LINE公式 Messaging API設定へ進んでください。」
+
+          本番導入時:
+          1. 顧客LINE公式アカウント
+          2. Messaging API設定
+          3. Cloudflare Secrets登録
+          4. 家族LINE連携
+          5. 本番テスト送信
+          6. 本番HUMAN ACCEPTANCE
+          7. CUSTOMER FINAL LOCK
+          """,
+
+          "RETURN_TO_CENTRAL.txt": """CENTRAL RETURN
+
+          DPRO DAYCARE
+          緊急・一斉連絡
+
+          DEMO FINAL LOCK:
+          PASS
+
+          HUMAN ACCEPTANCE:
+          OK
+
+          RETURN:
+          R1 READY
+
+          FINAL LOCK Commit:
+          963ca94c52c4a325800185468bbc1310498396d8
+
+          完成済み:
+          - 全登録家族
+          - 本日/明日/指定日
+          - 指定日施設送迎対象
+          - 利用者複数選択
+          - 家族複数選択
+          - 選択解除
+          - テンプレート
+          - 日本語日付
+          - LINE未連携表示
+          - デモ安全テスト送信
+          - デモ疑似本送信
+          - 履歴
+          - デモ予約
+          - 予約取消
+
+          公開デモでは実LINE送信をしない。
+          """,
+
+          "NEXT_ACTION.txt": """次のアクション
+
+          DEMO:
+          なし
+          DEMO FINAL LOCK完了。
+
+          本番契約が決まった場合のみ:
+          1. 顧客LINE公式 Messaging API設定
+          2. Cloudflare Secrets登録
+          3. 家族LINE連携
+          4. 本番テスト送信
+          5. 本番HUMAN ACCEPTANCE
+          6. CUSTOMER FINAL LOCK
+
+          それまではFINAL LOCKを保護する。
+          """,
+
+          "FINAL_LOCK_COMMIT.txt": """DPRO DAYCARE DEMO FINAL LOCK
+
+          Repository:
+          dpromstk2000-lab/dpro-dayservice-line
+
+          Commit:
+          963ca94c52c4a325800185468bbc1310498396d8
+
+          Commit Message:
+          Add DAYCARE demo-safe broadcast simulation
+
+          Lock Date:
+          2026-09-26 JST
+          """,
+
+          "URLS.txt": """GitHub:
+          https://github.com/dpromstk2000-lab/dpro-dayservice-line
+
+          GitHub Pages / Owner Demo:
+          https://dpromstk2000-lab.github.io/dpro-dayservice-line/owner.html?demo=1
+
+          GitHub Pages / Family:
+          https://dpromstk2000-lab.github.io/dpro-dayservice-line/index.html
+
+          System Check:
+          https://dpromstk2000-lab.github.io/dpro-dayservice-line/system-check.html
+
+          Worker:
+          https://dpro-dayservice-line-api.dpromstk2000.workers.dev
+
+          Worker Health:
+          https://dpro-dayservice-line-api.dpromstk2000.workers.dev/api/health
+          """,
+          }
+
+          for filename, content in docs.items():
+              (ret / filename).write_text(content, encoding="utf-8")
+
+          manifest_lines = []
+          for filename in source_files:
+              p = ret / filename
+              digest = hashlib.sha256(p.read_bytes()).hexdigest()
+              manifest_lines.append(f"{digest}  {filename}")
+          (ret / "MANIFEST_SHA256.txt").write_text(
+              "\n".join(manifest_lines) + "\n", encoding="utf-8"
+          )
+
+          nested = [p for p in ret.rglob("*") if p.is_file() and p.parent != ret]
+          if nested:
+              raise SystemExit(f"Nested files found: {nested}")
+
+          print("RETURN ROOT-ONLY CHECK: PASS")
+          print("RETURN FILE COUNT:", len([p for p in ret.iterdir() if p.is_file()]))
+          PY
+
+      - name: Upload FINAL LOCK RETURN R1
+        uses: actions/upload-artifact@v4
+        with:
+          name: DPRO_DAYCARE_EMERGENCY_BROADCAST_DEMO_FINAL_LOCK_RETURN_R1_20260926
+          path: return/*
+          if-no-files-found: error
+          retention-days: 30
