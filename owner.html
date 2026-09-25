@@ -451,6 +451,16 @@
       font-size: 11px;
     }
 
+    .broadcast-date-picker input[type="date"],
+    .broadcast-date-picker input[type="datetime-local"] {
+      pointer-events: none;
+    }
+
+    .broadcast-date-picker:focus-visible {
+      outline: 3px solid rgba(36,91,184,.26);
+      outline-offset: 2px;
+    }
+
     .card {
       padding: 18px;
       border: 1px solid var(--line);
@@ -1759,10 +1769,16 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
                 <div class="two-columns">
                   <div class="field">
                     <label for="broadcastDate">対象日</label>
-                    <label class="date-picker-button broadcast-date-picker">
+                    <div
+                      class="date-picker-button broadcast-date-picker"
+                      id="broadcastDatePicker"
+                      role="button"
+                      tabindex="0"
+                      aria-label="一斉連絡の対象日を選ぶ"
+                    >
                       <span id="broadcastDateDisplay">日付を選択</span>
-                      <input id="broadcastDate" type="date" aria-label="一斉連絡の対象日を選ぶ">
-                    </label>
+                      <input id="broadcastDate" type="date" aria-hidden="true" tabindex="-1">
+                    </div>
                   </div>
                   <div class="field">
                     <label for="broadcastTemplate">テンプレート</label>
@@ -1785,10 +1801,16 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
                 <div class="two-columns">
                   <div class="field">
                     <label for="broadcastScheduledAt">予約配信（任意）</label>
-                    <label class="date-picker-button broadcast-date-picker">
+                    <div
+                      class="date-picker-button broadcast-date-picker"
+                      id="broadcastScheduledPicker"
+                      role="button"
+                      tabindex="0"
+                      aria-label="一斉連絡の予約配信日時を選ぶ"
+                    >
                       <span id="broadcastScheduledDisplay">予約日時を選択</span>
-                      <input id="broadcastScheduledAt" type="datetime-local" aria-label="一斉連絡の予約配信日時を選ぶ">
-                    </label>
+                      <input id="broadcastScheduledAt" type="datetime-local" aria-hidden="true" tabindex="-1">
+                    </div>
                   </div>
                   <div class="form-note">
                     即時送信は「本送信」。予約する場合は日時を設定して「予約配信」を押します。
@@ -1893,7 +1915,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
     (function startOwnerAdmin() {
       "use strict";
 
-      const SCREEN_VERSION = "DAYCARE-8-R3-EMERGENCY-BROADCAST-R2-20260925";
+      const SCREEN_VERSION = "DAYCARE-8-R3-EMERGENCY-BROADCAST-R3-DATE-PICKER-20260925";
       const CONFIG = window.DPRODaycare || window.DPRO_DAYCARE_CONFIG || null;
 
       const $ = (selector) => document.querySelector(selector);
@@ -1983,11 +2005,13 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         broadcastTargetType: $("#broadcastTargetType"),
         broadcastDate: $("#broadcastDate"),
         broadcastDateDisplay: $("#broadcastDateDisplay"),
+        broadcastDatePicker: $("#broadcastDatePicker"),
         broadcastTemplate: $("#broadcastTemplate"),
         broadcastSubject: $("#broadcastSubject"),
         broadcastBody: $("#broadcastBody"),
         broadcastScheduledAt: $("#broadcastScheduledAt"),
         broadcastScheduledDisplay: $("#broadcastScheduledDisplay"),
+        broadcastScheduledPicker: $("#broadcastScheduledPicker"),
         broadcastPreviewButton: $("#broadcastPreviewButton"),
         broadcastTestButton: $("#broadcastTestButton"),
         broadcastSendButton: $("#broadcastSendButton"),
@@ -2146,6 +2170,35 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
           formatBroadcastDateJa(els.broadcastDate.value || today());
         els.broadcastScheduledDisplay.textContent =
           formatBroadcastDateTimeJa(els.broadcastScheduledAt.value);
+      }
+
+      function openNativePicker(input) {
+        if (!input) return;
+        try {
+          if (typeof input.showPicker === "function") {
+            input.showPicker();
+            return;
+          }
+        } catch (_) {
+          // Fallback below.
+        }
+        input.focus();
+        input.click();
+      }
+
+      function invalidateBroadcastPreview() {
+        state.broadcastPreview = null;
+        if (els.broadcastPreviewPanel) {
+          els.broadcastPreviewPanel.style.display = "none";
+          els.broadcastPreviewPanel.innerHTML = "";
+        }
+      }
+
+      function activatePickerOnKeyboard(event, input) {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openNativePicker(input);
+        }
       }
 
       function formatTime(value) {
@@ -3326,8 +3379,34 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         );
 
         els.broadcastTemplate.addEventListener("change", applyBroadcastTemplate);
-        els.broadcastDate.addEventListener("change", updateBroadcastDateLabels);
-        els.broadcastScheduledAt.addEventListener("change", updateBroadcastDateLabels);
+
+        els.broadcastDatePicker.addEventListener(
+          "click",
+          () => openNativePicker(els.broadcastDate)
+        );
+        els.broadcastDatePicker.addEventListener(
+          "keydown",
+          (event) => activatePickerOnKeyboard(event, els.broadcastDate)
+        );
+        els.broadcastScheduledPicker.addEventListener(
+          "click",
+          () => openNativePicker(els.broadcastScheduledAt)
+        );
+        els.broadcastScheduledPicker.addEventListener(
+          "keydown",
+          (event) => activatePickerOnKeyboard(event, els.broadcastScheduledAt)
+        );
+
+        els.broadcastTargetType.addEventListener("change", invalidateBroadcastPreview);
+        els.broadcastDate.addEventListener("change", () => {
+          updateBroadcastDateLabels();
+          invalidateBroadcastPreview();
+        });
+        els.broadcastScheduledAt.addEventListener(
+          "change",
+          updateBroadcastDateLabels
+        );
+
         els.broadcastPreviewButton.addEventListener(
           "click",
           () => previewBroadcast().catch(showError)
