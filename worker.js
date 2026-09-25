@@ -3,7 +3,7 @@
  * DPRO デイサービス LINE
  * STEP DAYCARE-3
  * Cloudflare Worker API 完全版
- * Version: DAYCARE-3-R6-EMERGENCY-BROADCAST-R2-20260925
+ * Version: DAYCARE-3-R7-EMERGENCY-BROADCAST-DEMO-SAFE-20260925
  * ============================================================
  *
  * Cloudflare Worker名:
@@ -34,8 +34,8 @@
  */
 
 const SERVICE_NAME = "DPRO Dayservice LINE API";
-const VERSION = "DAYCARE-3-R6-EMERGENCY-BROADCAST-R2-20260925";
-const FRONTEND_VERSION = "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8-R3-BROADCAST-R2 / IPAD-9 / SYSTEM-CHECK-10";
+const VERSION = "DAYCARE-3-R7-EMERGENCY-BROADCAST-DEMO-SAFE-20260925";
+const FRONTEND_VERSION = "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8-R5-BROADCAST-DEMO-SAFE / IPAD-9 / SYSTEM-CHECK-10";
 const DATABASE_VERSION_EXPECTED = "DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01";
 const ADAPTER_VERSION = "DPRO-CONTROL-ADAPTER-1.0";
 const DEFAULT_ALLOWED_ORIGINS = Object.freeze([
@@ -3919,11 +3919,15 @@ function requireLineMessagingToken(env) {
   return token;
 }
 
-function ensureProductionBroadcastAllowed(facility) {
-  if (
+function isDemoBroadcastFacility(facility) {
+  return (
     facility?.is_demo === true
     || facility?.facility_code === DEFAULT_FACILITY_CODE
-  ) {
+  );
+}
+
+function ensureProductionBroadcastAllowed(facility) {
+  if (isDemoBroadcastFacility(facility)) {
     throw new ApiError(
       409,
       "公開デモ環境から本番LINE送信はできません。",
@@ -4221,6 +4225,33 @@ async function handleAdminBroadcastPreview(env, facility, body) {
 
 async function handleAdminBroadcastTest(env, facility, body) {
   const content = normalizeBroadcastContent(body);
+
+  if (isDemoBroadcastFacility(facility)) {
+    await logOperation(env, {
+      facilityId: facility.id,
+      actorType: "staff",
+      actorName: cleanText(body.operator_name, 100) || "管理者",
+      action: "broadcast_demo_test_send",
+      targetTable: TABLES.broadcasts,
+      deviceType: cleanDeviceType(body.device_type),
+      isDemo: true,
+      details: {
+        simulated: true,
+        subject: content.subject,
+        external_line_sent: false,
+      },
+    });
+
+    return {
+      ok: true,
+      simulated: true,
+      external_line_sent: false,
+      service: SERVICE_NAME,
+      version: VERSION,
+      message: "デモ用テスト送信を確認しました。実際のLINEには送信されません。",
+    };
+  }
+
   const token = requireLineMessagingToken(env);
   const testUserId = cleanText(env.LINE_TEST_USER_ID, 200);
   if (!testUserId) {
@@ -4239,7 +4270,7 @@ async function handleAdminBroadcastTest(env, facility, body) {
     action: "broadcast_test_send",
     targetTable: TABLES.broadcasts,
     deviceType: cleanDeviceType(body.device_type),
-    isDemo: Boolean(facility.is_demo),
+    isDemo: false,
     details: {
       success: result.ok,
       status: result.status,
@@ -4255,6 +4286,8 @@ async function handleAdminBroadcastTest(env, facility, body) {
 
   return {
     ok: true,
+    simulated: false,
+    external_line_sent: true,
     service: SERVICE_NAME,
     version: VERSION,
     message: "テスト送信が完了しました。",
@@ -4384,6 +4417,85 @@ async function runInBatches(items, size, handler) {
     results.push(...batchResults);
   }
   return results;
+}
+
+async function dispatchDemoBroadcastRow(env, facility, broadcast, targets) {
+  const now = new Date().toISOString();
+
+  const recipientPayloads = targets.recipients.map((recipient) => ({
+    broadcast_id: broadcast.id,
+    facility_id: facility.id,
+    user_id: recipient.user_id,
+    family_member_id: recipient.family_member_id,
+    delivery_target_id: recipient.delivery_target_id || null,
+    delivery_channel: "line",
+    send_status: "sent",
+    sent_at: now,
+  }));
+
+  if (recipientPayloads.length) {
+    await supabaseRequest(env, TABLES.broadcastRecipients, {
+      method: "POST",
+      body: recipientPayloads,
+      prefer: "return=minimal",
+    });
+  }
+
+  const updated = await supabaseRequest(env, TABLES.broadcasts, {
+    method: "PATCH",
+    query: {
+      id: `eq.${broadcast.id}`,
+    },
+    body: {
+      status: "sent",
+      sent_at: now,
+      success_count: targets.family_count,
+      failed_count: 0,
+      target_user_count: targets.user_count,
+      target_family_count: targets.family_count,
+      deliverable_count: targets.deliverable_count,
+      unlinked_count: targets.unlinked_count,
+      line_request_summary: {
+        mode: "demo_safe_send",
+        external_line_sent: false,
+        simulated_recipients: targets.family_count,
+      },
+    },
+    prefer: "return=representation",
+  });
+
+  await logOperation(env, {
+    facilityId: facility.id,
+    actorType: "staff",
+    actorName: broadcast.created_by || "管理者",
+    action: "broadcast_demo_safe_send",
+    targetTable: TABLES.broadcasts,
+    targetId: broadcast.id,
+    deviceType: "api",
+    isDemo: true,
+    details: {
+      simulated: true,
+      external_line_sent: false,
+      target_user_count: targets.user_count,
+      target_family_count: targets.family_count,
+      unlinked_count: targets.unlinked_count,
+    },
+  });
+
+  return {
+    broadcast: updated[0],
+    success_count: targets.family_count,
+    failed_count: 0,
+    unlinked_count: targets.unlinked_count,
+    simulated: true,
+    external_line_sent: false,
+    unlinked_families: targets.unlinked.map((row) => ({
+      family_member_id: row.family_member_id,
+      family_name: row.family_name,
+      relationship: row.relationship,
+      phone: row.phone,
+    })),
+  };
 }
 
 async function dispatchBroadcastRow(env, facility, broadcast, targets) {
@@ -4550,13 +4662,69 @@ async function dispatchBroadcastRow(env, facility, broadcast, targets) {
 }
 
 async function handleAdminBroadcastSend(env, facility, body) {
-  ensureProductionBroadcastAllowed(facility);
+  const demoMode = isDemoBroadcastFacility(facility);
+
+  if (!demoMode) {
+    ensureProductionBroadcastAllowed(facility);
+  }
+
   const targets = await resolveBroadcastRecipients(
     env,
     facility,
     body,
-    { includeSecrets: true },
+    { includeSecrets: !demoMode },
   );
+
+  if (demoMode) {
+    if (!targets.family_count) {
+      throw new ApiError(400, "送信対象のご家族がいません。");
+    }
+
+    const demoBody = {
+      ...body,
+      broadcast_type: body.broadcast_type === "resend_unacknowledged"
+        ? "demo_resend"
+        : "demo_simulated",
+    };
+
+    const created = await createBroadcastRow(
+      env,
+      facility,
+      demoBody,
+      targets,
+      "sending",
+    );
+
+    if (created.duplicate) {
+      return {
+        ok: true,
+        duplicate: true,
+        simulated: true,
+        external_line_sent: false,
+        service: SERVICE_NAME,
+        version: VERSION,
+        message: "同じデモ疑似送信はすでに受付済みです。",
+        broadcast: sanitizeBroadcast(created.row),
+      };
+    }
+
+    const result = await dispatchDemoBroadcastRow(
+      env,
+      facility,
+      created.row,
+      targets,
+    );
+
+    return {
+      ok: true,
+      service: SERVICE_NAME,
+      version: VERSION,
+      message: "デモ疑似送信が完了しました。実際のLINEには送信されていません。",
+      ...result,
+      broadcast: sanitizeBroadcast(result.broadcast),
+    };
+  }
+
   if (!targets.deliverable_count) {
     throw new ApiError(400, "LINE送信可能なご家族がいません。");
   }
@@ -4573,6 +4741,8 @@ async function handleAdminBroadcastSend(env, facility, body) {
     return {
       ok: true,
       duplicate: true,
+      simulated: false,
+      external_line_sent: true,
       service: SERVICE_NAME,
       version: VERSION,
       message: "同じ送信処理はすでに受付済みです。",
@@ -4594,6 +4764,8 @@ async function handleAdminBroadcastSend(env, facility, body) {
     message: result.failed_count
       ? "一斉連絡を送信しましたが、一部送信に失敗しました。"
       : "一斉連絡を送信しました。",
+    simulated: false,
+    external_line_sent: true,
     ...result,
     broadcast: sanitizeBroadcast(result.broadcast),
   };
@@ -4641,7 +4813,9 @@ async function handleAdminBroadcastHistory(env, facility) {
 }
 
 async function handleAdminBroadcastResend(env, facility, body) {
-  ensureProductionBroadcastAllowed(facility);
+  if (!isDemoBroadcastFacility(facility)) {
+    ensureProductionBroadcastAllowed(facility);
+  }
   const sourceId = requireUuid(body.source_broadcast_id, "元の一斉連絡ID");
   const sourceRows = await supabaseRequest(env, TABLES.broadcasts, {
     query: {
@@ -4687,7 +4861,12 @@ async function handleAdminBroadcastResend(env, facility, body) {
 }
 
 async function handleAdminBroadcastSchedule(env, facility, body) {
-  ensureProductionBroadcastAllowed(facility);
+  const demoMode = isDemoBroadcastFacility(facility);
+
+  if (!demoMode) {
+    ensureProductionBroadcastAllowed(facility);
+  }
+
   const scheduledAt = cleanText(body.scheduled_at, 100);
   const scheduledDate = new Date(scheduledAt);
   if (!scheduledAt || Number.isNaN(scheduledDate.getTime())) {
@@ -4699,14 +4878,23 @@ async function handleAdminBroadcastSchedule(env, facility, body) {
 
   normalizeBroadcastContent(body);
   const targets = await resolveBroadcastRecipients(env, facility, body);
-  if (!targets.deliverable_count) {
+
+  if (demoMode) {
+    if (!targets.family_count) {
+      throw new ApiError(400, "送信対象のご家族がいません。");
+    }
+  } else if (!targets.deliverable_count) {
     throw new ApiError(400, "LINE送信可能なご家族がいません。");
   }
+
+  const scheduleBody = demoMode
+    ? { ...body, broadcast_type: "demo_scheduled" }
+    : body;
 
   const created = await createBroadcastRow(
     env,
     facility,
-    body,
+    scheduleBody,
     targets,
     "scheduled",
     { scheduledAt: scheduledDate.toISOString() },
@@ -4715,11 +4903,15 @@ async function handleAdminBroadcastSchedule(env, facility, body) {
   return {
     ok: true,
     duplicate: created.duplicate,
+    simulated: demoMode,
+    external_line_sent: false,
     service: SERVICE_NAME,
     version: VERSION,
     message: created.duplicate
       ? "同じ予約配信はすでに受付済みです。"
-      : "一斉連絡を予約しました。",
+      : demoMode
+        ? "デモ予約を登録しました。実際のLINEには送信されません。"
+        : "一斉連絡を予約しました。",
     broadcast: sanitizeBroadcast(created.row),
   };
 }
@@ -4788,7 +4980,12 @@ async function processScheduledBroadcasts(env) {
         if (!claimed[0]) continue;
 
         const facility = await getFacilityById(env, broadcast.facility_id);
-        ensureProductionBroadcastAllowed(facility);
+        const demoMode = isDemoBroadcastFacility(facility);
+
+        if (!demoMode) {
+          ensureProductionBroadcastAllowed(facility);
+        }
+
         const targets = await resolveBroadcastRecipients(
           env,
           facility,
@@ -4796,8 +4993,32 @@ async function processScheduledBroadcasts(env) {
             target_type: broadcast.target_type,
             target_filter: broadcast.target_filter || {},
           },
-          { includeSecrets: true },
+          { includeSecrets: !demoMode },
         );
+
+        if (demoMode) {
+          if (!targets.family_count) {
+            await supabaseRequest(env, TABLES.broadcasts, {
+              method: "PATCH",
+              query: { id: `eq.${broadcast.id}` },
+              body: {
+                status: "failed",
+                failed_count: 0,
+                error_summary: { code: "no_demo_recipients" },
+              },
+              prefer: "return=minimal",
+            });
+            continue;
+          }
+
+          await dispatchDemoBroadcastRow(
+            env,
+            facility,
+            claimed[0],
+            targets,
+          );
+          continue;
+        }
 
         if (!targets.deliverable_count) {
           await supabaseRequest(env, TABLES.broadcasts, {

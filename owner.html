@@ -2070,7 +2070,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
     (function startOwnerAdmin() {
       "use strict";
 
-      const SCREEN_VERSION = "DAYCARE-8-R4-EMERGENCY-BROADCAST-TARGET-SELECTION-20260925";
+      const SCREEN_VERSION = "DAYCARE-8-R5-EMERGENCY-BROADCAST-DEMO-SAFE-20260925";
       const CONFIG = window.DPRODaycare || window.DPRO_DAYCARE_CONFIG || null;
 
       const $ = (selector) => document.querySelector(selector);
@@ -3403,6 +3403,10 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
       }
 
 
+      function isPublicDemoBroadcast() {
+        return CONFIG?.APP?.facilityCode === "dpro_dayservice_demo";
+      }
+
       function broadcastPayload() {
         const targetType = els.broadcastTargetType.value;
         const targetFilter = {};
@@ -3470,6 +3474,14 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
             <div class="broadcast-metric"><span>LINE送信可能</span><strong>${counts.line_deliverable || 0}</strong></div>
             <div class="broadcast-metric"><span>LINE未連携</span><strong>${counts.line_unlinked || 0}</strong></div>
           </div>
+          ${isPublicDemoBroadcast() ? `
+            <div class="broadcast-warning" style="margin-top:10px">
+              <strong>公開デモ：実際のLINEには送信されません。</strong>
+              <p style="margin:5px 0 0">
+                「本送信」や「予約配信」を操作すると、疑似送信・疑似予約として履歴に記録されます。
+              </p>
+            </div>
+          ` : ""}
           ${unlinked.length ? `
             <div class="broadcast-danger">
               <strong>LINE未連携のご家族が${unlinked.length}名います。</strong>
@@ -3508,18 +3520,33 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
       async function sendBroadcast() {
         const preview = await previewBroadcast();
         const counts = preview.counts || {};
-        if (!counts.line_deliverable) {
-          throw new Error("LINE送信可能なご家族がいません。");
+        const demoMode = isPublicDemoBroadcast();
+        const sendableCount = demoMode
+          ? (counts.families || 0)
+          : (counts.line_deliverable || 0);
+
+        if (!sendableCount) {
+          throw new Error(
+            demoMode
+              ? "送信対象のご家族がいません。"
+              : "LINE送信可能なご家族がいません。"
+          );
         }
 
         const emergencyNote = els.broadcastPriority.value === "emergency"
           ? "\n\nこれは「緊急」連絡です。"
           : "";
+
         const confirmed = window.confirm(
-          `${counts.line_deliverable}名へLINEを送信します。`
-          + `\nLINE未連携: ${counts.line_unlinked || 0}名`
-          + emergencyNote
-          + "\n\n送信してよろしいですか？"
+          demoMode
+            ? `${sendableCount}名へのデモ疑似送信を記録します。`
+              + "\n実際のLINEには送信されません。"
+              + emergencyNote
+              + "\n\n疑似送信を実行しますか？"
+            : `${sendableCount}名へLINEを送信します。`
+              + `\nLINE未連携: ${counts.line_unlinked || 0}名`
+              + emergencyNote
+              + "\n\n送信してよろしいですか？"
         );
         if (!confirmed) return;
 
@@ -3539,13 +3566,27 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         if (!scheduledAt) {
           throw new Error("予約配信日時を入力してください。");
         }
+
         const preview = await previewBroadcast();
-        if (!(preview.counts?.line_deliverable > 0)) {
-          throw new Error("LINE送信可能なご家族がいません。");
+        const demoMode = isPublicDemoBroadcast();
+        const sendableCount = demoMode
+          ? (preview.counts?.families || 0)
+          : (preview.counts?.line_deliverable || 0);
+
+        if (!sendableCount) {
+          throw new Error(
+            demoMode
+              ? "送信対象のご家族がいません。"
+              : "LINE送信可能なご家族がいません。"
+          );
         }
 
         const confirmed = window.confirm(
-          `${formatDateTime(scheduledAt)}に一斉連絡を予約します。よろしいですか？`
+          demoMode
+            ? `${formatDateTime(scheduledAt)}にデモ予約を登録します。`
+              + "\n実際のLINEには送信されません。"
+              + "\n\n予約しますか？"
+            : `${formatDateTime(scheduledAt)}に一斉連絡を予約します。よろしいですか？`
         );
         if (!confirmed) return;
 
@@ -3581,32 +3622,38 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
           return;
         }
 
-        els.broadcastHistory.innerHTML = rows.map((row) => `
-          <article class="broadcast-history-item">
-            <div class="broadcast-history-head">
-              <h4>${escapeHtml(row.subject || "件名なし")}</h4>
-              <span class="status-pill status-${row.status === "sent" ? "ok" : row.status === "failed" ? "error" : "neutral"}">
-                ${escapeHtml(broadcastStatusLabel(row.status))}
-              </span>
-            </div>
-            <p>${escapeHtml((row.message_body || "").slice(0, 140))}</p>
-            <div class="broadcast-history-meta">
-              対象 ${row.target_family_count || 0} / 送信成功 ${row.success_count || 0}
-              / 未連携 ${row.unlinked_count || 0} / 確認済 ${row.acknowledged_count || 0}
-              <br>${escapeHtml(formatDateTime(row.sent_at || row.scheduled_at || row.created_at))}
-            </div>
-            <div class="toolbar" style="margin-top:8px">
-              ${["sent","partial"].includes(row.status) ? `
-                <button class="btn btn-secondary btn-small" type="button" data-resend-broadcast="${escapeHtml(row.id)}">
-                  未確認へ再送
-                </button>` : ""}
-              ${row.status === "scheduled" ? `
-                <button class="btn btn-secondary btn-small" type="button" data-cancel-broadcast="${escapeHtml(row.id)}">
-                  予約を取消
-                </button>` : ""}
-            </div>
-          </article>
-        `).join("");
+        els.broadcastHistory.innerHTML = rows.map((row) => {
+          const demoRecord = String(row.broadcast_type || "").startsWith("demo_");
+          const resultLabel = demoRecord ? "疑似送信" : "送信成功";
+
+          return `
+            <article class="broadcast-history-item">
+              <div class="broadcast-history-head">
+                <h4>${demoRecord ? "【デモ】" : ""}${escapeHtml(row.subject || "件名なし")}</h4>
+                <span class="status-pill status-${row.status === "sent" ? "ok" : row.status === "failed" ? "error" : "neutral"}">
+                  ${escapeHtml(broadcastStatusLabel(row.status))}
+                </span>
+              </div>
+              <p>${escapeHtml((row.message_body || "").slice(0, 140))}</p>
+              <div class="broadcast-history-meta">
+                対象 ${row.target_family_count || 0} / ${resultLabel} ${row.success_count || 0}
+                / 未連携 ${row.unlinked_count || 0} / 確認済 ${row.acknowledged_count || 0}
+                ${demoRecord ? "<br>※公開デモのため実際のLINE送信は行っていません。" : ""}
+                <br>${escapeHtml(formatDateTime(row.sent_at || row.scheduled_at || row.created_at))}
+              </div>
+              <div class="toolbar" style="margin-top:8px">
+                ${["sent","partial"].includes(row.status) ? `
+                  <button class="btn btn-secondary btn-small" type="button" data-resend-broadcast="${escapeHtml(row.id)}">
+                    未確認へ再送
+                  </button>` : ""}
+                ${row.status === "scheduled" ? `
+                  <button class="btn btn-secondary btn-small" type="button" data-cancel-broadcast="${escapeHtml(row.id)}">
+                    予約を取消
+                  </button>` : ""}
+              </div>
+            </article>
+          `;
+        }).join("");
       }
 
       async function loadBroadcastHistory() {
