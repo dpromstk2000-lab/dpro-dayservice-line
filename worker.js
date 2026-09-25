@@ -3,7 +3,7 @@
  * DPRO デイサービス LINE
  * STEP DAYCARE-3
  * Cloudflare Worker API 完全版
- * Version: DAYCARE-3-R5-PRODUCT-READY-R3-LINE-IDTOKEN-20260823
+ * Version: DAYCARE-3-R6-EMERGENCY-BROADCAST-R1-20260925
  * ============================================================
  *
  * Cloudflare Worker名:
@@ -20,6 +20,9 @@
  *   DEFAULT_FACILITY_CODE = dpro_dayservice_demo
  *   ALLOWED_ORIGINS = https://dpromstk2000-lab.github.io
  *   LINE_LOGIN_CHANNEL_ID = <customer LINE Login Channel ID; contract-time server binding>
+ *   LINE_MESSAGING_CHANNEL_ACCESS_TOKEN = <customer Messaging API channel access token>
+ *   BROADCAST_ACK_BASE_URL = <customer ack page URL; optional>
+ *   LINE_TEST_USER_ID = <test destination LINE user id; optional>
  *
  * 重要:
  *   SUPABASE_SERVICE_ROLE_KEYは、HTML・config.js・GitHubへ絶対に置かない。
@@ -31,9 +34,9 @@
  */
 
 const SERVICE_NAME = "DPRO Dayservice LINE API";
-const VERSION = "DAYCARE-3-R5-PRODUCT-READY-R3-LINE-IDTOKEN-20260823";
-const FRONTEND_VERSION = "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8 / IPAD-9 / SYSTEM-CHECK-10";
-const DATABASE_VERSION_EXPECTED = "DAYCARE-DB-R2-20260823-01";
+const VERSION = "DAYCARE-3-R6-EMERGENCY-BROADCAST-R1-20260925";
+const FRONTEND_VERSION = "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8-R3-BROADCAST / IPAD-9 / SYSTEM-CHECK-10";
+const DATABASE_VERSION_EXPECTED = "DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01";
 const ADAPTER_VERSION = "DPRO-CONTROL-ADAPTER-1.0";
 const DEFAULT_ALLOWED_ORIGINS = Object.freeze([
   "https://dpromstk2000-lab.github.io",
@@ -63,6 +66,10 @@ const TABLES = Object.freeze({
   notes: "dayservice_care_notes_simple",
   systemVersions: "dayservice_system_versions",
   lineIdentities: "dayservice_line_identities",
+  lineDeliveryTargets: "dayservice_line_delivery_targets",
+  broadcastTemplates: "dayservice_broadcast_templates",
+  broadcasts: "dayservice_broadcasts",
+  broadcastRecipients: "dayservice_broadcast_recipients",
 });
 
 const VALID_ATTENDANCE_STATUSES = new Set([
@@ -170,6 +177,10 @@ export default {
       );
     }
   },
+
+  async scheduled(_controller, env, ctx) {
+    ctx.waitUntil(processScheduledBroadcasts(env));
+  },
 };
 
 async function routeRequest(context) {
@@ -188,6 +199,7 @@ async function routeRequest(context) {
           public_config: "/api/public/config",
           public_calendar: "/api/public/calendar",
           line_identity_verify: "/api/line/verify",
+          public_broadcast_acknowledge: "/api/public/broadcast/acknowledge",
           public_absence: "/api/public/absence",
           public_change_request: "/api/public/change-request",
           public_contact: "/api/public/contact",
@@ -205,6 +217,14 @@ async function routeRequest(context) {
           admin_task_status: "/api/admin/tasks/status",
           admin_message_log_copy: "/api/admin/messages/log-copy",
           admin_family_request_status: "/api/admin/family-requests/status",
+          admin_broadcast_templates: "/api/admin/broadcasts/templates",
+          admin_broadcast_preview: "/api/admin/broadcasts/preview",
+          admin_broadcast_test: "/api/admin/broadcasts/test",
+          admin_broadcast_send: "/api/admin/broadcasts/send",
+          admin_broadcast_history: "/api/admin/broadcasts/history",
+          admin_broadcast_resend: "/api/admin/broadcasts/resend",
+          admin_broadcast_schedule: "/api/admin/broadcasts/schedule",
+          admin_broadcast_cancel: "/api/admin/broadcasts/cancel",
           admin_phone_normalize_check: "/api/admin/phone-normalize-check",
         },
       },
@@ -259,6 +279,12 @@ async function routeRequest(context) {
   if (path === "/api/member/profile" && method === "GET") {
     return {
       body: await handleMemberProfile(env, url),
+    };
+  }
+
+  if (path === "/api/public/broadcast/acknowledge" && method === "POST") {
+    return {
+      body: await handlePublicBroadcastAcknowledge(env, body),
     };
   }
 
@@ -350,6 +376,57 @@ async function routeRequest(context) {
       };
     }
 
+    if (path === "/api/admin/broadcasts/templates" && method === "GET") {
+      return {
+        body: await handleAdminBroadcastTemplates(env, facility),
+      };
+    }
+
+    if (path === "/api/admin/broadcasts/preview" && method === "POST") {
+      return {
+        body: await handleAdminBroadcastPreview(env, facility, body),
+      };
+    }
+
+    if (path === "/api/admin/broadcasts/test" && method === "POST") {
+      return {
+        body: await handleAdminBroadcastTest(env, facility, body),
+      };
+    }
+
+    if (path === "/api/admin/broadcasts/send" && method === "POST") {
+      return {
+        status: 201,
+        body: await handleAdminBroadcastSend(env, facility, body),
+      };
+    }
+
+    if (path === "/api/admin/broadcasts/history" && method === "GET") {
+      return {
+        body: await handleAdminBroadcastHistory(env, facility),
+      };
+    }
+
+    if (path === "/api/admin/broadcasts/resend" && method === "POST") {
+      return {
+        status: 201,
+        body: await handleAdminBroadcastResend(env, facility, body),
+      };
+    }
+
+    if (path === "/api/admin/broadcasts/schedule" && method === "POST") {
+      return {
+        status: 201,
+        body: await handleAdminBroadcastSchedule(env, facility, body),
+      };
+    }
+
+    if (path === "/api/admin/broadcasts/cancel" && method === "POST") {
+      return {
+        body: await handleAdminBroadcastCancel(env, facility, body),
+      };
+    }
+
     if (path === "/api/admin/phone-normalize-check" && method === "GET") {
       return {
         body: handlePhoneNormalizeCheck(),
@@ -426,6 +503,10 @@ async function handleHealth(env, url) {
       special_day_calendar: true,
       line_identity_server_verify: true,
       line_identity_id_token_sub_authority: true,
+      emergency_broadcast: true,
+      emergency_broadcast_preview: true,
+      emergency_broadcast_acknowledgement: true,
+      emergency_broadcast_schedule: true,
     },
     timezone: JST_TIME_ZONE,
     time: new Date().toISOString(),
@@ -593,6 +674,28 @@ async function handleLineIdentityVerify(env, url, body) {
     },
   });
 
+  const binding = bindings[0] || null;
+  if (binding?.family_member_id) {
+    await supabaseRequest(env, TABLES.lineDeliveryTargets, {
+      method: "POST",
+      query: {
+        on_conflict: "facility_id,line_user_id_hash",
+      },
+      body: {
+        facility_id: facility.id,
+        family_member_id: binding.family_member_id,
+        user_id: binding.user_id || null,
+        line_user_id: verifiedSub,
+        line_user_id_hash: identityHash,
+        consent_status: "active",
+        is_active: true,
+        verified_at: new Date().toISOString(),
+        revoked_at: null,
+      },
+      prefer: "resolution=merge-duplicates,return=minimal",
+    });
+  }
+
   return {
     ok: true,
     service: SERVICE_NAME,
@@ -604,8 +707,9 @@ async function handleLineIdentityVerify(env, url, body) {
     audience_verified: true,
     expiry_verified: true,
     client_line_user_id_trusted: false,
-    bound: Boolean(bindings[0]),
-    customer_binding_deferred: !bindings[0],
+    bound: Boolean(binding),
+    outbound_delivery_bound: Boolean(binding?.family_member_id),
+    customer_binding_deferred: !binding,
   };
 }
 
@@ -3781,6 +3885,1037 @@ async function getDemoVerification(env, facility, date) {
       status: schedule.status,
     })),
   };
+}
+
+
+/* ============================================================
+ * Emergency / Broadcast
+ * ============================================================
+ */
+
+const BROADCAST_TARGET_TYPES = new Set([
+  "all",
+  "today",
+  "tomorrow",
+  "date",
+  "transport",
+  "selected_users",
+  "selected_families",
+]);
+
+const BROADCAST_PRIORITIES = new Set([
+  "emergency",
+  "important",
+  "normal",
+]);
+
+function requireLineMessagingToken(env) {
+  const token = cleanText(env.LINE_MESSAGING_CHANNEL_ACCESS_TOKEN, 20000);
+  if (!token) {
+    throw new ApiError(503, "LINE Messaging APIの送信設定が完了していません。", {
+      code: "line_messaging_not_configured",
+    });
+  }
+  return token;
+}
+
+function ensureProductionBroadcastAllowed(facility) {
+  if (
+    facility?.is_demo === true
+    || facility?.facility_code === DEFAULT_FACILITY_CODE
+  ) {
+    throw new ApiError(
+      409,
+      "公開デモ環境から本番LINE送信はできません。",
+      { code: "demo_broadcast_blocked" },
+    );
+  }
+}
+
+function broadcastAckBaseUrl(env) {
+  const configured = cleanText(env.BROADCAST_ACK_BASE_URL, 2000);
+  return (
+    configured
+    || "https://dpromstk2000-lab.github.io/dpro-dayservice-line/broadcast-ack.html"
+  );
+}
+
+function normalizeBroadcastContent(body) {
+  const priority = cleanText(body.priority, 30) || "normal";
+  if (!BROADCAST_PRIORITIES.has(priority)) {
+    throw new ApiError(400, "連絡優先度が正しくありません。");
+  }
+
+  const subject = cleanText(body.subject, 200);
+  const messageBody = normalizeNewlines(cleanText(body.message_body, 4200));
+  if (!messageBody) {
+    throw new ApiError(400, "連絡本文を入力してください。");
+  }
+
+  return {
+    priority,
+    subject: subject || null,
+    message_body: messageBody,
+  };
+}
+
+function normalizeBroadcastTarget(body) {
+  const targetType = cleanText(body.target_type, 40) || "all";
+  if (!BROADCAST_TARGET_TYPES.has(targetType)) {
+    throw new ApiError(400, "送信対象の指定が正しくありません。");
+  }
+
+  const inputFilter = body.target_filter && typeof body.target_filter === "object"
+    ? body.target_filter
+    : {};
+
+  const filter = {};
+  if (["date", "transport"].includes(targetType)) {
+    filter.service_date = requireDate(
+      inputFilter.service_date || body.service_date || todayJst(),
+      "対象日",
+    );
+  }
+  if (targetType === "selected_users") {
+    filter.user_ids = unique(
+      (Array.isArray(inputFilter.user_ids) ? inputFilter.user_ids : [])
+        .map((value) => optionalUuid(value))
+        .filter(Boolean),
+    );
+    if (!filter.user_ids.length) {
+      throw new ApiError(400, "対象利用者を選択してください。");
+    }
+  }
+  if (targetType === "selected_families") {
+    filter.family_ids = unique(
+      (Array.isArray(inputFilter.family_ids) ? inputFilter.family_ids : [])
+        .map((value) => optionalUuid(value))
+        .filter(Boolean),
+    );
+    if (!filter.family_ids.length) {
+      throw new ApiError(400, "対象家族を選択してください。");
+    }
+  }
+
+  return { targetType, filter };
+}
+
+async function resolveBroadcastRecipients(
+  env,
+  facility,
+  body,
+  options = {},
+) {
+  const { targetType, filter } = normalizeBroadcastTarget(body);
+  let userIds = [];
+  let explicitFamilyIds = [];
+
+  if (targetType === "selected_users") {
+    userIds = filter.user_ids;
+  } else if (targetType === "selected_families") {
+    explicitFamilyIds = filter.family_ids;
+  } else if (targetType !== "all") {
+    let serviceDate = todayJst();
+    if (targetType === "tomorrow") {
+      serviceDate = addDaysIso(todayJst(), 1);
+    } else if (["date", "transport"].includes(targetType)) {
+      serviceDate = filter.service_date;
+    }
+
+    const schedules = await supabaseRequest(env, TABLES.schedules, {
+      query: {
+        select: "id,user_id,service_date,status,transport_mode,is_demo",
+        facility_id: `eq.${facility.id}`,
+        service_date: `eq.${serviceDate}`,
+        limit: "1000",
+      },
+    });
+
+    userIds = unique(
+      schedules
+        .filter((row) => !["cancelled", "absent"].includes(row.status))
+        .filter((row) =>
+          targetType !== "transport"
+          || row.transport_mode === "facility_transport"
+        )
+        .map((row) => row.user_id)
+        .filter(Boolean),
+    );
+  }
+
+  let relations = [];
+  if (userIds.length) {
+    relations = await supabaseRequest(env, TABLES.userFamilies, {
+      query: {
+        select: "user_id,family_member_id,is_primary_contact,is_active",
+        facility_id: `eq.${facility.id}`,
+        user_id: `in.(${userIds.join(",")})`,
+        is_active: "eq.true",
+        limit: "2000",
+      },
+    });
+    explicitFamilyIds = unique(
+      relations.map((row) => row.family_member_id).filter(Boolean),
+    );
+  }
+
+  let families = [];
+  if (targetType === "all") {
+    families = await supabaseRequest(env, TABLES.families, {
+      query: {
+        select: "id,full_name,relationship,phone,contact_allowed,preferred_contact_method,is_active,is_demo",
+        facility_id: `eq.${facility.id}`,
+        is_active: "eq.true",
+        limit: "2000",
+      },
+    });
+  } else if (explicitFamilyIds.length) {
+    families = await supabaseRequest(env, TABLES.families, {
+      query: {
+        select: "id,full_name,relationship,phone,contact_allowed,preferred_contact_method,is_active,is_demo",
+        facility_id: `eq.${facility.id}`,
+        id: `in.(${explicitFamilyIds.join(",")})`,
+        is_active: "eq.true",
+        limit: "2000",
+      },
+    });
+  }
+
+  families = families.filter((family) => family.contact_allowed !== false);
+
+  const familyIds = families.map((family) => family.id);
+  const deliveryTargets = familyIds.length
+    ? await supabaseRequest(env, TABLES.lineDeliveryTargets, {
+        query: {
+          select: options.includeSecrets
+            ? "id,family_member_id,user_id,line_user_id,line_user_id_hash,verified_at"
+            : "id,family_member_id,user_id,line_user_id_hash,verified_at",
+          facility_id: `eq.${facility.id}`,
+          family_member_id: `in.(${familyIds.join(",")})`,
+          consent_status: "eq.active",
+          is_active: "eq.true",
+          order: "verified_at.desc",
+          limit: "4000",
+        },
+      })
+    : [];
+
+  const targetByFamily = new Map();
+  for (const target of deliveryTargets) {
+    if (!targetByFamily.has(target.family_member_id)) {
+      targetByFamily.set(target.family_member_id, target);
+    }
+  }
+
+  const relatedUserByFamily = new Map();
+  for (const relation of relations) {
+    if (!relatedUserByFamily.has(relation.family_member_id)) {
+      relatedUserByFamily.set(relation.family_member_id, relation.user_id);
+    }
+  }
+
+  const recipients = families.map((family) => {
+    const target = targetByFamily.get(family.id) || null;
+    return {
+      family_member_id: family.id,
+      user_id: target?.user_id
+        || relatedUserByFamily.get(family.id)
+        || null,
+      family_name: family.full_name,
+      relationship: family.relationship || null,
+      phone: family.phone || null,
+      delivery_target_id: target?.id || null,
+      line_user_id: options.includeSecrets ? target?.line_user_id || null : undefined,
+      linked: Boolean(target),
+    };
+  });
+
+  const linked = recipients.filter((row) => row.linked);
+  const unlinked = recipients.filter((row) => !row.linked);
+
+  return {
+    target_type: targetType,
+    target_filter: filter,
+    user_count: userIds.length,
+    family_count: families.length,
+    deliverable_count: linked.length,
+    unlinked_count: unlinked.length,
+    recipients,
+    linked,
+    unlinked,
+  };
+}
+
+function broadcastPreviewPayload(targets) {
+  return {
+    target_type: targets.target_type,
+    target_filter: targets.target_filter,
+    counts: {
+      users: targets.user_count,
+      families: targets.family_count,
+      line_deliverable: targets.deliverable_count,
+      line_unlinked: targets.unlinked_count,
+    },
+    unlinked_families: targets.unlinked.map((row) => ({
+      family_member_id: row.family_member_id,
+      family_name: row.family_name,
+      relationship: row.relationship,
+      phone: row.phone,
+    })),
+  };
+}
+
+async function handleAdminBroadcastTemplates(env, facility) {
+  const [systemTemplates, facilityTemplates] = await Promise.all([
+    supabaseRequest(env, TABLES.broadcastTemplates, {
+      query: {
+        select: "id,template_code,category,title,subject,message_body,priority,is_system,display_order",
+        facility_id: "is.null",
+        is_active: "eq.true",
+        order: "display_order.asc",
+        limit: "100",
+      },
+    }),
+    supabaseRequest(env, TABLES.broadcastTemplates, {
+      query: {
+        select: "id,template_code,category,title,subject,message_body,priority,is_system,display_order",
+        facility_id: `eq.${facility.id}`,
+        is_active: "eq.true",
+        order: "display_order.asc",
+        limit: "100",
+      },
+    }),
+  ]);
+
+  return {
+    ok: true,
+    service: SERVICE_NAME,
+    version: VERSION,
+    templates: [...systemTemplates, ...facilityTemplates],
+  };
+}
+
+async function handleAdminBroadcastPreview(env, facility, body) {
+  const targets = await resolveBroadcastRecipients(env, facility, body);
+  return {
+    ok: true,
+    service: SERVICE_NAME,
+    version: VERSION,
+    ...broadcastPreviewPayload(targets),
+  };
+}
+
+async function handleAdminBroadcastTest(env, facility, body) {
+  const content = normalizeBroadcastContent(body);
+  const token = requireLineMessagingToken(env);
+  const testUserId = cleanText(env.LINE_TEST_USER_ID, 200);
+  if (!testUserId) {
+    throw new ApiError(409, "テスト送信先LINE User IDが未設定です。", {
+      code: "line_test_user_not_configured",
+    });
+  }
+
+  const text = composeBroadcastText(content, null, true);
+  const result = await sendLinePush(token, testUserId, text);
+
+  await logOperation(env, {
+    facilityId: facility.id,
+    actorType: "staff",
+    actorName: cleanText(body.operator_name, 100) || "管理者",
+    action: "broadcast_test_send",
+    targetTable: TABLES.broadcasts,
+    deviceType: cleanDeviceType(body.device_type),
+    isDemo: Boolean(facility.is_demo),
+    details: {
+      success: result.ok,
+      status: result.status,
+    },
+  });
+
+  if (!result.ok) {
+    throw new ApiError(502, "LINEテスト送信に失敗しました。", {
+      code: "line_test_send_failed",
+      status: result.status,
+    });
+  }
+
+  return {
+    ok: true,
+    service: SERVICE_NAME,
+    version: VERSION,
+    message: "テスト送信が完了しました。",
+  };
+}
+
+async function findBroadcastByIdempotency(env, facilityId, idempotencyKey) {
+  if (!idempotencyKey) return null;
+  const rows = await supabaseRequest(env, TABLES.broadcasts, {
+    query: {
+      select: "*",
+      facility_id: `eq.${facilityId}`,
+      idempotency_key: `eq.${idempotencyKey}`,
+      limit: "1",
+    },
+  });
+  return rows[0] || null;
+}
+
+async function createBroadcastRow(
+  env,
+  facility,
+  body,
+  targets,
+  status,
+  options = {},
+) {
+  const content = normalizeBroadcastContent(body);
+  const idempotencyKey = cleanText(body.idempotency_key, 120);
+  if (!idempotencyKey) {
+    throw new ApiError(400, "送信重複防止キーが必要です。");
+  }
+
+  const existing = await findBroadcastByIdempotency(
+    env,
+    facility.id,
+    idempotencyKey,
+  );
+  if (existing) {
+    return { duplicate: true, row: existing };
+  }
+
+  const inserted = await supabaseRequest(env, TABLES.broadcasts, {
+    method: "POST",
+    body: {
+      facility_id: facility.id,
+      priority: content.priority,
+      broadcast_type: cleanText(body.broadcast_type, 50) || "general",
+      subject: content.subject,
+      message_body: content.message_body,
+      target_type: targets.target_type,
+      target_filter: targets.target_filter,
+      status,
+      idempotency_key: idempotencyKey,
+      scheduled_at: options.scheduledAt || null,
+      created_by: cleanText(body.operator_name, 100) || "管理者",
+      approved_by: cleanText(body.approved_by, 100) || null,
+      target_user_count: targets.user_count,
+      target_family_count: targets.family_count,
+      deliverable_count: targets.deliverable_count,
+      unlinked_count: targets.unlinked_count,
+      source_broadcast_id: options.sourceBroadcastId || optionalUuid(body.source_broadcast_id),
+    },
+    prefer: "return=representation",
+  });
+
+  return { duplicate: false, row: inserted[0] };
+}
+
+function randomUrlToken(byteLength = 32) {
+  const bytes = new Uint8Array(byteLength);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function composeBroadcastText(content, acknowledgementUrl, isTest = false) {
+  const parts = [];
+  if (isTest) parts.push("【テスト送信】");
+  if (content.subject) parts.push(content.subject);
+  parts.push(content.message_body);
+  if (acknowledgementUrl) {
+    parts.push(
+      "▼内容を確認したら、下記ページで「確認しました」を押してください。",
+      acknowledgementUrl,
+    );
+  }
+  return parts.filter(Boolean).join("\n\n").slice(0, 4900);
+}
+
+async function sendLinePush(channelAccessToken, lineUserId, text) {
+  try {
+    const response = await fetch("https://api.line.me/v2/bot/message/push", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${channelAccessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        to: lineUserId,
+        messages: [{ type: "text", text }],
+      }),
+    });
+
+    if (!response.ok) {
+      const responseText = await response.text();
+      console.error("LINE push failed", {
+        status: response.status,
+        body: responseText.slice(0, 500),
+      });
+      return { ok: false, status: response.status };
+    }
+    return { ok: true, status: response.status };
+  } catch (error) {
+    console.error("LINE push network failed", error);
+    return { ok: false, status: 0 };
+  }
+}
+
+async function runInBatches(items, size, handler) {
+  const results = [];
+  for (let index = 0; index < items.length; index += size) {
+    const batch = items.slice(index, index + size);
+    const batchResults = await Promise.all(batch.map(handler));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
+async function dispatchBroadcastRow(env, facility, broadcast, targets) {
+  const token = requireLineMessagingToken(env);
+  const content = {
+    priority: broadcast.priority,
+    subject: broadcast.subject,
+    message_body: broadcast.message_body,
+  };
+
+  const recipientPayloads = [];
+  const rawTokens = new Map();
+
+  for (const recipient of targets.recipients) {
+    if (recipient.linked) {
+      const rawToken = randomUrlToken();
+      const tokenHash = await sha256Hex(rawToken);
+      rawTokens.set(recipient.family_member_id, rawToken);
+      recipientPayloads.push({
+        broadcast_id: broadcast.id,
+        facility_id: facility.id,
+        user_id: recipient.user_id,
+        family_member_id: recipient.family_member_id,
+        delivery_target_id: recipient.delivery_target_id,
+        delivery_channel: "line",
+        send_status: "pending",
+        acknowledgement_token_hash: tokenHash,
+      });
+    } else {
+      recipientPayloads.push({
+        broadcast_id: broadcast.id,
+        facility_id: facility.id,
+        user_id: recipient.user_id,
+        family_member_id: recipient.family_member_id,
+        delivery_target_id: null,
+        delivery_channel: "phone",
+        send_status: "skipped",
+        failure_code: "line_not_linked",
+        failure_note: "LINE未連携のため電話等でフォローしてください。",
+      });
+    }
+  }
+
+  const insertedRecipients = recipientPayloads.length
+    ? await supabaseRequest(env, TABLES.broadcastRecipients, {
+        method: "POST",
+        body: recipientPayloads,
+        prefer: "return=representation",
+      })
+    : [];
+
+  const rowByFamily = new Map(
+    insertedRecipients.map((row) => [row.family_member_id, row]),
+  );
+
+  const linkedWithRows = targets.linked
+    .map((recipient) => ({
+      ...recipient,
+      dbRow: rowByFamily.get(recipient.family_member_id),
+      ackToken: rawTokens.get(recipient.family_member_id),
+    }))
+    .filter((recipient) => recipient.dbRow && recipient.ackToken);
+
+  const sendResults = await runInBatches(
+    linkedWithRows,
+    10,
+    async (recipient) => {
+      const ackUrl = new URL(broadcastAckBaseUrl(env));
+      ackUrl.searchParams.set("token", recipient.ackToken);
+      const text = composeBroadcastText(content, ackUrl.toString(), false);
+      const result = await sendLinePush(
+        token,
+        recipient.line_user_id,
+        text,
+      );
+
+      const now = new Date().toISOString();
+      await supabaseRequest(env, TABLES.broadcastRecipients, {
+        method: "PATCH",
+        query: {
+          id: `eq.${recipient.dbRow.id}`,
+        },
+        body: result.ok
+          ? {
+              send_status: "sent",
+              sent_at: now,
+              failed_at: null,
+              failure_code: null,
+              failure_note: null,
+            }
+          : {
+              send_status: "failed",
+              failed_at: now,
+              failure_code: `line_http_${result.status || 0}`,
+              failure_note: "LINE送信に失敗しました。",
+            },
+        prefer: "return=minimal",
+      });
+
+      return result;
+    },
+  );
+
+  const successCount = sendResults.filter((row) => row.ok).length;
+  const failedCount = sendResults.length - successCount;
+  const finalStatus = failedCount === 0
+    ? "sent"
+    : successCount > 0
+      ? "partial"
+      : "failed";
+
+  const updated = await supabaseRequest(env, TABLES.broadcasts, {
+    method: "PATCH",
+    query: {
+      id: `eq.${broadcast.id}`,
+    },
+    body: {
+      status: finalStatus,
+      sent_at: new Date().toISOString(),
+      success_count: successCount,
+      failed_count: failedCount,
+      target_user_count: targets.user_count,
+      target_family_count: targets.family_count,
+      deliverable_count: targets.deliverable_count,
+      unlinked_count: targets.unlinked_count,
+      line_request_summary: {
+        attempted: sendResults.length,
+        success: successCount,
+        failed: failedCount,
+      },
+    },
+    prefer: "return=representation",
+  });
+
+  await logOperation(env, {
+    facilityId: facility.id,
+    actorType: "staff",
+    actorName: broadcast.created_by || "管理者",
+    action: "broadcast_sent",
+    targetTable: TABLES.broadcasts,
+    targetId: broadcast.id,
+    deviceType: "api",
+    isDemo: false,
+    details: {
+      target_family_count: targets.family_count,
+      success_count: successCount,
+      failed_count: failedCount,
+      unlinked_count: targets.unlinked_count,
+    },
+  });
+
+  return {
+    broadcast: updated[0],
+    success_count: successCount,
+    failed_count: failedCount,
+    unlinked_count: targets.unlinked_count,
+    unlinked_families: targets.unlinked.map((row) => ({
+      family_member_id: row.family_member_id,
+      family_name: row.family_name,
+      relationship: row.relationship,
+      phone: row.phone,
+    })),
+  };
+}
+
+async function handleAdminBroadcastSend(env, facility, body) {
+  ensureProductionBroadcastAllowed(facility);
+  const targets = await resolveBroadcastRecipients(
+    env,
+    facility,
+    body,
+    { includeSecrets: true },
+  );
+  if (!targets.deliverable_count) {
+    throw new ApiError(400, "LINE送信可能なご家族がいません。");
+  }
+
+  const created = await createBroadcastRow(
+    env,
+    facility,
+    body,
+    targets,
+    "sending",
+  );
+
+  if (created.duplicate) {
+    return {
+      ok: true,
+      duplicate: true,
+      service: SERVICE_NAME,
+      version: VERSION,
+      message: "同じ送信処理はすでに受付済みです。",
+      broadcast: sanitizeBroadcast(created.row),
+    };
+  }
+
+  const result = await dispatchBroadcastRow(
+    env,
+    facility,
+    created.row,
+    targets,
+  );
+
+  return {
+    ok: true,
+    service: SERVICE_NAME,
+    version: VERSION,
+    message: result.failed_count
+      ? "一斉連絡を送信しましたが、一部送信に失敗しました。"
+      : "一斉連絡を送信しました。",
+    ...result,
+    broadcast: sanitizeBroadcast(result.broadcast),
+  };
+}
+
+async function handleAdminBroadcastHistory(env, facility) {
+  const rows = await supabaseRequest(env, TABLES.broadcasts, {
+    query: {
+      select: [
+        "id",
+        "priority",
+        "broadcast_type",
+        "subject",
+        "message_body",
+        "target_type",
+        "target_filter",
+        "status",
+        "scheduled_at",
+        "sent_at",
+        "cancelled_at",
+        "created_by",
+        "approved_by",
+        "target_user_count",
+        "target_family_count",
+        "deliverable_count",
+        "unlinked_count",
+        "success_count",
+        "failed_count",
+        "acknowledged_count",
+        "source_broadcast_id",
+        "created_at",
+      ].join(","),
+      facility_id: `eq.${facility.id}`,
+      order: "created_at.desc",
+      limit: "50",
+    },
+  });
+
+  return {
+    ok: true,
+    service: SERVICE_NAME,
+    version: VERSION,
+    broadcasts: rows.map(sanitizeBroadcast),
+  };
+}
+
+async function handleAdminBroadcastResend(env, facility, body) {
+  ensureProductionBroadcastAllowed(facility);
+  const sourceId = requireUuid(body.source_broadcast_id, "元の一斉連絡ID");
+  const sourceRows = await supabaseRequest(env, TABLES.broadcasts, {
+    query: {
+      select: "*",
+      id: `eq.${sourceId}`,
+      facility_id: `eq.${facility.id}`,
+      limit: "1",
+    },
+  });
+  const source = sourceRows[0];
+  if (!source) {
+    throw new ApiError(404, "元の一斉連絡が見つかりません。");
+  }
+
+  const recipientRows = await supabaseRequest(env, TABLES.broadcastRecipients, {
+    query: {
+      select: "family_member_id,send_status,acknowledged_at",
+      broadcast_id: `eq.${sourceId}`,
+      send_status: "eq.sent",
+      acknowledged_at: "is.null",
+      limit: "2000",
+    },
+  });
+  const familyIds = unique(
+    recipientRows.map((row) => row.family_member_id).filter(Boolean),
+  );
+  if (!familyIds.length) {
+    throw new ApiError(400, "未確認のLINE送信先はありません。");
+  }
+
+  const nextBody = {
+    ...body,
+    priority: source.priority,
+    broadcast_type: "resend_unacknowledged",
+    subject: source.subject,
+    message_body: source.message_body,
+    target_type: "selected_families",
+    target_filter: { family_ids: familyIds },
+    source_broadcast_id: sourceId,
+  };
+
+  return handleAdminBroadcastSend(env, facility, nextBody);
+}
+
+async function handleAdminBroadcastSchedule(env, facility, body) {
+  ensureProductionBroadcastAllowed(facility);
+  const scheduledAt = cleanText(body.scheduled_at, 100);
+  const scheduledDate = new Date(scheduledAt);
+  if (!scheduledAt || Number.isNaN(scheduledDate.getTime())) {
+    throw new ApiError(400, "予約配信日時を確認してください。");
+  }
+  if (scheduledDate.getTime() <= Date.now() + 60_000) {
+    throw new ApiError(400, "予約配信は現在時刻より後を指定してください。");
+  }
+
+  normalizeBroadcastContent(body);
+  const targets = await resolveBroadcastRecipients(env, facility, body);
+  if (!targets.deliverable_count) {
+    throw new ApiError(400, "LINE送信可能なご家族がいません。");
+  }
+
+  const created = await createBroadcastRow(
+    env,
+    facility,
+    body,
+    targets,
+    "scheduled",
+    { scheduledAt: scheduledDate.toISOString() },
+  );
+
+  return {
+    ok: true,
+    duplicate: created.duplicate,
+    service: SERVICE_NAME,
+    version: VERSION,
+    message: created.duplicate
+      ? "同じ予約配信はすでに受付済みです。"
+      : "一斉連絡を予約しました。",
+    broadcast: sanitizeBroadcast(created.row),
+  };
+}
+
+async function handleAdminBroadcastCancel(env, facility, body) {
+  const broadcastId = requireUuid(body.broadcast_id, "一斉連絡ID");
+  const rows = await supabaseRequest(env, TABLES.broadcasts, {
+    query: {
+      select: "*",
+      id: `eq.${broadcastId}`,
+      facility_id: `eq.${facility.id}`,
+      status: "eq.scheduled",
+      limit: "1",
+    },
+  });
+  if (!rows[0]) {
+    throw new ApiError(404, "取消可能な予約配信が見つかりません。");
+  }
+
+  const updated = await supabaseRequest(env, TABLES.broadcasts, {
+    method: "PATCH",
+    query: {
+      id: `eq.${broadcastId}`,
+      status: "eq.scheduled",
+    },
+    body: {
+      status: "cancelled",
+      cancelled_at: new Date().toISOString(),
+    },
+    prefer: "return=representation",
+  });
+
+  return {
+    ok: true,
+    service: SERVICE_NAME,
+    version: VERSION,
+    message: "予約配信を取り消しました。",
+    broadcast: sanitizeBroadcast(updated[0]),
+  };
+}
+
+async function processScheduledBroadcasts(env) {
+  try {
+    validateEnvironment(env);
+    const due = await supabaseRequest(env, TABLES.broadcasts, {
+      query: {
+        select: "*",
+        status: "eq.scheduled",
+        scheduled_at: `lte.${new Date().toISOString()}`,
+        order: "scheduled_at.asc",
+        limit: "10",
+      },
+    });
+
+    for (const broadcast of due) {
+      try {
+        const claimed = await supabaseRequest(env, TABLES.broadcasts, {
+          method: "PATCH",
+          query: {
+            id: `eq.${broadcast.id}`,
+            status: "eq.scheduled",
+          },
+          body: { status: "sending" },
+          prefer: "return=representation",
+        });
+        if (!claimed[0]) continue;
+
+        const facility = await getFacilityById(env, broadcast.facility_id);
+        ensureProductionBroadcastAllowed(facility);
+        const targets = await resolveBroadcastRecipients(
+          env,
+          facility,
+          {
+            target_type: broadcast.target_type,
+            target_filter: broadcast.target_filter || {},
+          },
+          { includeSecrets: true },
+        );
+
+        if (!targets.deliverable_count) {
+          await supabaseRequest(env, TABLES.broadcasts, {
+            method: "PATCH",
+            query: { id: `eq.${broadcast.id}` },
+            body: {
+              status: "failed",
+              failed_count: 0,
+              error_summary: { code: "no_deliverable_recipients" },
+            },
+            prefer: "return=minimal",
+          });
+          continue;
+        }
+
+        await dispatchBroadcastRow(env, facility, claimed[0], targets);
+      } catch (error) {
+        console.error("scheduled broadcast failed", {
+          broadcast_id: broadcast.id,
+          error,
+        });
+        try {
+          await supabaseRequest(env, TABLES.broadcasts, {
+            method: "PATCH",
+            query: { id: `eq.${broadcast.id}` },
+            body: {
+              status: "failed",
+              error_summary: {
+                code: "scheduled_dispatch_failed",
+                message: cleanText(error?.message, 500),
+              },
+            },
+            prefer: "return=minimal",
+          });
+        } catch (patchError) {
+          console.error("scheduled failure status update failed", patchError);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("scheduled broadcast scan failed", error);
+  }
+}
+
+async function handlePublicBroadcastAcknowledge(env, body) {
+  const rawToken = cleanText(body.token, 500);
+  if (!rawToken || rawToken.length < 20) {
+    throw new ApiError(400, "確認用URLを確認してください。");
+  }
+
+  const tokenHash = await sha256Hex(rawToken);
+  const rows = await supabaseRequest(env, TABLES.broadcastRecipients, {
+    query: {
+      select: "id,broadcast_id,acknowledged_at,send_status",
+      acknowledgement_token_hash: `eq.${tokenHash}`,
+      limit: "1",
+    },
+  });
+  const recipient = rows[0];
+  if (!recipient) {
+    throw new ApiError(404, "確認用URLが無効です。");
+  }
+
+  const acknowledgedAt = recipient.acknowledged_at || new Date().toISOString();
+  if (!recipient.acknowledged_at) {
+    await supabaseRequest(env, TABLES.broadcastRecipients, {
+      method: "PATCH",
+      query: { id: `eq.${recipient.id}` },
+      body: { acknowledged_at: acknowledgedAt },
+      prefer: "return=minimal",
+    });
+
+    const allRecipients = await supabaseRequest(env, TABLES.broadcastRecipients, {
+      query: {
+        select: "id,acknowledged_at",
+        broadcast_id: `eq.${recipient.broadcast_id}`,
+        send_status: "eq.sent",
+        limit: "4000",
+      },
+    });
+    const acknowledgedCount = allRecipients.filter(
+      (row) => Boolean(row.acknowledged_at),
+    ).length;
+
+    await supabaseRequest(env, TABLES.broadcasts, {
+      method: "PATCH",
+      query: { id: `eq.${recipient.broadcast_id}` },
+      body: { acknowledged_count: acknowledgedCount },
+      prefer: "return=minimal",
+    });
+  }
+
+  return {
+    ok: true,
+    service: SERVICE_NAME,
+    version: VERSION,
+    acknowledged: true,
+    acknowledged_at: acknowledgedAt,
+    message: "施設からの連絡内容を確認済みにしました。",
+  };
+}
+
+function sanitizeBroadcast(row) {
+  if (!row) return null;
+  const {
+    idempotency_key: _idempotencyKey,
+    line_request_summary: _lineRequestSummary,
+    error_summary: _errorSummary,
+    ...safe
+  } = row;
+  return safe;
+}
+
+async function getFacilityById(env, facilityId) {
+  const rows = await supabaseRequest(env, TABLES.facilities, {
+    query: {
+      select: "*",
+      id: `eq.${facilityId}`,
+      is_active: "eq.true",
+      limit: "1",
+    },
+  });
+  if (!rows[0]) {
+    throw new ApiError(404, "施設情報が見つかりません。");
+  }
+  return rows[0];
+}
+
+function addDaysIso(dateText, days) {
+  const date = new Date(`${dateText}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + Number(days || 0));
+  return date.toISOString().slice(0, 10);
 }
 
 /* ============================================================

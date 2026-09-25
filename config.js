@@ -26,8 +26,8 @@
   const APP = Object.freeze({
     serviceName: "DPRO デイサービス LINE",
     subtitle: "デイサービス向け 家族連絡・お休み連絡・送迎案内システム",
-    appVersion: "DAYCARE-4-R2-INTEGRATION-CHECK-ENDPOINT-20260713",
-    workerVersion: "DAYCARE-3-R3-INTEGRATION-CHECK-20260713",
+    appVersion: "DAYCARE-4-R3-EMERGENCY-BROADCAST-R1-20260925",
+    workerVersion: "DAYCARE-3-R6-EMERGENCY-BROADCAST-R1-20260925",
     facilityCode: "dpro_dayservice_demo",
     facilityName: "DPROデイサービス",
     timezone: "Asia/Tokyo",
@@ -46,6 +46,7 @@
     ownerIpad: "https://dpromstk2000-lab.github.io/dpro-dayservice-line/owner-ipad.html",
     systemCheck: "https://dpromstk2000-lab.github.io/dpro-dayservice-line/system-check.html",
     config: "https://dpromstk2000-lab.github.io/dpro-dayservice-line/config.js",
+    broadcastAck: "https://dpromstk2000-lab.github.io/dpro-dayservice-line/broadcast-ack.html",
   });
 
   const ENDPOINTS = Object.freeze({
@@ -71,6 +72,15 @@
     adminTaskStatus: "/api/admin/tasks/status",
     adminMessageLogCopy: "/api/admin/messages/log-copy",
     adminFamilyRequestStatus: "/api/admin/family-requests/status",
+    adminBroadcastTemplates: "/api/admin/broadcasts/templates",
+    adminBroadcastPreview: "/api/admin/broadcasts/preview",
+    adminBroadcastTest: "/api/admin/broadcasts/test",
+    adminBroadcastSend: "/api/admin/broadcasts/send",
+    adminBroadcastHistory: "/api/admin/broadcasts/history",
+    adminBroadcastResend: "/api/admin/broadcasts/resend",
+    adminBroadcastSchedule: "/api/admin/broadcasts/schedule",
+    adminBroadcastCancel: "/api/admin/broadcasts/cancel",
+    publicBroadcastAcknowledge: "/api/public/broadcast/acknowledge",
     adminPhoneNormalizeCheck: "/api/admin/phone-normalize-check",
   });
 
