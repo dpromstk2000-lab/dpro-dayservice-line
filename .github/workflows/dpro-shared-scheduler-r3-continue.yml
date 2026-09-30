@@ -1,0 +1,233 @@
+name: DPRO Shared Scheduler R3 Continue
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DAYCARE_WORKER: dpro-dayservice-line-api
+      SHOP_WORKER: dpro-shop-site-monitor-api
+
+    steps:
+      - name: Find Cloudflare account
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $CF_TOKEN" \
+            https://api.cloudflare.com/client/v4/accounts > /tmp/accounts.json
+
+          python3 - <<'PY' > /tmp/account-ids
+          import json
+          d=json.load(open('/tmp/accounts.json'))
+          for row in d.get('result') or []:
+              if isinstance(row,dict) and row.get('id'):
+                  print(row['id'])
+          PY
+
+          found=''
+          while IFS= read -r aid; do
+            [ -n "$aid" ] || continue
+            a=$(curl -sS -o /dev/null -w '%{http_code}' \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$DAYCARE_WORKER/content/v2")
+            b=$(curl -sS -o /dev/null -w '%{http_code}' \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SHOP_WORKER/content/v2")
+            if [ "$a" = "200" ] && [ "$b" = "200" ]; then
+              found="$aid"; break
+            fi
+          done < /tmp/account-ids
+
+          [ -n "$found" ] || { echo 'Target Workers account not found'; exit 3; }
+          echo "::add-mask::$found"
+          printf '%s' "$found" > /tmp/account-id
+
+      - name: Verify current R16 and SHOP patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/account-id)
+
+          curl -fsS \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$DAYCARE_WORKER/content/v2" \
+            -o /tmp/daycare-current.bin
+
+          curl -fsS \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SHOP_WORKER/content/v2" \
+            -o /tmp/shop-current.bin
+
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          day=Path('/tmp/daycare-current.bin').read_bytes().decode('utf-8','ignore')
+          shop=Path('/tmp/shop-current.bin').read_bytes().decode('utf-8','ignore')
+
+          # content/v2 may be multipart; raw text search is sufficient for markers.
+          checks = [
+              ('DAYCARE_R16', 'DAYCARE-3-R16-SHARED-SCHEDULER-20260930' in day),
+              ('DAYCARE_INTERNAL_ENDPOINT', '/api/internal/scheduler/auto-escalation' in day),
+              ('SHOP_SHARED_SCHEDULER_PATCH', 'DPRO shared scheduler DAYCARE' in shop),
+          ]
+          for label,ok in checks:
+              print(f'{label}={"PASS" if ok else "FAIL"}')
+          if not all(ok for _,ok in checks):
+              raise SystemExit('Current worker state is not safe for continuation')
+          PY
+
+      - name: Install one shared scheduler secret on both Workers
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/account-id)
+
+          secret=$(python3 - <<'PY'
+          import secrets
+          print(secrets.token_urlsafe(48))
+          PY
+          )
+          echo "::add-mask::$secret"
+          printf '%s' "$secret" > /tmp/shared-secret
+
+          for worker in "$DAYCARE_WORKER" "$SHOP_WORKER"; do
+            payload=$(python3 - "$secret" <<'PY'
+          import json,sys
+          print(json.dumps({
+              "name":"DPRO_SCHEDULER_SECRET",
+              "text":sys.argv[1],
+              "type":"secret_text"
+          }))
+          PY
+            )
+
+            code=$(curl -sS -o /tmp/secret-result.json -w '%{http_code}' \
+              -X PUT \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data-binary "$payload" \
+              "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$worker/secrets")
+
+            echo "$worker SECRET_HTTP=$code"
+            if [ "$code" != "200" ] && [ "$code" != "201" ]; then
+              cat /tmp/secret-result.json
+              exit 6
+            fi
+          done
+
+          echo "SHARED_SECRET_QA=PASS"
+
+      - name: Reuse existing SHOP cron as shared scheduler
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/account-id)
+
+          printf '%s' '[{"cron":"* * * * *"}]' > /tmp/schedules-payload.json
+
+          code=$(curl -sS -o /tmp/schedules-update.json -w '%{http_code}' \
+            -X PUT \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data-binary @/tmp/schedules-payload.json \
+            "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SHOP_WORKER/schedules")
+
+          echo "SCHEDULE_UPDATE_HTTP=$code"
+          [ "$code" = "200" ] || { cat /tmp/schedules-update.json; exit 7; }
+
+          curl -fsS \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SHOP_WORKER/schedules" \
+            > /tmp/schedules-after.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/schedules-after.json'))
+          result=d.get('result')
+          if isinstance(result,dict):
+              rows=result.get('schedules') or []
+          elif isinstance(result,list):
+              rows=result
+          else:
+              rows=[]
+          crons=[]
+          for row in rows:
+              if isinstance(row,dict):
+                  c=row.get('cron')
+              elif isinstance(row,str):
+                  c=row
+              else:
+                  c=None
+              if c:
+                  crons.append(c)
+          print("SHOP_CRONS=",crons)
+          if "* * * * *" not in crons:
+              raise SystemExit("Shared scheduler cron not confirmed")
+          print("SHARED_CRON_QA=PASS")
+          PY
+
+      - name: Verify DAYCARE R16 health
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,time,urllib.request
+          url='https://dpro-dayservice-line-api.dpromstk2000.workers.dev/api/health'
+          expected='DAYCARE-3-R16-SHARED-SCHEDULER-20260930'
+          for _ in range(15):
+              req=urllib.request.Request(url,headers={
+                  'Accept':'application/json',
+                  'User-Agent':'DPRO-SHARED-SCHEDULER-R3'
+              })
+              try:
+                  with urllib.request.urlopen(req,timeout=20) as r:
+                      d=json.loads(r.read().decode())
+                  f=d.get('features') or {}
+                  if d.get('workerVersion')==expected and f.get('shared_scheduler_bridge') is True:
+                      print("R16_HEALTH_QA=PASS")
+                      break
+              except Exception as e:
+                  print("retry",repr(e))
+              time.sleep(2)
+          else:
+              raise SystemExit("R16 health did not confirm")
+          PY
+
+      - name: Invoke shared scheduler once for safe QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          secret=$(cat /tmp/shared-secret)
+
+          code=$(curl -sS -o /tmp/call.json -w '%{http_code}' \
+            -X POST \
+            -H 'Content-Type: application/json' \
+            -H "X-DPRO-Scheduler-Secret: $secret" \
+            --data '{}' \
+            'https://dpro-dayservice-line-api.dpromstk2000.workers.dev/api/internal/scheduler/auto-escalation')
+
+          echo "SCHEDULER_CALL_HTTP=$code"
+          cat /tmp/call.json
+          [ "$code" = "200" ] || exit 8
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo "## DPRO Shared Scheduler R3"
+            echo ""
+            echo "- DAYCARE R16: confirmed"
+            echo "- SHOP shared-scheduler patch: confirmed"
+            echo "- Shared secret on both Workers: confirmed"
+            echo "- SHOP cron reused as every-minute shared scheduler: confirmed"
+            echo "- DAYCARE scheduler endpoint: HTTP 200"
+            echo "- Cron count: no new trigger added; existing SHOP trigger reused"
+          } >> "$GITHUB_STEP_SUMMARY"
