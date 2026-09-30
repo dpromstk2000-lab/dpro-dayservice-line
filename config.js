@@ -81,6 +81,7 @@
     adminBroadcastResend: "/api/admin/broadcasts/resend",
     adminBroadcastEscalationPreview: "/api/admin/broadcasts/escalation-preview",
     adminBroadcastEscalate: "/api/admin/broadcasts/escalate",
+    adminBroadcastAutoEscalationSettings: "/api/admin/broadcasts/auto-escalation/settings",
     adminBroadcastSchedule: "/api/admin/broadcasts/schedule",
     adminBroadcastCancel: "/api/admin/broadcasts/cancel",
     publicBroadcastAcknowledge: "/api/public/broadcast/acknowledge",
