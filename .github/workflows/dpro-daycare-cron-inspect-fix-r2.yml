@@ -1,0 +1,87 @@
+name: DPRO DAYCARE Cron Inspect Fix R2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SCRIPT_NAME: dpro-dayservice-line-api
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+    steps:
+      - name: Inspect Cloudflare cron correctly
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsS -H "Authorization: Bearer $CF_TOKEN" \
+            https://api.cloudflare.com/client/v4/accounts > /tmp/accounts.json
+
+          python3 - <<'PY' > /tmp/account-ids
+          import json
+          d=json.load(open('/tmp/accounts.json'))
+          for row in d.get('result') or []:
+              if isinstance(row,dict) and row.get('id'):
+                  print(row['id'])
+          PY
+
+          found=''
+          while IFS= read -r aid; do
+            [ -n "$aid" ] || continue
+            code=$(curl -sS -o /tmp/current-worker -w '%{http_code}' \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/content/v2")
+            if [ "$code" = "200" ]; then
+              found="$aid"
+              break
+            fi
+          done < /tmp/account-ids
+
+          [ -n "$found" ] || { echo 'Target Worker not found'; exit 3; }
+
+          curl -fsS \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$found/workers/scripts/$SCRIPT_NAME/schedules" \
+            > /tmp/schedules.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/schedules.json'))
+
+          result=d.get('result')
+          if isinstance(result,dict):
+              rows=result.get('schedules') or []
+          elif isinstance(result,list):
+              rows=result
+          else:
+              rows=[]
+
+          print("=== CRON DIAGNOSIS R2 ===")
+          print("CRON_TRIGGER_COUNT=",len(rows))
+
+          crons=[]
+          for row in rows:
+              if isinstance(row,dict):
+                  cron=row.get('cron')
+                  created=row.get('created_on')
+                  modified=row.get('modified_on')
+                  if cron:
+                      crons.append(cron)
+                      print("CRON=",cron)
+                      print("CREATED_ON=",created)
+                      print("MODIFIED_ON=",modified)
+              elif isinstance(row,str):
+                  crons.append(row)
+                  print("CRON=",row)
+
+          if not crons:
+              print("DIAG_RESULT=NO_READABLE_CRON")
+          else:
+              print("DIAG_RESULT=CRON_FOUND")
+          PY
