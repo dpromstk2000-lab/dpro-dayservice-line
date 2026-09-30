@@ -34,7 +34,7 @@
  */
 
 const SERVICE_NAME = "DPRO Dayservice LINE API";
-const VERSION = "DAYCARE-3-R13-STAGED-FAMILY-ESCALATION-20260930";
+const VERSION = "DAYCARE-3-R14-ESCALATION-HISTORY-GUARD-20260930";
 const FRONTEND_VERSION = "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8-R5-BROADCAST-DEMO-SAFE / IPAD-9 / SYSTEM-CHECK-10";
 const DATABASE_VERSION_EXPECTED = "DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01";
 const ADAPTER_VERSION = "DPRO-CONTROL-ADAPTER-1.0";
@@ -530,6 +530,8 @@ async function handleHealth(env, url) {
       emergency_broadcast_acknowledgement: true,
       emergency_broadcast_schedule: true,
       staged_family_escalation: true,
+      escalation_history_visibility: true,
+      escalation_ack_guard: true,
     },
     timezone: JST_TIME_ZONE,
     time: new Date().toISOString(),
@@ -5033,11 +5035,174 @@ async function handleAdminBroadcastHistory(env, facility) {
     },
   });
 
+  if (!rows.length) {
+    return {
+      ok: true,
+      service: SERVICE_NAME,
+      version: VERSION,
+      broadcasts: [],
+    };
+  }
+
+  const broadcastIds = rows.map((row) => row.id);
+  const recipients = await supabaseRequest(env, TABLES.broadcastRecipients, {
+    query: {
+      select: "broadcast_id,user_id,family_member_id,send_status,acknowledged_at",
+      broadcast_id: `in.(${broadcastIds.join(",")})`,
+      limit: "10000",
+    },
+  });
+
+  const userIds = unique(recipients.map((row) => row.user_id).filter(Boolean));
+  const familyIds = unique(
+    recipients.map((row) => row.family_member_id).filter(Boolean),
+  );
+
+  const relations = userIds.length && familyIds.length
+    ? await supabaseRequest(env, TABLES.userFamilies, {
+        query: {
+          select: "user_id,family_member_id,contact_priority,is_active",
+          facility_id: `eq.${facility.id}`,
+          user_id: `in.(${userIds.join(",")})`,
+          family_member_id: `in.(${familyIds.join(",")})`,
+          is_active: "eq.true",
+          limit: "10000",
+        },
+      })
+    : [];
+
+  const priorityByPair = new Map(
+    relations.map((row) => [
+      `${row.user_id}:${row.family_member_id}`,
+      Number(row.contact_priority || 0) || null,
+    ]),
+  );
+
+  const recipientsByBroadcast = new Map();
+  for (const recipient of recipients) {
+    if (!recipientsByBroadcast.has(recipient.broadcast_id)) {
+      recipientsByBroadcast.set(recipient.broadcast_id, []);
+    }
+    recipientsByBroadcast.get(recipient.broadcast_id).push(recipient);
+  }
+
+  const broadcastById = new Map(rows.map((row) => [row.id, row]));
+
+  function rootIdFor(row) {
+    let current = row;
+    const seen = new Set();
+    while (current?.source_broadcast_id && !seen.has(current.id)) {
+      seen.add(current.id);
+      const parent = broadcastById.get(current.source_broadcast_id);
+      if (!parent) return current.source_broadcast_id;
+      current = parent;
+    }
+    return current?.id || row.id;
+  }
+
+  const rootIdByBroadcast = new Map(
+    rows.map((row) => [row.id, rootIdFor(row)]),
+  );
+
+  const chainRecipientsByRoot = new Map();
+  for (const row of rows) {
+    const rootId = rootIdByBroadcast.get(row.id);
+    if (!chainRecipientsByRoot.has(rootId)) {
+      chainRecipientsByRoot.set(rootId, []);
+    }
+    chainRecipientsByRoot.get(rootId).push(
+      ...(recipientsByBroadcast.get(row.id) || []),
+    );
+  }
+
+  const enriched = rows.map((row) => {
+    const rowRecipients = recipientsByBroadcast.get(row.id) || [];
+    const rootId = rootIdByBroadcast.get(row.id);
+    const chainRecipients = chainRecipientsByRoot.get(rootId) || [];
+
+    const deliveryPriorities = unique(
+      rowRecipients
+        .map((recipient) =>
+          priorityByPair.get(
+            `${recipient.user_id}:${recipient.family_member_id}`,
+          ),
+        )
+        .filter((value) => Number.isInteger(value) && value > 0),
+    ).sort((a, b) => a - b);
+
+    const chainPriorities = unique(
+      chainRecipients
+        .map((recipient) =>
+          priorityByPair.get(
+            `${recipient.user_id}:${recipient.family_member_id}`,
+          ),
+        )
+        .filter((value) => Number.isInteger(value) && value > 0),
+    ).sort((a, b) => a - b);
+
+    const chainSentUsers = new Set(
+      chainRecipients
+        .filter((recipient) =>
+          ["sent", "pending"].includes(recipient.send_status),
+        )
+        .map((recipient) => recipient.user_id)
+        .filter(Boolean),
+    );
+    const chainAcknowledgedUsers = new Set(
+      chainRecipients
+        .filter((recipient) => Boolean(recipient.acknowledged_at))
+        .map((recipient) => recipient.user_id)
+        .filter(Boolean),
+    );
+
+    const allUsersAcknowledged = chainSentUsers.size > 0
+      && [...chainSentUsers].every((userId) =>
+        chainAcknowledgedUsers.has(userId)
+      );
+
+    const isEscalation = ["escalation", "demo_escalation"].includes(
+      row.broadcast_type,
+    );
+    const isResend = ["resend_unacknowledged", "demo_resend"].includes(
+      row.broadcast_type,
+    );
+
+    let stageLabel = "第1連絡先への送信";
+    if (isResend) {
+      stageLabel = "未確認への再送";
+    } else if (deliveryPriorities.length === 1) {
+      stageLabel = isEscalation
+        ? `第${deliveryPriorities[0]}連絡先への追加送信`
+        : `第${deliveryPriorities[0]}連絡先への送信`;
+    } else if (isEscalation) {
+      stageLabel = "次順位への追加送信";
+    }
+
+    return {
+      ...sanitizeBroadcast(row),
+      routing_summary: {
+        is_escalation: isEscalation,
+        is_resend: isResend,
+        delivery_priorities: deliveryPriorities,
+        stage_label: stageLabel,
+        chain_max_priority: chainPriorities.length
+          ? Math.max(...chainPriorities)
+          : null,
+        chain_sent_user_count: chainSentUsers.size,
+        chain_acknowledged_user_count: chainAcknowledgedUsers.size,
+        all_users_acknowledged: allUsersAcknowledged,
+        can_request_next:
+          ["sent", "partial"].includes(row.status)
+          && !allUsersAcknowledged,
+      },
+    };
+  });
+
   return {
     ok: true,
     service: SERVICE_NAME,
     version: VERSION,
-    broadcasts: rows.map(sanitizeBroadcast),
+    broadcasts: enriched,
   };
 }
 
@@ -5104,31 +5269,62 @@ async function resolveBroadcastEscalation(env, facility, sourceId, includeSecret
   }
 
   const rootSourceId = source.source_broadcast_id || source.id;
-  const chainBroadcasts = await supabaseRequest(env, TABLES.broadcasts, {
+  const facilityBroadcasts = await supabaseRequest(env, TABLES.broadcasts, {
     query: {
       select: "id,source_broadcast_id",
       facility_id: `eq.${facility.id}`,
-      or: `(id.eq.${rootSourceId},source_broadcast_id.eq.${rootSourceId})`,
-      limit: "100",
+      limit: "1000",
     },
   });
-  const chainIds = unique(
-    chainBroadcasts.map((row) => row.id).filter(Boolean),
-  );
-  if (!chainIds.includes(source.id)) chainIds.push(source.id);
 
-  const sourceRecipients = await supabaseRequest(env, TABLES.broadcastRecipients, {
-    query: {
-      select: "user_id,family_member_id,send_status,acknowledged_at",
-      broadcast_id: `eq.${source.id}`,
-      send_status: "eq.sent",
-      acknowledged_at: "is.null",
-      limit: "4000",
-    },
-  });
-  const unacknowledgedUserIds = unique(
-    sourceRecipients.map((row) => row.user_id).filter(Boolean),
+  const chainSet = new Set([rootSourceId]);
+  let expanded = true;
+  while (expanded) {
+    expanded = false;
+    for (const row of facilityBroadcasts) {
+      if (
+        row.source_broadcast_id
+        && chainSet.has(row.source_broadcast_id)
+        && !chainSet.has(row.id)
+      ) {
+        chainSet.add(row.id);
+        expanded = true;
+      }
+    }
+  }
+  chainSet.add(source.id);
+  const chainIds = [...chainSet];
+
+  const allChainRecipients = chainIds.length
+    ? await supabaseRequest(env, TABLES.broadcastRecipients, {
+        query: {
+          select: "broadcast_id,user_id,family_member_id,send_status,acknowledged_at",
+          broadcast_id: `in.(${chainIds.join(",")})`,
+          limit: "8000",
+        },
+      })
+    : [];
+
+  const sourceRecipients = allChainRecipients.filter(
+    (row) =>
+      row.broadcast_id === source.id
+      && row.send_status === "sent",
   );
+
+  const acknowledgedUsers = new Set(
+    allChainRecipients
+      .filter((row) => Boolean(row.acknowledged_at))
+      .map((row) => row.user_id)
+      .filter(Boolean),
+  );
+
+  const unacknowledgedUserIds = unique(
+    sourceRecipients
+      .map((row) => row.user_id)
+      .filter(Boolean)
+      .filter((userId) => !acknowledgedUsers.has(userId)),
+  );
+
   if (!unacknowledgedUserIds.length) {
     return {
       source,
@@ -5139,16 +5335,6 @@ async function resolveBroadcastEscalation(env, facility, sourceId, includeSecret
       counts: { users: 0, families: 0, line_deliverable: 0, line_unlinked: 0 },
     };
   }
-
-  const allChainRecipients = chainIds.length
-    ? await supabaseRequest(env, TABLES.broadcastRecipients, {
-        query: {
-          select: "broadcast_id,user_id,family_member_id,send_status",
-          broadcast_id: `in.(${chainIds.join(",")})`,
-          limit: "8000",
-        },
-      })
-    : [];
 
   const alreadySentByUser = new Map();
   for (const row of allChainRecipients) {
