@@ -1,0 +1,112 @@
+name: DPRO DAYCARE Cron Enable R1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SCRIPT_NAME: dpro-dayservice-line-api
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+    steps:
+      - name: Find Cloudflare account
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CF_TOKEN:-}" || { echo 'CLOUDFLARE_API_TOKEN is missing'; exit 2; }
+
+          curl -fsS -H "Authorization: Bearer $CF_TOKEN" \
+            https://api.cloudflare.com/client/v4/accounts > /tmp/accounts.json
+
+          python3 - <<'PY' > /tmp/account-ids
+          import json
+          d=json.load(open('/tmp/accounts.json'))
+          for row in d.get('result') or []:
+              if isinstance(row,dict) and row.get('id'):
+                  print(row['id'])
+          PY
+
+          found=''
+          while IFS= read -r aid; do
+            [ -n "$aid" ] || continue
+            code=$(curl -sS -o /tmp/current-worker -w '%{http_code}' \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/content/v2")
+            if [ "$code" = "200" ]; then
+              found="$aid"
+              break
+            fi
+          done < /tmp/account-ids
+
+          [ -n "$found" ] || { echo 'Target Worker not found'; exit 3; }
+          echo "::add-mask::$found"
+          printf '%s' "$found" > /tmp/dpro-account-id
+
+      - name: Enable one-minute cron
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/dpro-account-id)
+
+          printf '%s' '[{"cron":"* * * * *"}]' > /tmp/schedules-payload.json
+
+          code=$(curl -sS -o /tmp/schedules-update.json -w '%{http_code}' \
+            -X PUT \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data-binary @/tmp/schedules-payload.json \
+            "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/schedules")
+
+          echo "HTTP $code"
+          cat /tmp/schedules-update.json
+          [ "$code" = "200" ] || exit 4
+
+      - name: Verify cron
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/dpro-account-id)
+
+          curl -fsS \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/schedules" \
+            > /tmp/schedules.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/schedules.json'))
+          result=d.get('result')
+          if isinstance(result,dict):
+              rows=result.get('schedules') or []
+          elif isinstance(result,list):
+              rows=result
+          else:
+              rows=[]
+
+          crons=[]
+          for row in rows:
+              if isinstance(row,dict):
+                  cron=row.get('cron')
+              elif isinstance(row,str):
+                  cron=row
+              else:
+                  cron=None
+              if cron:
+                  crons.append(cron)
+
+          print("=== CRON ENABLE RESULT ===")
+          print("CRON_TRIGGER_COUNT=",len(crons))
+          for cron in crons:
+              print("CRON=",cron)
+
+          if "* * * * *" not in crons:
+              raise SystemExit("ERROR: one-minute cron was not confirmed")
+
+          print("DIAG_RESULT=CRON_ENABLED")
+          PY
