@@ -1265,6 +1265,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
   .dayservice-operation-demo-banner{display:none!important}
 }
 /* DPRO DAYCARE FINAL DEMO POLISH R1 20260930 */
+/* DPRO DAYCARE BROADCAST HISTORY UX R1 20260930 */
 </style>
 
   <script src="./config.js?v=daycare-4"></script>
@@ -1279,7 +1280,22 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
 .broadcast-warning{margin-top:12px;padding:12px;border:1px solid #ead8a8;border-radius:14px;background:#fffaf0}
 .broadcast-danger{margin-top:12px;padding:12px;border:1px solid #efc0c0;border-radius:14px;background:#fff5f5}
 .broadcast-history{display:grid;gap:9px}
-.broadcast-history-item{padding:12px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.broadcast-history-item{padding:14px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.broadcast-history-controls{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:2px 0 10px}
+.broadcast-history-controls .history-count{color:var(--muted);font-size:12px;font-weight:800}
+.broadcast-history-item .history-expand-button{margin-left:auto}
+.broadcast-history-item.is-expanded{padding:20px;border-color:#b8d8c4;box-shadow:0 12px 32px rgba(25,91,55,.10)}
+.broadcast-history-item.is-expanded h4{font-size:18px;line-height:1.5}
+.broadcast-history-item.is-expanded p{font-size:14px;line-height:1.75}
+.broadcast-history-item.is-expanded .broadcast-history-meta{font-size:13px;line-height:1.7}
+.broadcast-history-item.is-expanded .status-pill{font-size:12px}
+.broadcast-history-more{width:100%;min-height:42px;margin-top:4px}
+@media(max-width:760px){
+  .broadcast-history-controls{align-items:flex-start;flex-direction:column}
+  .broadcast-history-item.is-expanded{padding:16px}
+  .broadcast-history-item.is-expanded h4{font-size:16px}
+  .broadcast-history-item.is-expanded p{font-size:13px}
+}
 .broadcast-history-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
 .broadcast-history-item h4{margin:0;font-size:12px}
 .broadcast-history-item p{margin:4px 0 0;color:var(--muted);font-size:9px;white-space:pre-wrap}
@@ -2475,6 +2491,8 @@ td strong{font-size:14px}
         broadcastTemplates: [],
         broadcastPreview: null,
         broadcastHistory: [],
+        broadcastHistoryExpanded: false,
+        broadcastHistoryFocusedId: null,
         autoEscalationSettings: null,
         broadcastTargetSearch: null,
         broadcastSelectedUsers: new Map(),
@@ -4188,7 +4206,18 @@ td strong{font-size:14px}
           return;
         }
 
-        els.broadcastHistory.innerHTML = rows.map((row) => {
+        const focusedId = state.broadcastHistoryFocusedId;
+        const focusedRow = focusedId
+          ? rows.find((row) => String(row.id) === String(focusedId))
+          : null;
+
+        const visibleRows = focusedRow
+          ? [focusedRow]
+          : state.broadcastHistoryExpanded
+            ? rows
+            : rows.slice(0, 3);
+
+        const cardsHtml = visibleRows.map((row) => {
           const demoRecord = String(row.broadcast_type || "").startsWith("demo_");
           const resultLabel = demoRecord ? "疑似送信" : "送信成功";
           const routing = row.routing_summary || {};
@@ -4205,9 +4234,12 @@ td strong{font-size:14px}
             demoRecord && !subjectLabel.startsWith("【デモ】")
               ? "【デモ】"
               : "";
+          const isFocused = focusedRow && String(row.id) === String(focusedRow.id);
+          const bodyText = String(row.message_body || "");
+          const shownBody = isFocused ? bodyText : bodyText.slice(0, 140);
 
           return `
-            <article class="broadcast-history-item">
+            <article class="broadcast-history-item${isFocused ? " is-expanded" : ""}">
               <div class="broadcast-history-head">
                 <h4>${demoPrefix}${escapeHtml(subjectLabel || "件名なし")}</h4>
                 <span class="status-pill status-${row.status === "sent" ? "ok" : row.status === "failed" ? "error" : "neutral"}">
@@ -4221,7 +4253,7 @@ td strong{font-size:14px}
                   ${allAcknowledged ? '<span class="status-pill status-ok">確認済・次順位送信不要</span>' : ""}
                 </div>
               ` : ""}
-              <p>${escapeHtml((row.message_body || "").slice(0, 140))}</p>
+              <p>${escapeHtml(shownBody)}</p>
               <div class="broadcast-history-meta">
                 対象 ${row.target_family_count || 0} / ${resultLabel} ${row.success_count || 0}
                 / 未連携 ${row.unlinked_count || 0} / 確認済 ${row.acknowledged_count || 0}
@@ -4231,30 +4263,55 @@ td strong{font-size:14px}
                 ${demoRecord ? "<br>※公開デモのため実際のLINE送信は行っていません。" : ""}
                 <br>${escapeHtml(formatDateTime(row.sent_at || row.scheduled_at || row.created_at))}
               </div>
-              <div class="toolbar" style="margin-top:8px">
+              <div class="toolbar" style="margin-top:10px">
+                <button class="btn btn-secondary btn-small history-expand-button" type="button" data-broadcast-history-focus="${escapeHtml(row.id)}">
+                  ${isFocused ? "元に戻す" : "拡大"}
+                </button>
                 ${["sent","partial"].includes(row.status) ? `
-                  <button class="btn btn-secondary btn-small" type="button" data-resend-broadcast="${escapeHtml(row.id)}">
-                    未確認へ再送
-                  </button>
-                  ${canRequestNext ? `
-                    <button class="btn btn-secondary btn-small" type="button" data-escalate-broadcast="${escapeHtml(row.id)}">
-                      次の連絡先へ
-                    </button>
-                  ` : ""}
+                  <button class="btn btn-secondary btn-small" type="button" data-resend-broadcast="${escapeHtml(row.id)}">未確認へ再送</button>
+                  ${canRequestNext ? `<button class="btn btn-secondary btn-small" type="button" data-escalate-broadcast="${escapeHtml(row.id)}">次の連絡先へ</button>` : ""}
                 ` : ""}
-                ${row.status === "scheduled" ? `
-                  <button class="btn btn-secondary btn-small" type="button" data-cancel-broadcast="${escapeHtml(row.id)}">
-                    予約を取消
-                  </button>` : ""}
+                ${row.status === "scheduled" ? `<button class="btn btn-secondary btn-small" type="button" data-cancel-broadcast="${escapeHtml(row.id)}">予約を取消</button>` : ""}
               </div>
             </article>
           `;
         }).join("");
+
+        const controlsHtml = focusedRow
+          ? `<div class="broadcast-history-controls">
+               <span class="history-count">履歴詳細を拡大表示中</span>
+               <button class="btn btn-secondary btn-small" type="button" data-broadcast-history-close>一覧に戻る</button>
+             </div>`
+          : `<div class="broadcast-history-controls">
+               <span class="history-count">${
+                 rows.length <= 3
+                   ? `全${rows.length}件を表示`
+                   : state.broadcastHistoryExpanded
+                     ? `全${rows.length}件を表示中`
+                     : `最新3件を表示（全${rows.length}件）`
+               }</span>
+             </div>`;
+
+        const moreHtml = !focusedRow && rows.length > 3
+          ? `<button class="btn btn-secondary broadcast-history-more" type="button" data-broadcast-history-toggle>
+               ${state.broadcastHistoryExpanded ? "過去の履歴を閉じる" : `過去の履歴を表示（${rows.length - 3}件）`}
+             </button>`
+          : "";
+
+        els.broadcastHistory.innerHTML = controlsHtml + cardsHtml + moreHtml;
       }
 
       async function loadBroadcastHistory() {
         const data = await CONFIG.API.adminGet("adminBroadcastHistory");
         state.broadcastHistory = data.broadcasts || [];
+        if (
+          state.broadcastHistoryFocusedId
+          && !state.broadcastHistory.some(
+            (row) => String(row.id) === String(state.broadcastHistoryFocusedId)
+          )
+        ) {
+          state.broadcastHistoryFocusedId = null;
+        }
         renderBroadcastHistory();
       }
 
@@ -4698,6 +4755,31 @@ td strong{font-size:14px}
               messageButton.dataset.useUserMessage,
               messageButton.dataset.userName
             );
+            return;
+          }
+
+          const historyToggleButton = event.target.closest("[data-broadcast-history-toggle]");
+          if (historyToggleButton) {
+            state.broadcastHistoryExpanded = !state.broadcastHistoryExpanded;
+            renderBroadcastHistory();
+            return;
+          }
+
+          const historyFocusButton = event.target.closest("[data-broadcast-history-focus]");
+          if (historyFocusButton) {
+            const targetId = historyFocusButton.dataset.broadcastHistoryFocus;
+            state.broadcastHistoryFocusedId =
+              String(state.broadcastHistoryFocusedId || "") === String(targetId)
+                ? null
+                : targetId;
+            renderBroadcastHistory();
+            return;
+          }
+
+          const historyCloseButton = event.target.closest("[data-broadcast-history-close]");
+          if (historyCloseButton) {
+            state.broadcastHistoryFocusedId = null;
+            renderBroadcastHistory();
             return;
           }
 
