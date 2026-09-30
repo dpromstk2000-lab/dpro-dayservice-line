@@ -1,0 +1,86 @@
+name: DPRO DAYCARE Family Contact Routing R1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Apply worker routing patch
+        shell: bash
+        env:
+          PATCH_B64: "CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aApwID0gUGF0aCgid29ya2VyLmpzIikKcyA9IHAucmVhZF90ZXh0KGVuY29kaW5nPSJ1dGYtOCIpCgpvbGRfdmVyc2lvbiA9ICdjb25zdCBWRVJTSU9OID0gIkRBWUNBUkUtMy1SNy1FTUVSR0VOQ1ktQlJPQURDQVNULURFTU8tU0FGRS0yMDI2MDkyNSI7JwpuZXdfdmVyc2lvbiA9ICdjb25zdCBWRVJTSU9OID0gIkRBWUNBUkUtMy1SOC1GQU1JTFktQ09OVEFDVC1ST1VUSU5HLTIwMjYwOTMwIjsnCmlmIG9sZF92ZXJzaW9uIGluIHM6CiAgICBzID0gcy5yZXBsYWNlKG9sZF92ZXJzaW9uLCBuZXdfdmVyc2lvbiwgMSkKCmFuY2hvciA9ICcnJ2FzeW5jIGZ1bmN0aW9uIHJlc29sdmVCcm9hZGNhc3RSZWNpcGllbnRzKAogIGVudiwKICBmYWNpbGl0eSwKICBib2R5LAogIG9wdGlvbnMgPSB7fSwKKSB7JycnCmhlbHBlciA9ICcnJ2Z1bmN0aW9uIHJlbGF0aW9uQWxsb3dzQnJvYWRjYXN0KHJlbGF0aW9uLCBwcmlvcml0eSkgewogIGNvbnN0IGVtZXJnZW5jeSA9IGNsZWFuVGV4dChwcmlvcml0eSwgNTApID09PSAiZW1lcmdlbmN5IjsKCiAgaWYgKGVtZXJnZW5jeSkgewogICAgaWYgKHJlbGF0aW9uLnJlY2VpdmVfZW1lcmdlbmN5ID09PSB0cnVlKSByZXR1cm4gdHJ1ZTsKICAgIGlmIChyZWxhdGlvbi5yZWNlaXZlX2VtZXJnZW5jeSA9PT0gZmFsc2UpIHJldHVybiBmYWxzZTsKICB9IGVsc2UgewogICAgaWYgKHJlbGF0aW9uLnJlY2VpdmVfbm9ybWFsID09PSB0cnVlKSByZXR1cm4gdHJ1ZTsKICAgIGlmIChyZWxhdGlvbi5yZWNlaXZlX25vcm1hbCA9PT0gZmFsc2UpIHJldHVybiBmYWxzZTsKICB9CgogIC8vIOacquioreWumuOBruaXouWtmOODh+ODvOOCv+OBr+S4u+mAo+e1oeWFiOOBoOOBkeOCkuWvvuixoeOBq+OBmeOCiwogIHJldHVybiByZWxhdGlvbi5pc19wcmltYXJ5X2NvbnRhY3QgPT09IHRydWU7Cn0KCmFzeW5jIGZ1bmN0aW9uIHJlc29sdmVCcm9hZGNhc3RSZWNpcGllbnRzKAogIGVudiwKICBmYWNpbGl0eSwKICBib2R5LAogIG9wdGlvbnMgPSB7fSwKKSB7JycnCmlmICJmdW5jdGlvbiByZWxhdGlvbkFsbG93c0Jyb2FkY2FzdCgiIG5vdCBpbiBzOgogICAgaWYgYW5jaG9yIG5vdCBpbiBzOgogICAgICAgIHJhaXNlIFN5c3RlbUV4aXQoIkVSUk9SOiByZXNvbHZlQnJvYWRjYXN0UmVjaXBpZW50cyBhbmNob3Igbm90IGZvdW5kIikKICAgIHMgPSBzLnJlcGxhY2UoYW5jaG9yLCBoZWxwZXIsIDEpCgpzID0gcy5yZXBsYWNlKAonJycgIGNvbnN0IHsgdGFyZ2V0VHlwZSwgZmlsdGVyIH0gPSBub3JtYWxpemVCcm9hZGNhc3RUYXJnZXQoYm9keSk7CiAgbGV0IHVzZXJJZHMgPSBbXTsKICBsZXQgZXhwbGljaXRGYW1pbHlJZHMgPSBbXTsnJycsCicnJyAgY29uc3QgeyB0YXJnZXRUeXBlLCBmaWx0ZXIgfSA9IG5vcm1hbGl6ZUJyb2FkY2FzdFRhcmdldChib2R5KTsKICBjb25zdCByb3V0aW5nUHJpb3JpdHkgPSBjbGVhblRleHQoYm9keS5wcmlvcml0eSwgNTApIHx8ICJub3JtYWwiOwogIGNvbnN0IGV4cGxpY2l0RmFtaWx5U2VsZWN0aW9uID0gdGFyZ2V0VHlwZSA9PT0gInNlbGVjdGVkX2ZhbWlsaWVzIjsKICBsZXQgdXNlcklkcyA9IFtdOwogIGxldCBleHBsaWNpdEZhbWlseUlkcyA9IFtdOycnJywKMQopCgpzID0gcy5yZXBsYWNlKAonJycgICAgICAgIHNlbGVjdDogInVzZXJfaWQsZmFtaWx5X21lbWJlcl9pZCxpc19wcmltYXJ5X2NvbnRhY3QsaXNfYWN0aXZlIiwnJycsCicnJyAgICAgICAgc2VsZWN0OiAidXNlcl9pZCxmYW1pbHlfbWVtYmVyX2lkLGlzX3ByaW1hcnlfY29udGFjdCxpc19hY3RpdmUsY29udGFjdF9wcmlvcml0eSxyZWNlaXZlX25vcm1hbCxyZWNlaXZlX2VtZXJnZW5jeSxhbGxvd19lc2NhbGF0aW9uIiwnJycsCjEKKQoKb2xkX2ZpcnN0ID0gJycnICAgIGV4cGxpY2l0RmFtaWx5SWRzID0gdW5pcXVlKAogICAgICByZWxhdGlvbnMubWFwKChyb3cpID0+IHJvdy5mYW1pbHlfbWVtYmVyX2lkKS5maWx0ZXIoQm9vbGVhbiksCiAgICApOycnJwpuZXdfZmlyc3QgPSAnJycgICAgcmVsYXRpb25zID0gcmVsYXRpb25zLmZpbHRlcigocm93KSA9PgogICAgICByZWxhdGlvbkFsbG93c0Jyb2FkY2FzdChyb3csIHJvdXRpbmdQcmlvcml0eSkKICAgICk7CiAgICByZWxhdGlvbnMuc29ydCgKICAgICAgKGEsIGIpID0+CiAgICAgICAgTnVtYmVyKGEuY29udGFjdF9wcmlvcml0eSB8fCA5OSkgLSBOdW1iZXIoYi5jb250YWN0X3ByaW9yaXR5IHx8IDk5KQogICAgKTsKICAgIGV4cGxpY2l0RmFtaWx5SWRzID0gdW5pcXVlKAogICAgICByZWxhdGlvbnMubWFwKChyb3cpID0+IHJvdy5mYW1pbHlfbWVtYmVyX2lkKS5maWx0ZXIoQm9vbGVhbiksCiAgICApOycnJwppZiBvbGRfZmlyc3Qgbm90IGluIHM6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJFUlJPUjogZmlyc3QgcmVsYXRpb24gdGFyZ2V0IGJsb2NrIG5vdCBmb3VuZCIpCnMgPSBzLnJlcGxhY2Uob2xkX2ZpcnN0LCBuZXdfZmlyc3QsIDEpCgpuZWVkbGUgPSAnJycgICAgICAgIHNlbGVjdDogInVzZXJfaWQsZmFtaWx5X21lbWJlcl9pZCxpc19wcmltYXJ5X2NvbnRhY3QsaXNfYWN0aXZlIiwnJycKaWR4ID0gcy5maW5kKG5lZWRsZSkKaWYgaWR4ID49IDA6CiAgICBzID0gc1s6aWR4XSArIHNbaWR4Ol0ucmVwbGFjZSgKICAgICAgICBuZWVkbGUsCiAgICAgICAgJycnICAgICAgICBzZWxlY3Q6ICJ1c2VyX2lkLGZhbWlseV9tZW1iZXJfaWQsaXNfcHJpbWFyeV9jb250YWN0LGlzX2FjdGl2ZSxjb250YWN0X3ByaW9yaXR5LHJlY2VpdmVfbm9ybWFsLHJlY2VpdmVfZW1lcmdlbmN5LGFsbG93X2VzY2FsYXRpb24iLCcnJywKICAgICAgICAxCiAgICApCgpvbGRfc2Vjb25kID0gJycnICAgIHVzZXJJZHMgPSB1bmlxdWUocmVsYXRpb25zLm1hcCgocm93KSA9PiByb3cudXNlcl9pZCkuZmlsdGVyKEJvb2xlYW4pKTsKICB9CgogIGNvbnN0IGRlbGl2ZXJ5VGFyZ2V0cyA9IGZhbWlseUlkcy5sZW5ndGgnJycKbmV3X3NlY29uZCA9ICcnJyAgICBpZiAoIWV4cGxpY2l0RmFtaWx5U2VsZWN0aW9uKSB7CiAgICAgIHJlbGF0aW9ucyA9IHJlbGF0aW9ucy5maWx0ZXIoKHJvdykgPT4KICAgICAgICByZWxhdGlvbkFsbG93c0Jyb2FkY2FzdChyb3csIHJvdXRpbmdQcmlvcml0eSkKICAgICAgKTsKICAgICAgY29uc3QgYWxsb3dlZEZhbWlseUlkcyA9IG5ldyBTZXQoCiAgICAgICAgcmVsYXRpb25zLm1hcCgocm93KSA9PiByb3cuZmFtaWx5X21lbWJlcl9pZCkuZmlsdGVyKEJvb2xlYW4pCiAgICAgICk7CiAgICAgIGZhbWlsaWVzID0gZmFtaWxpZXMuZmlsdGVyKChmYW1pbHkpID0+IGFsbG93ZWRGYW1pbHlJZHMuaGFzKGZhbWlseS5pZCkpOwogICAgfQoKICAgIHJlbGF0aW9ucy5zb3J0KAogICAgICAoYSwgYikgPT4KICAgICAgICBOdW1iZXIoYS5jb250YWN0X3ByaW9yaXR5IHx8IDk5KSAtIE51bWJlcihiLmNvbnRhY3RfcHJpb3JpdHkgfHwgOTkpCiAgICApOwogICAgdXNlcklkcyA9IHVuaXF1ZShyZWxhdGlvbnMubWFwKChyb3cpID0+IHJvdy51c2VyX2lkKS5maWx0ZXIoQm9vbGVhbikpOwogIH0KCiAgY29uc3QgZmFtaWx5SWRzQWZ0ZXJSb3V0aW5nID0gZmFtaWxpZXMubWFwKChmYW1pbHkpID0+IGZhbWlseS5pZCk7CgogIGNvbnN0IGRlbGl2ZXJ5VGFyZ2V0cyA9IGZhbWlseUlkc0FmdGVyUm91dGluZy5sZW5ndGgnJycKaWYgb2xkX3NlY29uZCBub3QgaW4gczoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkVSUk9SOiBzZWNvbmQgcmVsYXRpb24gcm91dGluZyBibG9jayBub3QgZm91bmQiKQpzID0gcy5yZXBsYWNlKG9sZF9zZWNvbmQsIG5ld19zZWNvbmQsIDEpCgpzID0gcy5yZXBsYWNlKAonJycgICAgICAgICAgZmFtaWx5X21lbWJlcl9pZDogYGluLigke2ZhbWlseUlkcy5qb2luKCIsIil9KWAsJycnLAonJycgICAgICAgICAgZmFtaWx5X21lbWJlcl9pZDogYGluLigke2ZhbWlseUlkc0FmdGVyUm91dGluZy5qb2luKCIsIil9KWAsJycnLAoxCikKCm9sZF9yZXR1cm4gPSAnJycgIHJldHVybiB7CiAgICB0YXJnZXRfdHlwZTogdGFyZ2V0VHlwZSwKICAgIHRhcmdldF9maWx0ZXI6IGZpbHRlciwKICAgIHVzZXJfY291bnQ6IHVzZXJJZHMubGVuZ3RoLAogICAgZmFtaWx5X2NvdW50OiBmYW1pbGllcy5sZW5ndGgsCiAgICBkZWxpdmVyYWJsZV9jb3VudDogbGlua2VkLmxlbmd0aCwKICAgIHVubGlua2VkX2NvdW50OiB1bmxpbmtlZC5sZW5ndGgsCiAgICByZWNpcGllbnRzLAogICAgbGlua2VkLAogICAgdW5saW5rZWQsCiAgfTsnJycKbmV3X3JldHVybiA9ICcnJyAgcmV0dXJuIHsKICAgIHRhcmdldF90eXBlOiB0YXJnZXRUeXBlLAogICAgdGFyZ2V0X2ZpbHRlcjogZmlsdGVyLAogICAgcm91dGluZ19tb2RlOiBleHBsaWNpdEZhbWlseVNlbGVjdGlvbgogICAgICA/ICJleHBsaWNpdF9mYW1pbHlfc2VsZWN0aW9uIgogICAgICA6IHJvdXRpbmdQcmlvcml0eSA9PT0gImVtZXJnZW5jeSIKICAgICAgICA/ICJlbWVyZ2VuY3kiCiAgICAgICAgOiAibm9ybWFsIiwKICAgIHVzZXJfY291bnQ6IHVzZXJJZHMubGVuZ3RoLAogICAgZmFtaWx5X2NvdW50OiBmYW1pbGllcy5sZW5ndGgsCiAgICBkZWxpdmVyYWJsZV9jb3VudDogbGlua2VkLmxlbmd0aCwKICAgIHVubGlua2VkX2NvdW50OiB1bmxpbmtlZC5sZW5ndGgsCiAgICByZWNpcGllbnRzLAogICAgbGlua2VkLAogICAgdW5saW5rZWQsCiAgfTsnJycKaWYgb2xkX3JldHVybiBub3QgaW4gczoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkVSUk9SOiB0YXJnZXQgcmV0dXJuIGJsb2NrIG5vdCBmb3VuZCIpCnMgPSBzLnJlcGxhY2Uob2xkX3JldHVybiwgbmV3X3JldHVybiwgMSkKCm9sZF9wcmV2aWV3ID0gJycnICByZXR1cm4gewogICAgdGFyZ2V0X3R5cGU6IHRhcmdldHMudGFyZ2V0X3R5cGUsCiAgICB0YXJnZXRfZmlsdGVyOiB0YXJnZXRzLnRhcmdldF9maWx0ZXIsCiAgICBjb3VudHM6IHsnJycKbmV3X3ByZXZpZXcgPSAnJycgIHJldHVybiB7CiAgICB0YXJnZXRfdHlwZTogdGFyZ2V0cy50YXJnZXRfdHlwZSwKICAgIHRhcmdldF9maWx0ZXI6IHRhcmdldHMudGFyZ2V0X2ZpbHRlciwKICAgIHJvdXRpbmdfbW9kZTogdGFyZ2V0cy5yb3V0aW5nX21vZGUsCiAgICBjb3VudHM6IHsnJycKaWYgb2xkX3ByZXZpZXcgbm90IGluIHM6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJFUlJPUjogcHJldmlldyBwYXlsb2FkIGJsb2NrIG5vdCBmb3VuZCIpCnMgPSBzLnJlcGxhY2Uob2xkX3ByZXZpZXcsIG5ld19wcmV2aWV3LCAxKQoKcmVxdWlyZWQgPSBbCiAgICAiREFZQ0FSRS0zLVI4LUZBTUlMWS1DT05UQUNULVJPVVRJTkctMjAyNjA5MzAiLAogICAgImZ1bmN0aW9uIHJlbGF0aW9uQWxsb3dzQnJvYWRjYXN0KCIsCiAgICAicmVjZWl2ZV9ub3JtYWwiLAogICAgInJlY2VpdmVfZW1lcmdlbmN5IiwKICAgICJhbGxvd19lc2NhbGF0aW9uIiwKICAgICJyb3V0aW5nX21vZGU6IHRhcmdldHMucm91dGluZ19tb2RlIiwKXQptaXNzaW5nID0gW3ggZm9yIHggaW4gcmVxdWlyZWQgaWYgeCBub3QgaW4gc10KaWYgbWlzc2luZzoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkVSUk9SOiByZXF1aXJlZCBjb250ZW50IG1pc3Npbmc6ICIgKyAiLCAiLmpvaW4obWlzc2luZykpCgpwLndyaXRlX3RleHQocywgZW5jb2Rpbmc9InV0Zi04IikKcHJpbnQoIldPUktFUl9QQVRDSD1QQVNTIikK"
+        run: |
+          python -c 'import os,base64; exec(base64.b64decode(os.environ["PATCH_B64"]).decode("utf-8"))'
+
+      - name: Static QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'DAYCARE-3-R8-FAMILY-CONTACT-ROUTING-20260930' worker.js
+          grep -q 'function relationAllowsBroadcast' worker.js
+          grep -q 'receive_normal' worker.js
+          grep -q 'receive_emergency' worker.js
+          grep -q 'allow_escalation' worker.js
+          grep -q 'routing_mode: targets.routing_mode' worker.js
+          echo "STATIC_QA=PASS"
+
+      - name: Update worker.js through GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          curl -fsSL             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/$REPO/contents/worker.js?ref=main"             > /tmp/current.json
+
+          python - <<'PY'
+          import json, base64
+          from pathlib import Path
+
+          current=json.load(open("/tmp/current.json", encoding="utf-8"))
+          payload={
+              "message":"DAYCARE family contact routing R1",
+              "content":base64.b64encode(Path("worker.js").read_bytes()).decode("ascii"),
+              "sha":current["sha"],
+              "branch":"main",
+          }
+          Path("/tmp/payload.json").write_text(
+              json.dumps(payload, ensure_ascii=False),
+              encoding="utf-8",
+          )
+          PY
+
+          curl -fsSL             -X PUT             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             -H "Content-Type: application/json"             "https://api.github.com/repos/$REPO/contents/worker.js"             --data-binary @/tmp/payload.json             > /tmp/update.json
+
+          python - <<'PY'
+          import json
+          d=json.load(open("/tmp/update.json", encoding="utf-8"))
+          if not (d.get("commit") or {}).get("sha"):
+              raise SystemExit("ERROR: worker.js update failed")
+          print("GITHUB_UPDATE=PASS")
+          print("commit_sha="+d["commit"]["sha"])
+          PY
+
+      - name: Summary
+        shell: bash
+        run: |
+          echo "## DPRO DAYCARE Family Contact Routing R1" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Normal broadcasts: only enabled family relations" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Emergency broadcasts: only enabled emergency family relations" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Explicit family selection remains available" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Contact priority preserved for staged escalation" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Automatic second-family escalation is not enabled yet" >> "$GITHUB_STEP_SUMMARY"
