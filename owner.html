@@ -1264,6 +1264,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
 @media print{
   .dayservice-operation-demo-banner{display:none!important}
 }
+/* DPRO DAYCARE FINAL DEMO POLISH R1 20260930 */
 </style>
 
   <script src="./config.js?v=daycare-4"></script>
@@ -2979,6 +2980,7 @@ td strong{font-size:14px}
     function cleanDemoLabel(value) {
       return String(value || "")
         .replace(/^\[DEMO(?::[^\]]+)?\]\s*/i, "【デモ】")
+        .replace(/^(?:【デモ】\s*){2,}/, "【デモ】")
         .trim();
     }
 
@@ -4198,10 +4200,16 @@ td strong{font-size:14px}
           const canRequestNext = routing.can_request_next !== false
             && ["sent","partial"].includes(row.status);
 
+          const subjectLabel = cleanDemoLabel(row.subject || "件名なし");
+          const demoPrefix =
+            demoRecord && !subjectLabel.startsWith("【デモ】")
+              ? "【デモ】"
+              : "";
+
           return `
             <article class="broadcast-history-item">
               <div class="broadcast-history-head">
-                <h4>${demoRecord ? "【デモ】" : ""}${escapeHtml(row.subject || "件名なし")}</h4>
+                <h4>${demoPrefix}${escapeHtml(subjectLabel || "件名なし")}</h4>
                 <span class="status-pill status-${row.status === "sent" ? "ok" : row.status === "failed" ? "error" : "neutral"}">
                   ${escapeHtml(broadcastStatusLabel(row.status))}
                 </span>
