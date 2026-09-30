@@ -34,7 +34,7 @@
  */
 
 const SERVICE_NAME = "DPRO Dayservice LINE API";
-const VERSION = "DAYCARE-3-R14-ESCALATION-HISTORY-GUARD-20260930";
+const VERSION = "DAYCARE-3-R15-AUTO-ESCALATION-20260930";
 const FRONTEND_VERSION = "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8-R5-BROADCAST-DEMO-SAFE / IPAD-9 / SYSTEM-CHECK-10";
 const DATABASE_VERSION_EXPECTED = "DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01";
 const ADAPTER_VERSION = "DPRO-CONTROL-ADAPTER-1.0";
@@ -179,7 +179,12 @@ export default {
   },
 
   async scheduled(_controller, env, ctx) {
-    ctx.waitUntil(processScheduledBroadcasts(env));
+    ctx.waitUntil(
+      Promise.all([
+        processScheduledBroadcasts(env),
+        processAutoEscalations(env),
+      ]),
+    );
   },
 };
 
@@ -226,6 +231,7 @@ async function routeRequest(context) {
           admin_broadcast_resend: "/api/admin/broadcasts/resend",
           admin_broadcast_escalation_preview: "/api/admin/broadcasts/escalation-preview",
           admin_broadcast_escalate: "/api/admin/broadcasts/escalate",
+          admin_broadcast_auto_escalation_settings: "/api/admin/broadcasts/auto-escalation/settings",
           admin_broadcast_schedule: "/api/admin/broadcasts/schedule",
           admin_broadcast_cancel: "/api/admin/broadcasts/cancel",
           admin_phone_normalize_check: "/api/admin/phone-normalize-check",
@@ -436,6 +442,18 @@ async function routeRequest(context) {
       };
     }
 
+    if (path === "/api/admin/broadcasts/auto-escalation/settings" && method === "GET") {
+      return {
+        body: handleAdminAutoEscalationSettingsGet(facility),
+      };
+    }
+
+    if (path === "/api/admin/broadcasts/auto-escalation/settings" && method === "POST") {
+      return {
+        body: await handleAdminAutoEscalationSettingsUpdate(env, facility, body),
+      };
+    }
+
     if (path === "/api/admin/broadcasts/schedule" && method === "POST") {
       return {
         status: 201,
@@ -532,6 +550,8 @@ async function handleHealth(env, url) {
       staged_family_escalation: true,
       escalation_history_visibility: true,
       escalation_ack_guard: true,
+      auto_family_escalation: true,
+      auto_family_escalation_settings: true,
     },
     timezone: JST_TIME_ZONE,
     time: new Date().toISOString(),
@@ -5550,6 +5570,286 @@ async function handleAdminBroadcastCancel(env, facility, body) {
     message: "予約配信を取り消しました。",
     broadcast: sanitizeBroadcast(updated[0]),
   };
+}
+
+function autoEscalationSettingsFromFacility(facility) {
+  const raw = facility?.settings?.auto_escalation;
+  const config = raw && typeof raw === "object" ? raw : {};
+  const delay = Number(config.delay_minutes);
+  const maxPriority = Number(config.max_priority);
+
+  return {
+    enabled: config.enabled === true,
+    delay_minutes: [5, 10, 15, 30, 60, 120, 180].includes(delay)
+      ? delay
+      : 30,
+    max_priority:
+      Number.isInteger(maxPriority) && maxPriority >= 2 && maxPriority <= 5
+        ? maxPriority
+        : 2,
+    priority_scope: ["emergency", "important"],
+  };
+}
+
+function handleAdminAutoEscalationSettingsGet(facility) {
+  return {
+    ok: true,
+    service: SERVICE_NAME,
+    version: VERSION,
+    settings: autoEscalationSettingsFromFacility(facility),
+  };
+}
+
+async function handleAdminAutoEscalationSettingsUpdate(
+  env,
+  facility,
+  body,
+) {
+  const enabled = body.enabled === true;
+  const delayMinutes = Number(body.delay_minutes);
+  const maxPriority = Number(body.max_priority);
+
+  if (![5, 10, 15, 30, 60, 120, 180].includes(delayMinutes)) {
+    throw new ApiError(
+      400,
+      "自動段階配信の待ち時間を正しく選択してください。",
+    );
+  }
+  if (
+    !Number.isInteger(maxPriority)
+    || maxPriority < 2
+    || maxPriority > 5
+  ) {
+    throw new ApiError(
+      400,
+      "自動段階配信の最大順位を正しく選択してください。",
+    );
+  }
+
+  const currentSettings =
+    facility.settings && typeof facility.settings === "object"
+      ? facility.settings
+      : {};
+  const nextAuto = {
+    enabled,
+    delay_minutes: delayMinutes,
+    max_priority: maxPriority,
+    priority_scope: ["emergency", "important"],
+    updated_at: new Date().toISOString(),
+  };
+  const nextSettings = {
+    ...currentSettings,
+    auto_escalation: nextAuto,
+  };
+
+  const updated = await supabaseRequest(env, TABLES.facilities, {
+    method: "PATCH",
+    query: {
+      id: `eq.${facility.id}`,
+    },
+    body: {
+      settings: nextSettings,
+      updated_by: cleanText(body.operator_name, 100) || "管理画面",
+    },
+    prefer: "return=representation",
+  });
+
+  await logOperation(env, {
+    facilityId: facility.id,
+    actorType: "admin",
+    actorName: cleanText(body.operator_name, 100) || "管理画面",
+    action: "auto_escalation_settings_updated",
+    targetTable: TABLES.facilities,
+    targetId: facility.id,
+    deviceType: cleanDeviceType(body.device_type),
+    isDemo: Boolean(facility.is_demo),
+    details: nextAuto,
+  });
+
+  return {
+    ok: true,
+    service: SERVICE_NAME,
+    version: VERSION,
+    message: enabled
+      ? "自動段階配信を有効にしました。"
+      : "自動段階配信を無効にしました。",
+    settings: autoEscalationSettingsFromFacility(updated[0] || {
+      ...facility,
+      settings: nextSettings,
+    }),
+  };
+}
+
+async function processFacilityAutoEscalations(env, facility) {
+  const config = autoEscalationSettingsFromFacility(facility);
+  if (!config.enabled) {
+    return { enabled: false, processed: 0, sent: 0 };
+  }
+
+  const rows = await supabaseRequest(env, TABLES.broadcasts, {
+    query: {
+      select: "*",
+      facility_id: `eq.${facility.id}`,
+      status: "in.(sent,partial)",
+      priority: "in.(emergency,important)",
+      order: "sent_at.desc",
+      limit: "500",
+    },
+  });
+
+  const latestByRoot = new Map();
+  for (const row of rows) {
+    if (
+      ["resend_unacknowledged", "demo_resend"].includes(
+        row.broadcast_type,
+      )
+    ) {
+      continue;
+    }
+    const rootId = row.source_broadcast_id || row.id;
+    if (!latestByRoot.has(rootId)) {
+      latestByRoot.set(rootId, row);
+    }
+  }
+
+  let processed = 0;
+  let sent = 0;
+  const nowMs = Date.now();
+
+  for (const [rootId, latest] of latestByRoot.entries()) {
+    processed += 1;
+    const baseAt = new Date(
+      latest.sent_at || latest.created_at || 0,
+    ).getTime();
+    if (!Number.isFinite(baseAt) || baseAt <= 0) continue;
+
+    const elapsedMinutes = (nowMs - baseAt) / 60000;
+    if (elapsedMinutes < config.delay_minutes) continue;
+
+    const resolution = await resolveBroadcastEscalation(
+      env,
+      facility,
+      latest.id,
+      !isDemoBroadcastFacility(facility),
+    );
+    if (!resolution.family_ids.length) continue;
+
+    const relationRows = await supabaseRequest(
+      env,
+      TABLES.userFamilies,
+      {
+        query: {
+          select: "family_member_id,contact_priority,is_active",
+          facility_id: `eq.${facility.id}`,
+          family_member_id:
+            `in.(${resolution.family_ids.join(",")})`,
+          is_active: "eq.true",
+          limit: "4000",
+        },
+      },
+    );
+
+    const allowedFamilyIds = unique(
+      relationRows
+        .filter((row) => {
+          const priority = Number(row.contact_priority || 99);
+          return (
+            Number.isInteger(priority)
+            && priority >= 2
+            && priority <= config.max_priority
+          );
+        })
+        .map((row) => row.family_member_id)
+        .filter(Boolean),
+    );
+
+    if (!allowedFamilyIds.length) continue;
+
+    const familyHash = (
+      await sha256Hex(allowedFamilyIds.slice().sort().join(","))
+    ).slice(0, 24);
+    const idempotencyKey =
+      `auto-escalate:${rootId}:${familyHash}`;
+
+    const source = resolution.source;
+    const result = await handleAdminBroadcastSend(
+      env,
+      facility,
+      {
+        priority: source.priority,
+        broadcast_type: "escalation",
+        subject: source.subject,
+        message_body: source.message_body,
+        target_type: "selected_families",
+        target_filter: { family_ids: allowedFamilyIds },
+        source_broadcast_id: rootId,
+        idempotency_key: idempotencyKey,
+        operator_name: "自動段階配信",
+        approved_by: "自動段階配信",
+      },
+    );
+
+    if (!result.duplicate) {
+      sent += 1;
+      await logOperation(env, {
+        facilityId: facility.id,
+        actorType: "system",
+        actorName: "自動段階配信",
+        action: "broadcast_auto_escalated",
+        targetTable: TABLES.broadcasts,
+        targetId: result.broadcast?.id || null,
+        deviceType: "cron",
+        isDemo: Boolean(facility.is_demo),
+        details: {
+          root_source_broadcast_id: rootId,
+          source_broadcast_id: latest.id,
+          family_count: allowedFamilyIds.length,
+          delay_minutes: config.delay_minutes,
+          max_priority: config.max_priority,
+          external_line_sent: !isDemoBroadcastFacility(facility),
+        },
+      });
+    }
+  }
+
+  return {
+    enabled: true,
+    processed,
+    sent,
+  };
+}
+
+async function processAutoEscalations(env) {
+  try {
+    validateEnvironment(env);
+    const facilities = await supabaseRequest(
+      env,
+      TABLES.facilities,
+      {
+        query: {
+          select: "*",
+          is_active: "eq.true",
+          limit: "500",
+        },
+      },
+    );
+
+    for (const facility of facilities) {
+      try {
+        await processFacilityAutoEscalations(
+          env,
+          facility,
+        );
+      } catch (error) {
+        console.error("auto escalation facility failed", {
+          facility_id: facility.id,
+          error,
+        });
+      }
+    }
+  } catch (error) {
+    console.error("auto escalation process failed", error);
+  }
 }
 
 async function processScheduledBroadcasts(env) {
