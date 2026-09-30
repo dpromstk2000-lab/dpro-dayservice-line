@@ -1478,6 +1478,60 @@ td strong{font-size:14px}
   .ledger-family-card .status-pill{align-self:flex-start}
 }
 
+
+/* ============================================================
+   DPRO DAYCARE NAV / LEDGER POLISH R8
+   2026-09-30
+   ============================================================ */
+@media(min-width:821px){
+  .sidebar{
+    top:0!important;
+    bottom:0!important;
+    height:100vh!important;
+    min-height:100vh!important;
+    display:flex!important;
+    flex-direction:column!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+  }
+  .side-brand{flex:0 0 auto}
+  .side-nav{flex:0 0 auto;margin-top:14px;gap:4px}
+  .side-nav button,.side-nav a{
+    min-height:46px;
+    padding:9px 12px;
+    font-size:14px;
+  }
+  .side-footer{
+    flex:0 0 auto;
+    margin-top:auto;
+    padding-top:14px;
+    padding-bottom:4px;
+  }
+}
+#section-search .section-head{margin-bottom:12px}
+#section-search .section-head h2{font-size:27px}
+#section-search .section-description{font-size:14px;line-height:1.6}
+#section-search .toolbar{gap:10px;align-items:stretch}
+#section-search .search-input{min-height:50px;font-size:16px}
+#section-search #searchButton{min-width:88px;min-height:50px;font-size:15px}
+#section-search .split-grid{align-items:stretch}
+#section-search .card,#section-search .detail-panel{min-height:330px}
+#section-search .card-head h3{font-size:20px}
+#section-search .card-head p{font-size:13px}
+#section-search .search-card{min-height:66px;padding:13px 14px}
+#section-search .search-name{font-size:16px}
+#section-search .search-meta{margin-top:4px;font-size:13px}
+#section-search .detail-panel>.empty{
+  min-height:110px;
+  display:grid;
+  place-items:center;
+  text-align:center;
+  line-height:1.7;
+}
+@media(max-width:1100px) and (min-width:821px){
+  .side-nav button,.side-nav a{min-height:43px;font-size:13px}
+}
+
 </style>
 </head>
 
@@ -1809,7 +1863,7 @@ td strong{font-size:14px}
           <div class="section-head">
             <div>
               <p class="section-kicker">登録情報</p>
-              <h2>利用者・家族台帳</h2>
+              <h2>利用者・ご家族を探す</h2>
               <p class="section-description">
                 利用者・ご家族の登録情報をまとめて確認できます。氏名・電話番号・利用者番号で絞り込めます。
               </p>
@@ -1843,7 +1897,7 @@ td strong{font-size:14px}
                   <h3>台帳一覧</h3>
                   <p>検索すると、利用者とご家族をまとめて表示します。</p>
                 </div>
-                <span class="status-pill status-neutral" id="searchCount">0件</span>
+                <span class="status-pill status-neutral" id="searchCount">未検索</span>
               </div>
               <div class="search-results" id="searchResults"></div>
             </div>
