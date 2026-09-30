@@ -4101,6 +4101,14 @@ td strong{font-size:14px}
         els.broadcastHistory.innerHTML = rows.map((row) => {
           const demoRecord = String(row.broadcast_type || "").startsWith("demo_");
           const resultLabel = demoRecord ? "疑似送信" : "送信成功";
+          const routing = row.routing_summary || {};
+          const stageLabel = routing.stage_label || "";
+          const progressLabel = routing.chain_max_priority
+            ? `第${routing.chain_max_priority}連絡先まで送信済み`
+            : "";
+          const allAcknowledged = routing.all_users_acknowledged === true;
+          const canRequestNext = routing.can_request_next !== false
+            && ["sent","partial"].includes(row.status);
 
           return `
             <article class="broadcast-history-item">
@@ -4110,10 +4118,20 @@ td strong{font-size:14px}
                   ${escapeHtml(broadcastStatusLabel(row.status))}
                 </span>
               </div>
+              ${stageLabel ? `
+                <div class="toolbar" style="margin:6px 0 4px">
+                  <span class="status-pill status-neutral">${escapeHtml(stageLabel)}</span>
+                  ${progressLabel ? `<span class="status-pill status-neutral">${escapeHtml(progressLabel)}</span>` : ""}
+                  ${allAcknowledged ? '<span class="status-pill status-ok">確認済・次順位送信不要</span>' : ""}
+                </div>
+              ` : ""}
               <p>${escapeHtml((row.message_body || "").slice(0, 140))}</p>
               <div class="broadcast-history-meta">
                 対象 ${row.target_family_count || 0} / ${resultLabel} ${row.success_count || 0}
                 / 未連携 ${row.unlinked_count || 0} / 確認済 ${row.acknowledged_count || 0}
+                ${routing.chain_sent_user_count != null
+                  ? `<br>段階配信：送信対象 ${routing.chain_sent_user_count}名 / 確認済 ${routing.chain_acknowledged_user_count || 0}名`
+                  : ""}
                 ${demoRecord ? "<br>※公開デモのため実際のLINE送信は行っていません。" : ""}
                 <br>${escapeHtml(formatDateTime(row.sent_at || row.scheduled_at || row.created_at))}
               </div>
@@ -4122,9 +4140,12 @@ td strong{font-size:14px}
                   <button class="btn btn-secondary btn-small" type="button" data-resend-broadcast="${escapeHtml(row.id)}">
                     未確認へ再送
                   </button>
-                  <button class="btn btn-secondary btn-small" type="button" data-escalate-broadcast="${escapeHtml(row.id)}">
-                    次の連絡先へ
-                  </button>` : ""}
+                  ${canRequestNext ? `
+                    <button class="btn btn-secondary btn-small" type="button" data-escalate-broadcast="${escapeHtml(row.id)}">
+                      次の連絡先へ
+                    </button>
+                  ` : ""}
+                ` : ""}
                 ${row.status === "scheduled" ? `
                   <button class="btn btn-secondary btn-small" type="button" data-cancel-broadcast="${escapeHtml(row.id)}">
                     予約を取消
