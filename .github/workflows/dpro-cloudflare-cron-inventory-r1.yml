@@ -1,0 +1,129 @@
+name: DPRO Cloudflare Cron Inventory R1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+    steps:
+      - name: Inspect all Worker cron triggers
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CF_TOKEN:-}" || { echo 'CLOUDFLARE_API_TOKEN is missing'; exit 2; }
+
+          curl -fsS -H "Authorization: Bearer $CF_TOKEN" \
+            https://api.cloudflare.com/client/v4/accounts > /tmp/accounts.json
+
+          python3 - <<'PY' > /tmp/account-ids
+          import json
+          d=json.load(open('/tmp/accounts.json'))
+          for row in d.get('result') or []:
+              if isinstance(row,dict) and row.get('id'):
+                  print(row['id'])
+          PY
+
+          echo "=== CLOUDFLARE CRON INVENTORY ==="
+
+          total=0
+          while IFS= read -r aid; do
+            [ -n "$aid" ] || continue
+            echo "::add-mask::$aid"
+
+            curl -fsS -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts" \
+              > /tmp/scripts.json
+
+            python3 - <<'PY' > /tmp/script-names
+          import json
+          d=json.load(open('/tmp/scripts.json'))
+          rows=d.get('result') or []
+          for row in rows:
+              if isinstance(row,dict) and row.get('id'):
+                  print(row['id'])
+          PY
+
+            while IFS= read -r script; do
+              [ -n "$script" ] || continue
+
+              code=$(curl -sS -o /tmp/schedules.json -w '%{http_code}' \
+                -H "Authorization: Bearer $CF_TOKEN" \
+                "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$script/schedules")
+
+              [ "$code" = "200" ] || continue
+
+              count=$(SCRIPT="$script" python3 - <<'PY'
+          import os,json
+          d=json.load(open('/tmp/schedules.json'))
+          result=d.get('result')
+          if isinstance(result,dict):
+              rows=result.get('schedules') or []
+          elif isinstance(result,list):
+              rows=result
+          else:
+              rows=[]
+
+          script=os.environ['SCRIPT']
+          crons=[]
+          for row in rows:
+              if isinstance(row,dict):
+                  cron=row.get('cron')
+              elif isinstance(row,str):
+                  cron=row
+              else:
+                  cron=None
+              if cron:
+                  crons.append(cron)
+
+          for cron in crons:
+              print(f"CRON_ITEM={script}|{cron}", file=__import__('sys').stderr)
+          print(len(crons))
+          PY
+              )
+
+              if [ "$count" -gt 0 ]; then
+                SCRIPT="$script" python3 - <<'PY'
+          import os,json
+          d=json.load(open('/tmp/schedules.json'))
+          result=d.get('result')
+          if isinstance(result,dict):
+              rows=result.get('schedules') or []
+          elif isinstance(result,list):
+              rows=result
+          else:
+              rows=[]
+
+          script=os.environ['SCRIPT']
+          for row in rows:
+              if isinstance(row,dict):
+                  cron=row.get('cron')
+              elif isinstance(row,str):
+                  cron=row
+              else:
+                  cron=None
+              if cron:
+                  print(f"WORKER={script}")
+                  print(f"CRON={cron}")
+          PY
+              fi
+
+              total=$((total + count))
+            done < /tmp/script-names
+
+          done < /tmp/account-ids
+
+          echo "TOTAL_CRON_TRIGGERS=$total"
+
+          if [ "$total" -ge 5 ]; then
+            echo "DIAG_RESULT=FREE_LIMIT_REACHED"
+          else
+            echo "DIAG_RESULT=CAPACITY_AVAILABLE"
+          fi
