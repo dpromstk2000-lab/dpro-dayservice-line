@@ -1,0 +1,197 @@
+name: DPRO Cloudflare Cron Worker Inspect R2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+    steps:
+      - name: Inspect cron worker sources safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CF_TOKEN:-}" || { echo 'CLOUDFLARE_API_TOKEN is missing'; exit 2; }
+
+          curl -fsS -H "Authorization: Bearer $CF_TOKEN" \
+            https://api.cloudflare.com/client/v4/accounts > /tmp/accounts.json
+
+          python3 - <<'PY' > /tmp/account-ids
+          import json
+          d=json.load(open('/tmp/accounts.json'))
+          for row in d.get('result') or []:
+              if isinstance(row,dict) and row.get('id'):
+                  print(row['id'])
+          PY
+
+          workers=(
+            dpro-careplan-line-api
+            dpro-gakudo-line-api
+            dpro-shop-site-monitor-api
+            dpro-shukuyaku-api
+            dpro-vet-qr-api
+          )
+
+          found_account=''
+          while IFS= read -r aid; do
+            [ -n "$aid" ] || continue
+            hit=0
+            for w in "${workers[@]}"; do
+              code=$(curl -sS -o /tmp/probe -w '%{http_code}' \
+                -H "Authorization: Bearer $CF_TOKEN" \
+                "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$w/content/v2")
+              if [ "$code" = "200" ]; then
+                hit=1
+                break
+              fi
+            done
+            if [ "$hit" = "1" ]; then
+              found_account="$aid"
+              break
+            fi
+          done < /tmp/account-ids
+
+          [ -n "$found_account" ] || { echo 'Cron workers account not found'; exit 3; }
+          echo "::add-mask::$found_account"
+
+          for w in "${workers[@]}"; do
+            echo
+            echo "============================================================"
+            echo "WORKER=$w"
+
+            curl -sS \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$found_account/workers/scripts/$w/schedules" \
+              > /tmp/schedules.json
+
+            W="$w" python3 - <<'PY'
+          import os,json
+          d=json.load(open('/tmp/schedules.json'))
+          result=d.get('result')
+          if isinstance(result,dict):
+              rows=result.get('schedules') or []
+          elif isinstance(result,list):
+              rows=result
+          else:
+              rows=[]
+          crons=[]
+          for row in rows:
+              if isinstance(row,dict):
+                  c=row.get('cron')
+              elif isinstance(row,str):
+                  c=row
+              else:
+                  c=None
+              if c: crons.append(c)
+          print("CRONS="+(",".join(crons) if crons else "(none)"))
+          PY
+
+            settings_code=$(curl -sS -o /tmp/settings.json -w '%{http_code}' \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$found_account/workers/scripts/$w/settings")
+            if [ "$settings_code" = "200" ]; then
+              python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/settings.json'))
+          result=d.get('result') or {}
+          bindings=result.get('bindings') or []
+          safe=[]
+          for b in bindings:
+              if not isinstance(b,dict):
+                  continue
+              item={'name':b.get('name'),'type':b.get('type')}
+              # Never print secret/text/blob values.
+              if b.get('service'):
+                  item['service']=b.get('service')
+              if b.get('namespace_id'):
+                  item['namespace_id']='(present)'
+              safe.append(item)
+          print("BINDINGS="+json.dumps(safe,ensure_ascii=False))
+          print("COMPATIBILITY_DATE="+str(result.get('compatibility_date') or ''))
+          print("MAIN_MODULE="+str(result.get('main_module') or ''))
+          PY
+            else
+              echo "BINDINGS=(settings unavailable HTTP $settings_code)"
+            fi
+
+            code=$(curl -sS -D /tmp/headers -o /tmp/content.bin -w '%{http_code}' \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$found_account/workers/scripts/$w/content/v2")
+            echo "CONTENT_HTTP=$code"
+            if [ "$code" != "200" ]; then
+              continue
+            fi
+
+            W="$w" python3 - <<'PY'
+          import os,re
+          from pathlib import Path
+          from email.parser import BytesParser
+          from email.policy import default
+
+          headers=Path('/tmp/headers').read_text(errors='ignore')
+          body=Path('/tmp/content.bin').read_bytes()
+          m=re.search(r'content-type:\s*([^\r\n]+)',headers,re.I)
+          ctype=m.group(1).strip() if m else ''
+          chunks=[]
+
+          if 'multipart/' in ctype.lower():
+              raw=(f'Content-Type: {ctype}\r\nMIME-Version: 1.0\r\n\r\n').encode()+body
+              msg=BytesParser(policy=default).parsebytes(raw)
+              for part in msg.iter_parts():
+                  payload=part.get_payload(decode=True) or b''
+                  filename=part.get_filename() or part.get_param('name',header='content-disposition') or 'module'
+                  text=payload.decode('utf-8','ignore')
+                  chunks.append((filename,text))
+          else:
+              chunks.append(('worker',body.decode('utf-8','ignore')))
+
+          print("MODULE_COUNT="+str(len(chunks)))
+          patterns=[
+              r'async\s+scheduled\s*\([^)]*\)\s*\{',
+              r'scheduled\s*\([^)]*\)\s*\{',
+              r'addEventListener\s*\(\s*[\'"]scheduled[\'"]',
+              r'cron',
+              r'fetch\s*\(',
+          ]
+
+          printed=0
+          for filename,text in chunks:
+              if not text.strip():
+                  continue
+              print("MODULE="+filename)
+              lower=text.lower()
+              hits=[]
+              for pat in patterns:
+                  for mm in re.finditer(pat,text,re.I):
+                      hits.append(mm.start())
+              hits=sorted(set(hits))
+              for pos in hits[:8]:
+                  start=max(0,pos-700)
+                  end=min(len(text),pos+2200)
+                  snippet=text[start:end]
+                  # redact likely secret/token literal assignments
+                  snippet=re.sub(
+                      r'(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*[\'"][^\'"]+[\'"]',
+                      r'\1="[REDACTED]"',
+                      snippet
+                  )
+                  print("--- SNIPPET ---")
+                  print(snippet)
+                  printed+=1
+                  if printed>=20:
+                      break
+              if printed>=20:
+                  break
+          print("SNIPPET_COUNT="+str(printed))
+          PY
+          done
+
+          echo
+          echo "DIAG_RESULT=CRON_WORKER_INSPECTION_COMPLETE"
