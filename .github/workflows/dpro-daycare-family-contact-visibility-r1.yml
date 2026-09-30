@@ -1,0 +1,133 @@
+name: DPRO DAYCARE Family Contact Visibility R1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SCRIPT_NAME: dpro-dayservice-line-api
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Patch worker and owner
+        shell: bash
+        env:
+          WORKER_PATCH_B64: "CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aApwPVBhdGgoIndvcmtlci5qcyIpCnM9cC5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKCnM9cy5yZXBsYWNlKAonY29uc3QgVkVSU0lPTiA9ICJEQVlDQVJFLTMtUjgtRkFNSUxZLUNPTlRBQ1QtUk9VVElORy0yMDI2MDkzMCI7JywKJ2NvbnN0IFZFUlNJT04gPSAiREFZQ0FSRS0zLVI5LUZBTUlMWS1DT05UQUNULVZJU0lCSUxJVFktMjAyNjA5MzAiOycsCjEKKQoKYW5jaG9yPScnJyAgY29uc3Qgc2NoZWR1bGVJZHMgPSBzY2hlZHVsZXMubWFwKChyb3cpID0+IHJvdy5pZCk7JycnCmluc2VydD0nJycgIGNvbnN0IGxpbmVUYXJnZXRzID0gZmFtaWx5SWRzLmxlbmd0aAogICAgPyBhd2FpdCBzdXBhYmFzZVJlcXVlc3QoZW52LCBUQUJMRVMubGluZURlbGl2ZXJ5VGFyZ2V0cywgewogICAgICAgIHF1ZXJ5OiB7CiAgICAgICAgICBzZWxlY3Q6ICJpZCxmYW1pbHlfbWVtYmVyX2lkLHVzZXJfaWQsbGluZV91c2VyX2lkX2hhc2gsY29uc2VudF9zdGF0dXMsaXNfYWN0aXZlLHZlcmlmaWVkX2F0LHJldm9rZWRfYXQiLAogICAgICAgICAgZmFjaWxpdHlfaWQ6IGBlcS4ke2ZhY2lsaXR5LmlkfWAsCiAgICAgICAgICBmYW1pbHlfbWVtYmVyX2lkOiBgaW4uKCR7ZmFtaWx5SWRzLmpvaW4oIiwiKX0pYCwKICAgICAgICAgIGlzX2FjdGl2ZTogImVxLnRydWUiLAogICAgICAgICAgb3JkZXI6ICJ2ZXJpZmllZF9hdC5kZXNjIiwKICAgICAgICAgIGxpbWl0OiAiMjAwIiwKICAgICAgICB9LAogICAgICB9KQogICAgOiBbXTsKCiAgY29uc3QgYWN0aXZlTGluZVRhcmdldEJ5RmFtaWx5ID0gbmV3IE1hcCgpOwogIGZvciAoY29uc3QgdGFyZ2V0IG9mIGxpbmVUYXJnZXRzKSB7CiAgICBpZiAoCiAgICAgIHRhcmdldC5jb25zZW50X3N0YXR1cyA9PT0gImFjdGl2ZSIKICAgICAgJiYgIWFjdGl2ZUxpbmVUYXJnZXRCeUZhbWlseS5oYXModGFyZ2V0LmZhbWlseV9tZW1iZXJfaWQpCiAgICApIHsKICAgICAgYWN0aXZlTGluZVRhcmdldEJ5RmFtaWx5LnNldCh0YXJnZXQuZmFtaWx5X21lbWJlcl9pZCwgdGFyZ2V0KTsKICAgIH0KICB9CgogIGNvbnN0IHNjaGVkdWxlSWRzID0gc2NoZWR1bGVzLm1hcCgocm93KSA9PiByb3cuaWQpOycnJwppZiAiY29uc3QgYWN0aXZlTGluZVRhcmdldEJ5RmFtaWx5ID0gbmV3IE1hcCgpOyIgbm90IGluIHM6CiAgICBpZiBhbmNob3Igbm90IGluIHM6CiAgICAgICAgcmFpc2UgU3lzdGVtRXhpdCgiRVJST1I6IHNjaGVkdWxlSWRzIGFuY2hvciBub3QgZm91bmQiKQogICAgcz1zLnJlcGxhY2UoYW5jaG9yLGluc2VydCwxKQoKb2xkPScnJyAgICBmYW1pbGllczogZmFtaWxpZXMubWFwKChmYW1pbHkpID0+ICh7CiAgICAgIC4uLmZhbWlseSwKICAgICAgcmVsYXRpb246IHJlbGF0aW9ucy5maW5kKChyb3cpID0+IHJvdy5mYW1pbHlfbWVtYmVyX2lkID09PSBmYW1pbHkuaWQpID8/IG51bGwsCiAgICB9KSksJycnCm5ldz0nJycgICAgZmFtaWxpZXM6IGZhbWlsaWVzLm1hcCgoZmFtaWx5KSA9PiB7CiAgICAgIGNvbnN0IHJlbGF0aW9uID0KICAgICAgICByZWxhdGlvbnMuZmluZCgocm93KSA9PiByb3cuZmFtaWx5X21lbWJlcl9pZCA9PT0gZmFtaWx5LmlkKSA/PyBudWxsOwogICAgICBjb25zdCBsaW5lVGFyZ2V0ID0gYWN0aXZlTGluZVRhcmdldEJ5RmFtaWx5LmdldChmYW1pbHkuaWQpIHx8IG51bGw7CiAgICAgIHJldHVybiB7CiAgICAgICAgLi4uZmFtaWx5LAogICAgICAgIHJlbGF0aW9uLAogICAgICAgIGxpbmVfbGlua2VkOiBCb29sZWFuKGxpbmVUYXJnZXQpLAogICAgICAgIGxpbmVfZGVsaXZlcnlfcmVhZHk6IEJvb2xlYW4obGluZVRhcmdldCksCiAgICAgICAgbGluZV92ZXJpZmllZF9hdDogbGluZVRhcmdldD8udmVyaWZpZWRfYXQgfHwgbnVsbCwKICAgICAgICBsaW5lX2NvbnNlbnRfc3RhdHVzOiBsaW5lVGFyZ2V0Py5jb25zZW50X3N0YXR1cyB8fCAidW5saW5rZWQiLAogICAgICB9OwogICAgfSksJycnCmlmIG9sZCBub3QgaW4gczoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkVSUk9SOiBmYW1pbGllcyByZXR1cm4gYW5jaG9yIG5vdCBmb3VuZCIpCnM9cy5yZXBsYWNlKG9sZCxuZXcsMSkKCnJlcXVpcmVkPVsKIkRBWUNBUkUtMy1SOS1GQU1JTFktQ09OVEFDVC1WSVNJQklMSVRZLTIwMjYwOTMwIiwKImFjdGl2ZUxpbmVUYXJnZXRCeUZhbWlseSIsCiJsaW5lX2xpbmtlZDogQm9vbGVhbihsaW5lVGFyZ2V0KSIsCiJsaW5lX2RlbGl2ZXJ5X3JlYWR5OiBCb29sZWFuKGxpbmVUYXJnZXQpIiwKXQptaXNzaW5nPVt4IGZvciB4IGluIHJlcXVpcmVkIGlmIHggbm90IGluIHNdCmlmIG1pc3Npbmc6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJFUlJPUiB3b3JrZXIgbWlzc2luZzogIisiLCAiLmpvaW4obWlzc2luZykpCnAud3JpdGVfdGV4dChzLGVuY29kaW5nPSJ1dGYtOCIpCnByaW50KCJXT1JLRVJfUEFUQ0g9UEFTUyIpCg=="
+          OWNER_PATCH_B64: "CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aApwPVBhdGgoIm93bmVyLmh0bWwiKQpzPXAucmVhZF90ZXh0KGVuY29kaW5nPSJ1dGYtOCIpCgpjc3M9cicnJwovKiBEUFJPIERBWUNBUkUgRkFNSUxZIENPTlRBQ1QgVklTSUJJTElUWSBSMSAqLwoubGVkZ2VyLWZhbWlseS1jYXJkewogIGFsaWduLWl0ZW1zOmZsZXgtc3RhcnQ7CiAgZ2FwOjEycHg7Cn0KLmxlZGdlci1mYW1pbHktcm91dGluZ3sKICBkaXNwbGF5OmZsZXg7CiAgZmxleC13cmFwOndyYXA7CiAgZ2FwOjZweDsKICBtYXJnaW4tdG9wOjhweDsKfQoubGVkZ2VyLXJvdXRlLWNoaXB7CiAgZGlzcGxheTppbmxpbmUtZmxleDsKICBhbGlnbi1pdGVtczpjZW50ZXI7CiAgbWluLWhlaWdodDoyNHB4OwogIHBhZGRpbmc6M3B4IDhweDsKICBib3JkZXItcmFkaXVzOjk5OXB4OwogIGJvcmRlcjoxcHggc29saWQgdmFyKC0tbGluZSk7CiAgYmFja2dyb3VuZDojZjdmYWY4OwogIGNvbG9yOnZhcigtLW11dGVkKTsKICBmb250LXNpemU6MTBweDsKICBmb250LXdlaWdodDo4NTA7Cn0KLmxlZGdlci1yb3V0ZS1jaGlwLmlzLW9uewogIGJvcmRlci1jb2xvcjojYmVkZmNhOwogIGJhY2tncm91bmQ6I2VhZjdlZjsKICBjb2xvcjojMTc2NDNhOwp9Ci5sZWRnZXItcm91dGUtY2hpcC5pcy1vZmZ7CiAgYmFja2dyb3VuZDojZjNmNWY0OwogIGNvbG9yOiM3ODg0N2Q7Cn0KLmxlZGdlci1saW5lLXN0YWNrewogIGRpc3BsYXk6Z3JpZDsKICBqdXN0aWZ5LWl0ZW1zOmVuZDsKICBnYXA6NnB4OwogIGZsZXg6MCAwIGF1dG87Cn0KLmxlZGdlci1saW5lLWRhdGV7CiAgY29sb3I6dmFyKC0tbXV0ZWQpOwogIGZvbnQtc2l6ZTo5cHg7Cn0KQG1lZGlhKG1heC13aWR0aDo1NjBweCl7CiAgLmxlZGdlci1mYW1pbHktY2FyZHtkaXNwbGF5OmdyaWR9CiAgLmxlZGdlci1saW5lLXN0YWNre2p1c3RpZnktaXRlbXM6c3RhcnR9Cn0KJycnCm1hcmtlcj0iRFBSTyBEQVlDQVJFIEZBTUlMWSBDT05UQUNUIFZJU0lCSUxJVFkgUjEiCmlmIG1hcmtlciBub3QgaW4gczoKICAgIGNsb3NlPSI8L3N0eWxlPlxuPC9oZWFkPiIKICAgIGlmIGNsb3NlIG5vdCBpbiBzOgogICAgICAgIHJhaXNlIFN5c3RlbUV4aXQoIkVSUk9SOiBzdHlsZSBjbG9zZSBhbmNob3Igbm90IGZvdW5kIikKICAgIHM9cy5yZXBsYWNlKGNsb3NlLGNzcysiXG48L3N0eWxlPlxuPC9oZWFkPiIsMSkKCm9sZD0nJycgICAgICAgICAgICAgIGNvbnN0IGxpbmtlZCA9IGZhbWlseS5saW5lX2xpbmtlZDsKICAgICAgICAgICAgICBjb25zdCBsaW5lTGFiZWwgPSBsaW5rZWQgPT09IHRydWUKICAgICAgICAgICAgICAgID8gIkxJTkXpgKPmkLrmuIjjgb8iCiAgICAgICAgICAgICAgICA6IGxpbmtlZCA9PT0gZmFsc2UKICAgICAgICAgICAgICAgICAgPyAiTElOReacqumAo+aQuiIKICAgICAgICAgICAgICAgICAgOiBkZW1vTW9kZQogICAgICAgICAgICAgICAgICAgID8gIkxJTkXmnKrpgKPmkLrvvIjlhazplovjg4fjg6LvvIkiCiAgICAgICAgICAgICAgICAgICAgOiAiTElORemAo+aQuueKtuazgeOBr+acrOeVquaOpee2muaZguOBq+ihqOekuiI7CiAgICAgICAgICAgICAgY29uc3QgbGluZU1vZGUgPSBsaW5rZWQgPT09IHRydWUgPyAib2siIDogbGlua2VkID09PSBmYWxzZSA/ICJ3YXJuaW5nIiA6ICJuZXV0cmFsIjsKCiAgICAgICAgICAgICAgcmV0dXJuIGAKICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImxlZGdlci1mYW1pbHktY2FyZCI+CiAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImxlZGdlci1mYW1pbHktbWFpbiI+CiAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0ibGVkZ2VyLWZhbWlseS10aXRsZSI+CiAgICAgICAgICAgICAgICAgICAgICA8c3Ryb25nPiR7ZXNjYXBlSHRtbChmYW1pbHkuZnVsbF9uYW1lIHx8ICLlrrbml48iKX08L3N0cm9uZz4KICAgICAgICAgICAgICAgICAgICAgICR7cHJpbWFyeSA/ICc8c3BhbiBjbGFzcz0ibGVkZ2VyLXByaW1hcnkiPuS4u+mAo+e1oeWFiDwvc3Bhbj4nIDogIiJ9CiAgICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0ibGVkZ2VyLWZhbWlseS1tZXRhIj4KICAgICAgICAgICAgICAgICAgICAgIDxzcGFuPiR7ZXNjYXBlSHRtbChyZWxhdGlvbnNoaXApfTwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICAgIDxzcGFuPiR7ZXNjYXBlSHRtbChDT05GSUcudXRpbHMuZm9ybWF0UGhvbmUoZmFtaWx5LnBob25lKSB8fCAi6Zu76Kmx5pyq55m76YyyIil9PC9zcGFuPgogICAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3M9InN0YXR1cy1waWxsIHN0YXR1cy0ke2xpbmVNb2RlfSI+JHtlc2NhcGVIdG1sKGxpbmVMYWJlbCl9PC9zcGFuPgogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgYDsnJycKbmV3PScnJyAgICAgICAgICAgICAgY29uc3QgbGlua2VkID0gZmFtaWx5LmxpbmVfbGlua2VkOwogICAgICAgICAgICAgIGNvbnN0IGxpbmVMYWJlbCA9IGxpbmtlZCA9PT0gdHJ1ZQogICAgICAgICAgICAgICAgPyAiTElORemAo+aQuua4iOOBvyIKICAgICAgICAgICAgICAgIDogbGlua2VkID09PSBmYWxzZQogICAgICAgICAgICAgICAgICA/IChkZW1vTW9kZSA/ICJMSU5F5pyq6YCj5pC677yI5YWs6ZaL44OH44Oi77yJIiA6ICJMSU5F5pyq6YCj5pC6IikKICAgICAgICAgICAgICAgICAgOiAiTElORemAo+aQuueKtuazgeOCkueiuuiqjeS4rSI7CiAgICAgICAgICAgICAgY29uc3QgbGluZU1vZGUgPSBsaW5rZWQgPT09IHRydWUgPyAib2siIDogbGlua2VkID09PSBmYWxzZSA/ICJ3YXJuaW5nIiA6ICJuZXV0cmFsIjsKICAgICAgICAgICAgICBjb25zdCByZWxhdGlvbiA9IGZhbWlseS5yZWxhdGlvbiB8fCB7fTsKICAgICAgICAgICAgICBjb25zdCBub3JtYWxPbiA9IHJlbGF0aW9uLnJlY2VpdmVfbm9ybWFsID09PSB0cnVlOwogICAgICAgICAgICAgIGNvbnN0IGVtZXJnZW5jeU9uID0gcmVsYXRpb24ucmVjZWl2ZV9lbWVyZ2VuY3kgPT09IHRydWU7CiAgICAgICAgICAgICAgY29uc3QgZXNjYWxhdGlvbk9uID0gcmVsYXRpb24uYWxsb3dfZXNjYWxhdGlvbiA9PT0gdHJ1ZTsKICAgICAgICAgICAgICBjb25zdCBwcmlvcml0eSA9IE51bWJlcihyZWxhdGlvbi5jb250YWN0X3ByaW9yaXR5IHx8IChwcmltYXJ5ID8gMSA6IDApKTsKICAgICAgICAgICAgICBjb25zdCB2ZXJpZmllZEF0ID0gZmFtaWx5LmxpbmVfdmVyaWZpZWRfYXQKICAgICAgICAgICAgICAgID8gZm9ybWF0RGF0ZVRpbWUoZmFtaWx5LmxpbmVfdmVyaWZpZWRfYXQpCiAgICAgICAgICAgICAgICA6ICIiOwoKICAgICAgICAgICAgICByZXR1cm4gYAogICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0ibGVkZ2VyLWZhbWlseS1jYXJkIj4KICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0ibGVkZ2VyLWZhbWlseS1tYWluIj4KICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJsZWRnZXItZmFtaWx5LXRpdGxlIj4KICAgICAgICAgICAgICAgICAgICAgIDxzdHJvbmc+JHtlc2NhcGVIdG1sKGZhbWlseS5mdWxsX25hbWUgfHwgIuWutuaXjyIpfTwvc3Ryb25nPgogICAgICAgICAgICAgICAgICAgICAgJHtwcmltYXJ5ID8gJzxzcGFuIGNsYXNzPSJsZWRnZXItcHJpbWFyeSI+5Li76YCj57Wh5YWIPC9zcGFuPicgOiAiIn0KICAgICAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJsZWRnZXItZmFtaWx5LW1ldGEiPgogICAgICAgICAgICAgICAgICAgICAgPHNwYW4+JHtlc2NhcGVIdG1sKHJlbGF0aW9uc2hpcCl9PC9zcGFuPgogICAgICAgICAgICAgICAgICAgICAgPHNwYW4+JHtlc2NhcGVIdG1sKENPTkZJRy51dGlscy5mb3JtYXRQaG9uZShmYW1pbHkucGhvbmUpIHx8ICLpm7voqbHmnKrnmbvpjLIiKX08L3NwYW4+CiAgICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0ibGVkZ2VyLWZhbWlseS1yb3V0aW5nIiBhcmlhLWxhYmVsPSLpgKPntaHoqK3lrpoiPgogICAgICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3M9ImxlZGdlci1yb3V0ZS1jaGlwICR7bm9ybWFsT24gPyAiaXMtb24iIDogImlzLW9mZiJ9Ij4KICAgICAgICAgICAgICAgICAgICAgICAg6YCa5bi46YCj57WhICR7bm9ybWFsT24gPyAi5a++6LGhIiA6ICLlr77osaHlpJYifQogICAgICAgICAgICAgICAgICAgICAgPC9zcGFuPgogICAgICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3M9ImxlZGdlci1yb3V0ZS1jaGlwICR7ZW1lcmdlbmN5T24gPyAiaXMtb24iIDogImlzLW9mZiJ9Ij4KICAgICAgICAgICAgICAgICAgICAgICAg57eK5oCl6YCj57WhICR7ZW1lcmdlbmN5T24gPyAi5a++6LGhIiA6ICLlr77osaHlpJYifQogICAgICAgICAgICAgICAgICAgICAgPC9zcGFuPgogICAgICAgICAgICAgICAgICAgICAgJHtwcmlvcml0eSA/IGA8c3BhbiBjbGFzcz0ibGVkZ2VyLXJvdXRlLWNoaXAgaXMtb24iPuWEquWFiCDnrKwke3ByaW9yaXR5fTwvc3Bhbj5gIDogIiJ9CiAgICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzcz0ibGVkZ2VyLXJvdXRlLWNoaXAgJHtlc2NhbGF0aW9uT24gPyAiaXMtb24iIDogImlzLW9mZiJ9Ij4KICAgICAgICAgICAgICAgICAgICAgICAg5q616ZqO6YWN5L+hICR7ZXNjYWxhdGlvbk9uID8gIuWAmeijnCIgOiAi5a++6LGh5aSWIn0KICAgICAgICAgICAgICAgICAgICAgIDwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImxlZGdlci1saW5lLXN0YWNrIj4KICAgICAgICAgICAgICAgICAgICA8c3BhbiBjbGFzcz0ic3RhdHVzLXBpbGwgc3RhdHVzLSR7bGluZU1vZGV9Ij4ke2VzY2FwZUh0bWwobGluZUxhYmVsKX08L3NwYW4+CiAgICAgICAgICAgICAgICAgICAgJHt2ZXJpZmllZEF0ID8gYDxzcGFuIGNsYXNzPSJsZWRnZXItbGluZS1kYXRlIj7norroqo0gJHtlc2NhcGVIdG1sKHZlcmlmaWVkQXQpfTwvc3Bhbj5gIDogIiJ9CiAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgYDsnJycKaWYgb2xkIG5vdCBpbiBzOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiRVJST1I6IGZhbWlseSBjYXJkIGFuY2hvciBub3QgZm91bmQiKQpzPXMucmVwbGFjZShvbGQsbmV3LDEpCgpzPXMucmVwbGFjZSgKJycnICAgICAgICAgICAgICBMSU5F6YCj5pC654q25rOB44Gv44CB57eK5oCl44O75LiA5paJ6YCj57Wh44Gu6YCB5L+h5a++6LGh5Yik5a6a44Gr44KC5L2/55So44GX44G+44GZ44CCJycnLAonJycgICAgICAgICAgICAgIOmAmuW4uOmAo+e1oeODu+e3iuaApemAo+e1oeOBruWvvuixoeOAgemAo+e1oeWEquWFiOmghuS9jeOAgUxJTkXpgKPmkLrnirbms4HjgpLjgb7jgajjgoHjgabnorroqo3jgafjgY3jgb7jgZnjgIInJycsCjEKKQoKcmVxdWlyZWQ9WwoiRFBSTyBEQVlDQVJFIEZBTUlMWSBDT05UQUNUIFZJU0lCSUxJVFkgUjEiLAoi6YCa5bi46YCj57WhICR7bm9ybWFsT24gPyIsCiLnt4rmgKXpgKPntaEgJHtlbWVyZ2VuY3lPbiA/IiwKIuautemajumFjeS/oSAke2VzY2FsYXRpb25PbiA/IiwKXQptaXNzaW5nPVt4IGZvciB4IGluIHJlcXVpcmVkIGlmIHggbm90IGluIHNdCmlmIG1pc3Npbmc6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJFUlJPUiBvd25lciBtaXNzaW5nOiAiKyIsICIuam9pbihtaXNzaW5nKSkKcC53cml0ZV90ZXh0KHMsZW5jb2Rpbmc9InV0Zi04IikKcHJpbnQoIk9XTkVSX1BBVENIPVBBU1MiKQo="
+        run: |
+          set -euo pipefail
+          python -c 'import os,base64; exec(base64.b64decode(os.environ["WORKER_PATCH_B64"]).decode("utf-8"))'
+          python -c 'import os,base64; exec(base64.b64decode(os.environ["OWNER_PATCH_B64"]).decode("utf-8"))'
+          node --check worker.js
+          grep -q 'DAYCARE-3-R9-FAMILY-CONTACT-VISIBILITY-20260930' worker.js
+          grep -q 'DPRO DAYCARE FAMILY CONTACT VISIBILITY R1' owner.html
+          echo "STATIC_QA=PASS"
+
+      - name: Update repository files
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          for FILE in worker.js owner.html; do
+            curl -fsSL               -H "Authorization: Bearer $GH_TOKEN"               -H "Accept: application/vnd.github+json"               "https://api.github.com/repos/$REPO/contents/$FILE?ref=main" > "/tmp/current-$FILE.json"
+
+            FILE="$FILE" python - <<'PY' > "/tmp/payload-$FILE.json"
+          import os,json,base64
+          from pathlib import Path
+          f=os.environ["FILE"]
+          current=json.load(open("/tmp/current-"+f+".json",encoding="utf-8"))
+          payload={
+            "message":"DAYCARE family contact visibility R1: "+f,
+            "content":base64.b64encode(Path(f).read_bytes()).decode("ascii"),
+            "sha":current["sha"],
+            "branch":"main"
+          }
+          print(json.dumps(payload,ensure_ascii=False))
+          PY
+
+            curl -fsSL -X PUT               -H "Authorization: Bearer $GH_TOKEN"               -H "Accept: application/vnd.github+json"               -H "Content-Type: application/json"               "https://api.github.com/repos/$REPO/contents/$FILE"               --data-binary @"/tmp/payload-$FILE.json" > "/tmp/update-$FILE.json"
+
+            FILE="$FILE" python - <<'PY'
+          import os,json
+          f=os.environ["FILE"]
+          d=json.load(open("/tmp/update-"+f+".json",encoding="utf-8"))
+          if not (d.get("commit") or {}).get("sha"):
+              raise SystemExit("GitHub update failed: "+f)
+          print("UPDATED",f,(d.get("commit") or {}).get("sha"))
+          PY
+          done
+
+      - name: Find Cloudflare account
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CF_TOKEN:-}" || { echo 'CLOUDFLARE_API_TOKEN is missing'; exit 2; }
+          curl -fsS -H "Authorization: Bearer $CF_TOKEN"             https://api.cloudflare.com/client/v4/accounts > /tmp/accounts.json
+          python3 - <<'PY' > /tmp/account-ids
+          import json
+          d=json.load(open('/tmp/accounts.json'))
+          for row in d.get('result') or []:
+              if row.get('id'): print(row['id'])
+          PY
+          found=''
+          while IFS= read -r aid; do
+            [ -n "$aid" ] || continue
+            echo "::add-mask::$aid"
+            code=$(curl -sS -o /tmp/current-worker -w '%{http_code}'               -H "Authorization: Bearer $CF_TOKEN"               "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/content/v2")
+            if [ "$code" = "200" ]; then found="$aid"; break; fi
+          done < /tmp/account-ids
+          [ -n "$found" ] || { echo 'Target Worker not found'; exit 3; }
+          printf '%s' "$found" > /tmp/dpro-account-id
+
+      - name: Deploy R9 Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/dpro-account-id)
+          code=$(curl -sS -o /tmp/deploy.json -w '%{http_code}'             -X PUT             -H "Authorization: Bearer $CF_TOKEN"             -F 'metadata={"main_module":"worker.js"};type=application/json'             -F 'worker.js=@worker.js;type=application/javascript+module'             "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/content")
+          echo "HTTP $code"
+          [ "$code" = "200" ] || { cat /tmp/deploy.json; exit 4; }
+
+      - name: Live smoke check
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,time,urllib.request
+          api='https://dpro-dayservice-line-api.dpromstk2000.workers.dev/api/health'
+          expected='DAYCARE-3-R9-FAMILY-CONTACT-VISIBILITY-20260930'
+          last={}
+          for _ in range(15):
+              with urllib.request.urlopen(api,timeout=25) as r:
+                  last=json.loads(r.read().decode())
+              if last.get('workerVersion')==expected:
+                  break
+              time.sleep(2)
+          else:
+              raise SystemExit("R9 Worker did not become live: "+repr(last.get('workerVersion')))
+          if last.get('databaseVersion')!='DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01':
+              raise SystemExit("database version mismatch")
+          print(json.dumps({"ok":True,"workerVersion":last.get("workerVersion"),"databaseVersion":last.get("databaseVersion")},ensure_ascii=False))
+          PY
+
+      - name: Summary
+        shell: bash
+        run: |
+          echo "## DPRO DAYCARE Family Contact Visibility R1" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Real LINE link status added to user detail API" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Normal / emergency / priority / staged-delivery settings visible in ledger" >> "$GITHUB_STEP_SUMMARY"
+          echo "- R9 Worker deployed and smoke-checked" >> "$GITHUB_STEP_SUMMARY"
