@@ -1,0 +1,169 @@
+name: DPRO DAYCARE Ledger Usability Brushup R4
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  brushup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Brush up owner ledger UX
+        shell: bash
+        env:
+          RENDER_B64: ICAgICAgZnVuY3Rpb24gcmVuZGVyVXNlckRldGFpbChkYXRhKSB7CiAgICAgICAgY29uc3QgdXNlciA9IGRhdGEudXNlcjsKICAgICAgICBjb25zdCBmYW1pbGllcyA9IGRhdGEuZmFtaWxpZXMgfHwgW107CiAgICAgICAgY29uc3Qgc2NoZWR1bGVzID0gZGF0YS5zY2hlZHVsZXMgfHwgW107CiAgICAgICAgY29uc3QgcmVxdWVzdHMgPSBkYXRhLmZhbWlseV9yZXF1ZXN0cyB8fCBbXTsKICAgICAgICBjb25zdCBkZW1vTW9kZSA9IG5ldyBVUkxTZWFyY2hQYXJhbXMod2luZG93LmxvY2F0aW9uLnNlYXJjaCkuZ2V0KCJkZW1vIikgPT09ICIxIjsKCiAgICAgICAgY29uc3QgZmFtaWx5Q2FyZHMgPSBmYW1pbGllcy5sZW5ndGgKICAgICAgICAgID8gZmFtaWxpZXMubWFwKChmYW1pbHkpID0+IHsKICAgICAgICAgICAgICBjb25zdCByZWxhdGlvbnNoaXAgPQogICAgICAgICAgICAgICAgZmFtaWx5LnJlbGF0aW9uPy5yZWxhdGlvbnNoaXBfdG9fdXNlciB8fAogICAgICAgICAgICAgICAgZmFtaWx5LnJlbGF0aW9uc2hpcCB8fAogICAgICAgICAgICAgICAgIue2muafhOacqueZu+mMsiI7CiAgICAgICAgICAgICAgY29uc3QgcHJpbWFyeSA9CiAgICAgICAgICAgICAgICBmYW1pbHkucmVsYXRpb24/LmlzX3ByaW1hcnlfY29udGFjdCB8fCBmYW1pbHkuaXNfcHJpbWFyeTsKICAgICAgICAgICAgICBjb25zdCBsaW5rZWQgPSBmYW1pbHkubGluZV9saW5rZWQ7CiAgICAgICAgICAgICAgY29uc3QgbGluZUxhYmVsID0gbGlua2VkID09PSB0cnVlCiAgICAgICAgICAgICAgICA/ICJMSU5F6YCj5pC65riI44G/IgogICAgICAgICAgICAgICAgOiBsaW5rZWQgPT09IGZhbHNlCiAgICAgICAgICAgICAgICAgID8gIkxJTkXmnKrpgKPmkLoiCiAgICAgICAgICAgICAgICAgIDogZGVtb01vZGUKICAgICAgICAgICAgICAgICAgICA/ICJMSU5F5pyq6YCj5pC677yI5YWs6ZaL44OH44Oi77yJIgogICAgICAgICAgICAgICAgICAgIDogIkxJTkXpgKPmkLrnirbms4Hjga/mnKznlarmjqXntprmmYLjgavooajnpLoiOwogICAgICAgICAgICAgIGNvbnN0IGxpbmVNb2RlID0gbGlua2VkID09PSB0cnVlID8gIm9rIiA6IGxpbmtlZCA9PT0gZmFsc2UgPyAid2FybmluZyIgOiAibmV1dHJhbCI7CgogICAgICAgICAgICAgIHJldHVybiBgCiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJsZWRnZXItZmFtaWx5LWNhcmQiPgogICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJsZWRnZXItZmFtaWx5LW1haW4iPgogICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImxlZGdlci1mYW1pbHktdGl0bGUiPgogICAgICAgICAgICAgICAgICAgICAgPHN0cm9uZz4ke2VzY2FwZUh0bWwoZmFtaWx5LmZ1bGxfbmFtZSB8fCAi5a625pePIil9PC9zdHJvbmc+CiAgICAgICAgICAgICAgICAgICAgICAke3ByaW1hcnkgPyAnPHNwYW4gY2xhc3M9ImxlZGdlci1wcmltYXJ5Ij7kuLvpgKPntaHlhYg8L3NwYW4+JyA6ICIifQogICAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImxlZGdlci1mYW1pbHktbWV0YSI+CiAgICAgICAgICAgICAgICAgICAgICA8c3Bhbj4ke2VzY2FwZUh0bWwocmVsYXRpb25zaGlwKX08L3NwYW4+CiAgICAgICAgICAgICAgICAgICAgICA8c3Bhbj4ke2VzY2FwZUh0bWwoQ09ORklHLnV0aWxzLmZvcm1hdFBob25lKGZhbWlseS5waG9uZSkgfHwgIumbu+ipseacqueZu+mMsiIpfTwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzPSJzdGF0dXMtcGlsbCBzdGF0dXMtJHtsaW5lTW9kZX0iPiR7ZXNjYXBlSHRtbChsaW5lTGFiZWwpfTwvc3Bhbj4KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgIGA7CiAgICAgICAgICAgIH0pLmpvaW4oIiIpCiAgICAgICAgICA6ICc8ZGl2IGNsYXNzPSJlbXB0eSI+44GU5a625peP5oOF5aCx44Gv44G+44Gg55m76Yyy44GV44KM44Gm44GE44G+44Gb44KT44CCPC9kaXY+JzsKCiAgICAgICAgZWxzLnVzZXJEZXRhaWxQYW5lbC5pbm5lckhUTUwgPSBgCiAgICAgICAgICA8ZGl2IGNsYXNzPSJsZWRnZXItZGV0YWlsLWhlYWQiPgogICAgICAgICAgICA8ZGl2PgogICAgICAgICAgICAgIDxzcGFuIGNsYXNzPSJsZWRnZXItZGV0YWlsLWxhYmVsIj7liKnnlKjogIU8L3NwYW4+CiAgICAgICAgICAgICAgPGgzPiR7ZXNjYXBlSHRtbCh1c2VyLmZ1bGxfbmFtZSl9PC9oMz4KICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJpdGVtLXN1YiI+5Yip55So6ICF55Wq5Y+377yaJHtlc2NhcGVIdG1sKHVzZXIudXNlcl9udW1iZXIpfTwvZGl2PgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIDwvZGl2PgoKICAgICAgICAgIDxkaXYgY2xhc3M9ImRldGFpbC1ncmlkIj4KICAgICAgICAgICAgPGRpdiBjbGFzcz0iZGV0YWlsLWl0ZW0iPgogICAgICAgICAgICAgIDxzcGFuIGNsYXNzPSJkZXRhaWwtbGFiZWwiPumAmuW4uOmAgei/jjwvc3Bhbj4KICAgICAgICAgICAgICA8c3Ryb25nIGNsYXNzPSJkZXRhaWwtdmFsdWUiPiR7ZXNjYXBlSHRtbCgKICAgICAgICAgICAgICAgIENPTkZJRy51dGlscy50cmFuc3BvcnRNb2RlTGFiZWwodXNlci5zdGFuZGFyZF90cmFuc3BvcnRfbW9kZSkKICAgICAgICAgICAgICApfTwvc3Ryb25nPgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgPGRpdiBjbGFzcz0iZGV0YWlsLWl0ZW0iPgogICAgICAgICAgICAgIDxzcGFuIGNsYXNzPSJkZXRhaWwtbGFiZWwiPuaMgeOBoeeJqTwvc3Bhbj4KICAgICAgICAgICAgICA8c3Ryb25nIGNsYXNzPSJkZXRhaWwtdmFsdWUiPiR7ZXNjYXBlSHRtbCgKICAgICAgICAgICAgICAgIG5vcm1hbGl6ZVRleHQodXNlci5pdGVtX25vdGUpIHx8ICLmnKrnmbvpjLIiCiAgICAgICAgICAgICAgKX08L3N0cm9uZz4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICA8L2Rpdj4KCiAgICAgICAgICA8ZGl2IGNsYXNzPSJkZXRhaWwtc2VjdGlvbiI+CiAgICAgICAgICAgIDxkaXYgY2xhc3M9ImxlZGdlci1zZWN0aW9uLXRpdGxlIj4KICAgICAgICAgICAgICA8aDQ+44GU5a625peP44O7TElORemAo+aQujwvaDQ+CiAgICAgICAgICAgICAgPHNwYW4+JHtmYW1pbGllcy5sZW5ndGh95ZCNPC9zcGFuPgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgPGRpdiBjbGFzcz0ibGVkZ2VyLWZhbWlseS1saXN0Ij4ke2ZhbWlseUNhcmRzfTwvZGl2PgogICAgICAgICAgICA8cCBjbGFzcz0ibGVkZ2VyLW5vdGUiPgogICAgICAgICAgICAgIExJTkXpgKPmkLrnirbms4Hjga/jgIHnt4rmgKXjg7vkuIDmlonpgKPntaHjga7pgIHkv6Hlr77osaHliKTlrprjgavjgoLkvb/nlKjjgZfjgb7jgZnjgIIKICAgICAgICAgICAgPC9wPgogICAgICAgICAgPC9kaXY+CgogICAgICAgICAgPGRpdiBjbGFzcz0iZGV0YWlsLXNlY3Rpb24iPgogICAgICAgICAgICA8ZGl2IGNsYXNzPSJsZWRnZXItc2VjdGlvbi10aXRsZSI+CiAgICAgICAgICAgICAgPGg0PuebtOi/keOBruWIqeeUqOS6iOWumjwvaDQ+CiAgICAgICAgICAgICAgPHNwYW4+5pyA5aSnNeS7tjwvc3Bhbj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDxkaXYgY2xhc3M9ImxlZGdlci10aW1lbGluZSI+CiAgICAgICAgICAgICAgJHtzY2hlZHVsZXMuc2xpY2UoMCwgNSkubWFwKChzY2hlZHVsZSkgPT4gYAogICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0ibGVkZ2VyLXRpbWVsaW5lLXJvdyI+CiAgICAgICAgICAgICAgICAgIDxzdHJvbmc+JHtlc2NhcGVIdG1sKGZvcm1hdERhdGUoc2NoZWR1bGUuc2VydmljZV9kYXRlKSl9PC9zdHJvbmc+CiAgICAgICAgICAgICAgICAgIDxzcGFuPiR7ZXNjYXBlSHRtbChDT05GSUcudXRpbHMuc3RhdHVzTGFiZWwoc2NoZWR1bGUuc3RhdHVzKSl9PC9zcGFuPgogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgYCkuam9pbigiIikgfHwgJzxkaXYgY2xhc3M9ImVtcHR5Ij7liKnnlKjkuojlrprjga/jgYLjgorjgb7jgZvjgpPjgII8L2Rpdj4nfQogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgIDwvZGl2PgoKICAgICAgICAgIDxkaXYgY2xhc3M9ImRldGFpbC1zZWN0aW9uIj4KICAgICAgICAgICAgPGRpdiBjbGFzcz0ibGVkZ2VyLXNlY3Rpb24tdGl0bGUiPgogICAgICAgICAgICAgIDxoND7lrrbml4/jgYvjgonjga7pgKPntaE8L2g0PgogICAgICAgICAgICAgIDxzcGFuPuacgOWkpzXku7Y8L3NwYW4+CiAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICA8ZGl2IGNsYXNzPSJsZWRnZXItdGltZWxpbmUiPgogICAgICAgICAgICAgICR7cmVxdWVzdHMuc2xpY2UoMCwgNSkubWFwKChyZXF1ZXN0KSA9PiBgCiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJsZWRnZXItdGltZWxpbmUtcm93Ij4KICAgICAgICAgICAgICAgICAgPHN0cm9uZz4ke2VzY2FwZUh0bWwoCiAgICAgICAgICAgICAgICAgICAgY2xlYW5EZW1vTGFiZWwocmVxdWVzdC5zdWJqZWN0KSB8fAogICAgICAgICAgICAgICAgICAgIENPTkZJRy51dGlscy5yZXF1ZXN0VHlwZUxhYmVsKHJlcXVlc3QucmVxdWVzdF90eXBlKQogICAgICAgICAgICAgICAgICApfTwvc3Ryb25nPgogICAgICAgICAgICAgICAgICA8c3Bhbj4ke2VzY2FwZUh0bWwoCiAgICAgICAgICAgICAgICAgICAgQ09ORklHLnV0aWxzLnJlcXVlc3RTdGF0dXNMYWJlbChyZXF1ZXN0LnJlcXVlc3Rfc3RhdHVzKQogICAgICAgICAgICAgICAgICApfTwvc3Bhbj4KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgIGApLmpvaW4oIiIpIHx8ICc8ZGl2IGNsYXNzPSJlbXB0eSI+5a625peP44GL44KJ44Gu6YCj57Wh44Gv44GC44KK44G+44Gb44KT44CCPC9kaXY+J30KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICA8L2Rpdj4KCiAgICAgICAgICA8ZGl2IGNsYXNzPSJsZWRnZXItYWN0aW9ucyI+CiAgICAgICAgICAgIDxidXR0b24KICAgICAgICAgICAgICBjbGFzcz0iYnRuIGJ0bi1wcmltYXJ5IgogICAgICAgICAgICAgIHR5cGU9ImJ1dHRvbiIKICAgICAgICAgICAgICBkYXRhLXVzZS11c2VyLXNjaGVkdWxlPSIke2VzY2FwZUh0bWwodXNlci5pZCl9IgogICAgICAgICAgICAgIGRhdGEtdXNlci1uYW1lPSIke2VzY2FwZUh0bWwodXNlci5mdWxsX25hbWUpfSIKICAgICAgICAgICAgPgogICAgICAgICAgICAgIOWIqeeUqOS6iOWumuOCkueZu+mMsgogICAgICAgICAgICA8L2J1dHRvbj4KICAgICAgICAgICAgPGJ1dHRvbgogICAgICAgICAgICAgIGNsYXNzPSJidG4gYnRuLWJsdWUiCiAgICAgICAgICAgICAgdHlwZT0iYnV0dG9uIgogICAgICAgICAgICAgIGRhdGEtdXNlLXVzZXItbWVzc2FnZT0iJHtlc2NhcGVIdG1sKHVzZXIuaWQpfSIKICAgICAgICAgICAgICBkYXRhLXVzZXItbmFtZT0iJHtlc2NhcGVIdG1sKHVzZXIuZnVsbF9uYW1lKX0iCiAgICAgICAgICAgID4KICAgICAgICAgICAgICDlrrbml4/jgbjjga7pgKPntaHmlofpnaLjgpLkvZzjgosKICAgICAgICAgICAgPC9idXR0b24+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICBgOwogICAgICB9Cgo=
+          CSS_B64: Ci8qID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQogICBEUFJPIERBWUNBUkUgTEVER0VSIFVTQUJJTElUWSBCUlVTSFVQIFI0CiAgIDIwMjYtMDktMzAKICAgPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09ICovCkBtZWRpYShtaW4td2lkdGg6NzYxcHgpewogIGJvZHkuZGF5c2VydmljZS1vcGVyYXRpb24tZGVtby1wYWdlOmhhcyguYXBwLmlzLXZpc2libGUpIC5kYXlzZXJ2aWNlLW9wZXJhdGlvbi1kZW1vLWJhbm5lcnsKICAgIHdpZHRoOmNhbGMoMTAwJSAtIHZhcigtLXNpZGViYXItd2lkdGgpIC0gMzZweCk7CiAgICBtYXJnaW46MTRweCAxOHB4IDAgY2FsYyh2YXIoLS1zaWRlYmFyLXdpZHRoKSArIDE4cHgpOwogIH0KfQoKLmxlZGdlci1ndWlkZXsKICBkaXNwbGF5OmZsZXg7CiAgYWxpZ24taXRlbXM6ZmxleC1zdGFydDsKICBnYXA6MTRweDsKICBtYXJnaW4tYm90dG9tOjE0cHg7CiAgcGFkZGluZzoxNnB4IDE4cHg7CiAgYm9yZGVyOjFweCBzb2xpZCAjYmRkN2M2OwogIGJvcmRlci1yYWRpdXM6MTVweDsKICBiYWNrZ3JvdW5kOiNmNGZiZjY7Cn0KLmxlZGdlci1ndWlkZS1pY29uewogIGRpc3BsYXk6Z3JpZDsKICBwbGFjZS1pdGVtczpjZW50ZXI7CiAgd2lkdGg6NDJweDsKICBoZWlnaHQ6NDJweDsKICBmbGV4OjAgMCA0MnB4OwogIGJvcmRlci1yYWRpdXM6MTJweDsKICBiYWNrZ3JvdW5kOiNlNGY0ZTk7CiAgZm9udC1zaXplOjIxcHg7Cn0KLmxlZGdlci1ndWlkZSBzdHJvbmd7CiAgZGlzcGxheTpibG9jazsKICBmb250LXNpemU6MTVweDsKICBsaW5lLWhlaWdodDoxLjU7Cn0KLmxlZGdlci1ndWlkZSBwewogIG1hcmdpbjo1cHggMCAwOwogIGNvbG9yOnZhcigtLW11dGVkKTsKICBmb250LXNpemU6MTNweDsKICBsaW5lLWhlaWdodDoxLjY1Owp9Ci5sZWRnZXItZW1wdHktZ3VpZGV7CiAgZGlzcGxheTpncmlkOwogIGdhcDo2cHg7CiAgcGxhY2UtaXRlbXM6Y2VudGVyOwogIG1pbi1oZWlnaHQ6MTgwcHg7CiAgcGFkZGluZzoyNHB4OwogIGJvcmRlcjoxcHggZGFzaGVkIHZhcigtLWxpbmUtc3Ryb25nKTsKICBib3JkZXItcmFkaXVzOjEzcHg7CiAgYmFja2dyb3VuZDp2YXIoLS1zdXJmYWNlLXNvZnQpOwogIHRleHQtYWxpZ246Y2VudGVyOwp9Ci5sZWRnZXItZW1wdHktZ3VpZGUgc3Ryb25ne2ZvbnQtc2l6ZToxNnB4fQoubGVkZ2VyLWVtcHR5LWd1aWRlIHNwYW57Y29sb3I6dmFyKC0tbXV0ZWQpO2ZvbnQtc2l6ZToxM3B4fQoubGVkZ2VyLWRldGFpbC1oZWFkewogIGRpc3BsYXk6ZmxleDsKICBqdXN0aWZ5LWNvbnRlbnQ6c3BhY2UtYmV0d2VlbjsKICBnYXA6MTRweDsKICBhbGlnbi1pdGVtczpmbGV4LXN0YXJ0OwogIG1hcmdpbi1ib3R0b206MTRweDsKfQoubGVkZ2VyLWRldGFpbC1sYWJlbHsKICBkaXNwbGF5OmlubGluZS1ibG9jazsKICBtYXJnaW4tYm90dG9tOjRweDsKICBjb2xvcjp2YXIoLS1icmFuZCk7CiAgZm9udC1zaXplOjEycHg7CiAgZm9udC13ZWlnaHQ6OTAwOwp9Ci5sZWRnZXItZGV0YWlsLWhlYWQgaDN7CiAgbWFyZ2luOjA7CiAgZm9udC1zaXplOjIzcHg7CiAgbGluZS1oZWlnaHQ6MS4zNTsKfQoubGVkZ2VyLXNlY3Rpb24tdGl0bGV7CiAgZGlzcGxheTpmbGV4OwogIGFsaWduLWl0ZW1zOmNlbnRlcjsKICBqdXN0aWZ5LWNvbnRlbnQ6c3BhY2UtYmV0d2VlbjsKICBnYXA6MTJweDsKICBtYXJnaW4tYm90dG9tOjlweDsKfQoubGVkZ2VyLXNlY3Rpb24tdGl0bGUgaDR7bWFyZ2luOjA7Zm9udC1zaXplOjE2cHh9Ci5sZWRnZXItc2VjdGlvbi10aXRsZT5zcGFue2NvbG9yOnZhcigtLW11dGVkKTtmb250LXNpemU6MTJweH0KLmxlZGdlci1mYW1pbHktbGlzdHtkaXNwbGF5OmdyaWQ7Z2FwOjhweH0KLmxlZGdlci1mYW1pbHktY2FyZHsKICBkaXNwbGF5OmZsZXg7CiAgYWxpZ24taXRlbXM6Y2VudGVyOwogIGp1c3RpZnktY29udGVudDpzcGFjZS1iZXR3ZWVuOwogIGdhcDoxNHB4OwogIHBhZGRpbmc6MTJweCAxM3B4OwogIGJvcmRlcjoxcHggc29saWQgdmFyKC0tbGluZSk7CiAgYm9yZGVyLXJhZGl1czoxMnB4OwogIGJhY2tncm91bmQ6I2ZmZjsKfQoubGVkZ2VyLWZhbWlseS1tYWlue21pbi13aWR0aDowfQoubGVkZ2VyLWZhbWlseS10aXRsZXsKICBkaXNwbGF5OmZsZXg7CiAgYWxpZ24taXRlbXM6Y2VudGVyOwogIGdhcDo4cHg7CiAgZmxleC13cmFwOndyYXA7Cn0KLmxlZGdlci1mYW1pbHktdGl0bGUgc3Ryb25ne2ZvbnQtc2l6ZToxNHB4fQoubGVkZ2VyLXByaW1hcnl7CiAgcGFkZGluZzozcHggN3B4OwogIGJvcmRlci1yYWRpdXM6OTk5cHg7CiAgYmFja2dyb3VuZDp2YXIoLS1icmFuZC1zb2Z0KTsKICBjb2xvcjp2YXIoLS1icmFuZC1kYXJrKTsKICBmb250LXNpemU6MTFweDsKICBmb250LXdlaWdodDo5MDA7Cn0KLmxlZGdlci1mYW1pbHktbWV0YXsKICBkaXNwbGF5OmZsZXg7CiAgZ2FwOjEwcHg7CiAgZmxleC13cmFwOndyYXA7CiAgbWFyZ2luLXRvcDo0cHg7CiAgY29sb3I6dmFyKC0tbXV0ZWQpOwogIGZvbnQtc2l6ZToxMnB4Owp9Ci5sZWRnZXItbm90ZXsKICBtYXJnaW46OXB4IDAgMDsKICBjb2xvcjp2YXIoLS1tdXRlZCk7CiAgZm9udC1zaXplOjEycHg7CiAgbGluZS1oZWlnaHQ6MS42Owp9Ci5sZWRnZXItdGltZWxpbmV7ZGlzcGxheTpncmlkO2dhcDo3cHh9Ci5sZWRnZXItdGltZWxpbmUtcm93ewogIGRpc3BsYXk6ZmxleDsKICBhbGlnbi1pdGVtczpjZW50ZXI7CiAganVzdGlmeS1jb250ZW50OnNwYWNlLWJldHdlZW47CiAgZ2FwOjEycHg7CiAgcGFkZGluZzoxMHB4IDEycHg7CiAgYm9yZGVyOjFweCBzb2xpZCB2YXIoLS1saW5lKTsKICBib3JkZXItcmFkaXVzOjEwcHg7CiAgYmFja2dyb3VuZDojZmZmOwp9Ci5sZWRnZXItdGltZWxpbmUtcm93IHN0cm9uZ3tmb250LXNpemU6MTNweH0KLmxlZGdlci10aW1lbGluZS1yb3cgc3Bhbntjb2xvcjp2YXIoLS1tdXRlZCk7Zm9udC1zaXplOjEycHh9Ci5sZWRnZXItYWN0aW9uc3sKICBkaXNwbGF5OmZsZXg7CiAgZmxleC13cmFwOndyYXA7CiAgZ2FwOjlweDsKICBtYXJnaW4tdG9wOjE2cHg7Cn0KLmxlZGdlci1hY3Rpb25zIC5idG57CiAgZmxleDoxIDEgMTgwcHg7CiAgbWluLWhlaWdodDo0NnB4Owp9CkBtZWRpYShtYXgtd2lkdGg6NzYwcHgpewogIC5sZWRnZXItZmFtaWx5LWNhcmQsLmxlZGdlci10aW1lbGluZS1yb3d7CiAgICBhbGlnbi1pdGVtczpmbGV4LXN0YXJ0OwogICAgZmxleC1kaXJlY3Rpb246Y29sdW1uOwogIH0KICAubGVkZ2VyLWZhbWlseS1jYXJkIC5zdGF0dXMtcGlsbHthbGlnbi1zZWxmOmZsZXgtc3RhcnR9Cn0K
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os, base64
+
+          p = Path("owner.html")
+          s = p.read_text(encoding="utf-8")
+
+          # Naming / descriptions
+          s = s.replace("利用者・家族検索", "利用者・家族台帳")
+          s = s.replace(
+              "氏名・電話番号・利用者番号から検索します。",
+              "利用者・ご家族の登録情報、連絡先、利用状況を確認します。"
+          )
+          s = s.replace(
+              "利用者名、家族名、電話番号、利用者番号から検索できます。",
+              "利用者・ご家族の登録情報をまとめて確認できます。氏名・電話番号・利用者番号で絞り込めます。"
+          )
+          s = s.replace(
+              "<h3>検索結果</h3>\n                  <p>利用者と家族をまとめて表示します。</p>",
+              "<h3>台帳一覧</h3>\n                  <p>検索すると、利用者とご家族をまとめて表示します。</p>"
+          )
+          s = s.replace(
+              "左の検索結果から利用者を選択してください。",
+              "左の台帳一覧から利用者を選択すると、登録情報・ご家族・利用予定・連絡履歴を確認できます。"
+          )
+
+          # Orientation panel
+          anchor = '''          <div class="toolbar">
+            <input
+              class="input search-input"
+              id="searchInput"
+          '''
+          insert = '''          <div class="ledger-guide" aria-label="利用者・家族台帳の使い方">
+            <div class="ledger-guide-icon" aria-hidden="true">👤</div>
+            <div>
+              <strong>利用者・ご家族の情報をここでまとめて確認できます</strong>
+              <p>利用者を選ぶと、ご家族の続柄・電話番号・LINE連携状況、利用予定、家族からの連絡履歴まで確認できます。</p>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <input
+              class="input search-input"
+              id="searchInput"
+          '''
+          if 'class="ledger-guide"' not in s:
+              if anchor not in s:
+                  raise SystemExit("ERROR: ledger toolbar anchor not found")
+              s = s.replace(anchor, insert, 1)
+
+          # Replace renderUserDetail as one decoded payload.
+          start = s.find("      function renderUserDetail(data) {")
+          end = s.find("      function selectUserForSchedule(", start)
+          if start < 0 or end < 0:
+              raise SystemExit("ERROR: renderUserDetail block not found")
+          new_render = base64.b64decode(os.environ["RENDER_B64"]).decode("utf-8")
+          s = s[:start] + new_render + s[end:]
+
+          # Initial empty guidance
+          init_anchor = '''        attachEvents();
+
+        if (demoPreview || CONFIG.storage.getAdminCode()) {
+          '''
+          init_insert = '''        attachEvents();
+
+        if (els.searchResults && !els.searchResults.innerHTML.trim()) {
+          els.searchResults.innerHTML = `
+            <div class="ledger-empty-guide">
+              <strong>利用者・ご家族を検索してください</strong>
+              <span>氏名、電話番号、利用者番号の一部でも検索できます。</span>
+            </div>
+          `;
+        }
+
+        if (demoPreview || CONFIG.storage.getAdminCode()) {
+          '''
+          if 'class="ledger-empty-guide"' not in s:
+              if init_anchor not in s:
+                  raise SystemExit("ERROR: initialize anchor not found")
+              s = s.replace(init_anchor, init_insert, 1)
+
+          # CSS
+          marker = "DPRO DAYCARE LEDGER USABILITY BRUSHUP R4"
+          if marker not in s:
+              css = base64.b64decode(os.environ["CSS_B64"]).decode("utf-8")
+              close = "</style>\n</head>"
+              if close not in s:
+                  raise SystemExit("ERROR: style close anchor not found")
+              s = s.replace(close, css + "\n</style>\n</head>", 1)
+
+          required = [
+              "利用者・家族台帳",
+              "ledger-guide",
+              "ご家族・LINE連携",
+              "DPRO DAYCARE LEDGER USABILITY BRUSHUP R4",
+              "LINE連携状況は、緊急・一斉連絡の送信対象判定にも使用します。",
+          ]
+          missing = [x for x in required if x not in s]
+          if missing:
+              raise SystemExit("ERROR: required content missing: " + ", ".join(missing))
+
+          p.write_text(s, encoding="utf-8")
+          print("OWNER_PATCH=PASS")
+          PY
+
+      - name: Validate owner source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          grep -q 'DPRO DAYCARE READABILITY BRUSHUP R2' owner.html
+          grep -q 'DPRO DAYCARE LEDGER USABILITY BRUSHUP R4' owner.html
+          grep -q '利用者・家族台帳' owner.html
+          grep -q 'ご家族・LINE連携' owner.html
+          echo "STATIC_QA=PASS"
+
+      - name: Commit and push
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- owner.html; then
+            echo "No changes needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add owner.html
+          git commit -m "DAYCARE ledger usability brushup R4"
+          git push origin HEAD:main
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo "## DPRO DAYCARE Ledger Usability Brushup R4"
+            echo ""
+            echo "- Public demo banner clipping: fixed"
+            echo "- 利用者・家族台帳: upgraded"
+            echo "- Family / contact / LINE status presentation: added"
+            echo "- Schedule / family-contact history scanability: improved"
+            echo "- Existing APIs and broadcast behavior: unchanged"
+            echo "- Static QA: PASS"
+          } >> "$GITHUB_STEP_SUMMARY"
