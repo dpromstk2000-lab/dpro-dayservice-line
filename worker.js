@@ -34,7 +34,7 @@
  */
 
 const SERVICE_NAME = "DPRO Dayservice LINE API";
-const VERSION = "DAYCARE-3-R7-EMERGENCY-BROADCAST-DEMO-SAFE-20260925";
+const VERSION = "DAYCARE-3-R8-FAMILY-CONTACT-ROUTING-20260930";
 const FRONTEND_VERSION = "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8-R5-BROADCAST-DEMO-SAFE / IPAD-9 / SYSTEM-CHECK-10";
 const DATABASE_VERSION_EXPECTED = "DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01";
 const ADAPTER_VERSION = "DPRO-CONTROL-ADAPTER-1.0";
@@ -4004,6 +4004,21 @@ function normalizeBroadcastTarget(body) {
   return { targetType, filter };
 }
 
+function relationAllowsBroadcast(relation, priority) {
+  const emergency = cleanText(priority, 50) === "emergency";
+
+  if (emergency) {
+    if (relation.receive_emergency === true) return true;
+    if (relation.receive_emergency === false) return false;
+  } else {
+    if (relation.receive_normal === true) return true;
+    if (relation.receive_normal === false) return false;
+  }
+
+  // 未設定の既存データは主連絡先だけを対象にする
+  return relation.is_primary_contact === true;
+}
+
 async function resolveBroadcastRecipients(
   env,
   facility,
@@ -4011,6 +4026,8 @@ async function resolveBroadcastRecipients(
   options = {},
 ) {
   const { targetType, filter } = normalizeBroadcastTarget(body);
+  const routingPriority = cleanText(body.priority, 50) || "normal";
+  const explicitFamilySelection = targetType === "selected_families";
   let userIds = [];
   let explicitFamilyIds = [];
 
@@ -4051,13 +4068,20 @@ async function resolveBroadcastRecipients(
   if (userIds.length) {
     relations = await supabaseRequest(env, TABLES.userFamilies, {
       query: {
-        select: "user_id,family_member_id,is_primary_contact,is_active",
+        select: "user_id,family_member_id,is_primary_contact,is_active,contact_priority,receive_normal,receive_emergency,allow_escalation",
         facility_id: `eq.${facility.id}`,
         user_id: `in.(${userIds.join(",")})`,
         is_active: "eq.true",
         limit: "2000",
       },
     });
+    relations = relations.filter((row) =>
+      relationAllowsBroadcast(row, routingPriority)
+    );
+    relations.sort(
+      (a, b) =>
+        Number(a.contact_priority || 99) - Number(b.contact_priority || 99)
+    );
     explicitFamilyIds = unique(
       relations.map((row) => row.family_member_id).filter(Boolean),
     );
@@ -4092,24 +4116,40 @@ async function resolveBroadcastRecipients(
   if (["all", "selected_families"].includes(targetType) && familyIds.length) {
     relations = await supabaseRequest(env, TABLES.userFamilies, {
       query: {
-        select: "user_id,family_member_id,is_primary_contact,is_active",
+        select: "user_id,family_member_id,is_primary_contact,is_active,contact_priority,receive_normal,receive_emergency,allow_escalation",
         facility_id: `eq.${facility.id}`,
         family_member_id: `in.(${familyIds.join(",")})`,
         is_active: "eq.true",
         limit: "4000",
       },
     });
+    if (!explicitFamilySelection) {
+      relations = relations.filter((row) =>
+        relationAllowsBroadcast(row, routingPriority)
+      );
+      const allowedFamilyIds = new Set(
+        relations.map((row) => row.family_member_id).filter(Boolean)
+      );
+      families = families.filter((family) => allowedFamilyIds.has(family.id));
+    }
+
+    relations.sort(
+      (a, b) =>
+        Number(a.contact_priority || 99) - Number(b.contact_priority || 99)
+    );
     userIds = unique(relations.map((row) => row.user_id).filter(Boolean));
   }
 
-  const deliveryTargets = familyIds.length
+  const familyIdsAfterRouting = families.map((family) => family.id);
+
+  const deliveryTargets = familyIdsAfterRouting.length
     ? await supabaseRequest(env, TABLES.lineDeliveryTargets, {
         query: {
           select: options.includeSecrets
             ? "id,family_member_id,user_id,line_user_id,line_user_id_hash,verified_at"
             : "id,family_member_id,user_id,line_user_id_hash,verified_at",
           facility_id: `eq.${facility.id}`,
-          family_member_id: `in.(${familyIds.join(",")})`,
+          family_member_id: `in.(${familyIdsAfterRouting.join(",")})`,
           consent_status: "eq.active",
           is_active: "eq.true",
           order: "verified_at.desc",
@@ -4154,6 +4194,11 @@ async function resolveBroadcastRecipients(
   return {
     target_type: targetType,
     target_filter: filter,
+    routing_mode: explicitFamilySelection
+      ? "explicit_family_selection"
+      : routingPriority === "emergency"
+        ? "emergency"
+        : "normal",
     user_count: userIds.length,
     family_count: families.length,
     deliverable_count: linked.length,
@@ -4168,6 +4213,7 @@ function broadcastPreviewPayload(targets) {
   return {
     target_type: targets.target_type,
     target_filter: targets.target_filter,
+    routing_mode: targets.routing_mode,
     counts: {
       users: targets.user_count,
       families: targets.family_count,
