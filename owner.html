@@ -1296,13 +1296,152 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
 .dpro-chat-b-guide-link{position:fixed;right:12px;bottom:12px;z-index:9999;display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:8px 13px;border:1px solid rgba(0,0,0,.12);border-radius:999px;background:#fff;color:#17352c;text-decoration:none;font:800 13px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.12)}
 .dpro-chat-b-guide-link:focus-visible{outline:3px solid #ffbf47;outline-offset:3px}
 @media(max-width:700px){.dpro-chat-b-guide-link{bottom:72px;right:10px;min-height:40px;padding:7px 11px;font-size:12px}}
+
+/* ============================================================
+   DPRO DAYCARE READABILITY BRUSHUP R2
+   2026-09-30
+   - DPRO readable-size standard
+   - Japanese-first operator UI
+   - Existing API / broadcast behavior unchanged
+   ============================================================ */
+body{font-size:16px}
+:root{--sidebar-width:260px}
+
+.side-brand h2{font-size:16px}
+.side-brand p{font-size:12px}
+.side-nav button,.side-nav a{
+  min-height:50px;
+  padding:11px 13px;
+  font-size:15px;
+  line-height:1.45
+}
+.side-nav .nav-icon{width:24px;font-size:18px}
+.side-footer .small{font-size:12px}
+.side-footer strong{font-size:14px}
+
+.topbar{min-height:78px;padding:15px 24px}
+.topbar h1{font-size:24px}
+.topbar-sub{margin-top:4px;font-size:14px}
+
+.content{
+  width:min(1480px,calc(100% - 42px));
+  padding:26px 0 56px
+}
+
+.section-kicker{
+  margin-bottom:4px;
+  font-size:13px;
+  letter-spacing:.02em
+}
+.section-head h2{font-size:28px}
+.section-description{
+  margin-top:7px;
+  font-size:14px;
+  line-height:1.65
+}
+
+.date-display{min-height:44px;font-size:14px}
+.date-picker-button{min-height:44px;font-size:14px}
+
+.metric{padding:18px}
+.metric-label{font-size:13px;font-weight:800}
+.metric strong{margin-top:5px;font-size:31px}
+.metric small{
+  margin-top:6px;
+  font-size:12px;
+  line-height:1.5
+}
+
+.card{padding:20px}
+.card-head h3{font-size:19px}
+.card-head p{
+  margin-top:5px;
+  font-size:13px;
+  line-height:1.55
+}
+
+.task-item,.request-item,.note-item{
+  padding:15px 16px;
+  gap:14px
+}
+.item-title{font-size:15px;line-height:1.55}
+.item-sub{
+  margin-top:5px;
+  font-size:13px;
+  line-height:1.65
+}
+
+.btn{min-height:44px;padding:9px 15px;font-size:14px}
+.btn-small{min-height:38px;padding:7px 11px;font-size:13px}
+.status-pill{
+  min-height:30px;
+  padding:5px 9px;
+  font-size:12px
+}
+
+.input,.select,.textarea{
+  min-height:46px;
+  padding:11px 13px;
+  font-size:15px
+}
+.field label{font-size:14px}
+.login-sub{font-size:13px}
+.login-copy{font-size:14px}
+.login-help{font-size:12px}
+
+th,td{padding:13px 12px;font-size:13px}
+td strong{font-size:14px}
+.status-action{
+  min-height:34px;
+  padding:6px 9px;
+  font-size:12px
+}
+
+.search-name{font-size:15px}
+.search-meta{font-size:12px}
+.detail-label{font-size:12px}
+.detail-value{font-size:14px}
+
+.broadcast-target-panel-head strong{font-size:14px}
+.broadcast-target-panel-head span{font-size:12px}
+.broadcast-target-count{font-size:12px}
+.broadcast-target-result strong{font-size:14px}
+.broadcast-target-result span{font-size:12px}
+.broadcast-target-selected-title{font-size:12px}
+.broadcast-target-chip strong{font-size:14px}
+.broadcast-target-chip button{font-size:12px}
+
+.dayservice-operation-demo-copy small{font-size:12px}
+.dayservice-operation-demo-copy strong{font-size:16px}
+.dayservice-operation-demo-copy span{
+  font-size:13px;
+  line-height:1.55
+}
+.dayservice-operation-demo-actions a{font-size:13px}
+
+@media(max-width:1100px){
+  :root{--sidebar-width:230px}
+  .side-nav button,.side-nav a{font-size:14px}
+  .metric-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+
+@media(max-width:760px){
+  body{font-size:15px}
+  .topbar h1{font-size:21px}
+  .section-head h2{font-size:24px}
+  .section-description{font-size:13px}
+  .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .item-title{font-size:14px}
+  .item-sub{font-size:12px}
+}
+
 </style>
 </head>
 
 <body class="dayservice-operation-demo-page">
 <section class="dayservice-operation-demo-banner" aria-label="公開操作デモの案内">
   <div class="dayservice-operation-demo-copy">
-    <small>PUBLIC OPERATION DEMO</small>
+    <small>公開操作デモ</small>
     <strong>これはDPRO デイサービス LINEの公開操作デモです</strong>
     <span>架空情報だけを使用し、実在する利用者・家族・電話番号・健康情報は入力しないでください。</span>
   </div>
@@ -1441,7 +1580,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         <section class="page-section is-active" id="section-dashboard" data-section="dashboard">
           <div class="section-head">
             <div>
-              <p class="section-kicker">DASHBOARD</p>
+              <p class="section-kicker">本日の管理</p>
               <h2>今日の状況</h2>
               <p class="section-description">
                 利用者・家族連絡・今日やることを一つの画面で確認します。
@@ -1532,7 +1671,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         <section class="page-section" id="section-today" data-section="today">
           <div class="section-head">
             <div>
-              <p class="section-kicker">TODAY USERS</p>
+              <p class="section-kicker">利用状況</p>
               <h2>今日の利用者</h2>
               <p class="section-description">
                 来所・利用中・帰宅準備・送迎出発・帰宅完了を更新できます。
@@ -1597,7 +1736,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         <section class="page-section" id="section-requests" data-section="requests">
           <div class="section-head">
             <div>
-              <p class="section-kicker">FAMILY REQUESTS</p>
+              <p class="section-kicker">家族連絡</p>
               <h2>家族からの連絡</h2>
               <p class="section-description">
                 お休み、利用日変更希望、送迎・持ち物の質問を確認します。
@@ -1626,7 +1765,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         <section class="page-section" id="section-search" data-section="search">
           <div class="section-head">
             <div>
-              <p class="section-kicker">SEARCH</p>
+              <p class="section-kicker">登録情報</p>
               <h2>利用者・家族検索</h2>
               <p class="section-description">
                 利用者名、家族名、電話番号、利用者番号から検索できます。
@@ -1669,7 +1808,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         <section class="page-section" id="section-schedule" data-section="schedule">
           <div class="section-head">
             <div>
-              <p class="section-kicker">SCHEDULE</p>
+              <p class="section-kicker">予定管理</p>
               <h2>利用予定を登録</h2>
               <p class="section-description">
                 電話受付・窓口受付・スタッフ入力にも利用できます。
@@ -1776,7 +1915,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         <section class="page-section" id="section-messages" data-section="messages">
           <div class="section-head">
             <div>
-              <p class="section-kicker">MESSAGE COPY</p>
+              <p class="section-kicker">連絡文面</p>
               <h2>家族連絡文面</h2>
               <p class="section-description">
                 送迎時間・持ち物・確認依頼の文面を作成し、コピー履歴を残します。
@@ -1848,7 +1987,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         <section class="page-section" id="section-broadcasts" data-section="broadcasts">
           <div class="section-head">
             <div>
-              <p class="section-kicker">EMERGENCY / BROADCAST</p>
+              <p class="section-kicker">重要連絡</p>
               <h2>緊急・一斉連絡</h2>
               <p class="section-description">
                 災害・臨時休業・送迎遅延などを、利用予定と家族台帳に連動してLINEで連絡します。
@@ -2583,6 +2722,12 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
           : String(value || "").trim();
       }
 
+    function cleanDemoLabel(value) {
+      return String(value || "")
+        .replace(/^\[DEMO(?::[^\]]+)?\]\s*/i, "【デモ】")
+        .trim();
+    }
+
       function escapeHtml(value) {
         return CONFIG?.utils?.escapeHtml
           ? CONFIG.utils.escapeHtml(value)
@@ -2729,7 +2874,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         els.dashboardTaskList.innerHTML = tasks.map((task) => `
           <div class="task-item">
             <div>
-              <div class="item-title">${escapeHtml(task.title)}</div>
+              <div class="item-title">${escapeHtml(cleanDemoLabel(task.title))}</div>
               <div class="item-sub">${escapeHtml(
                 normalizeText(task.description)
               )}</div>
@@ -2767,7 +2912,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
             <div class="request-item">
               <div>
                 <div class="item-title">${escapeHtml(
-                  request.subject ||
+                  cleanDemoLabel(request.subject) ||
                   CONFIG.utils.requestTypeLabel(request.request_type)
                 )}</div>
                 <div class="item-sub">
@@ -2948,7 +3093,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
           <article class="request-item">
             <div>
               <div class="item-title">${escapeHtml(
-                request.subject ||
+                cleanDemoLabel(request.subject) ||
                 CONFIG.utils.requestTypeLabel(request.request_type)
               )}</div>
               <div class="item-sub">${escapeHtml(
@@ -3038,7 +3183,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
         state.selectedRequest = request;
 
         els.requestModalTitle.textContent =
-          request.subject ||
+          cleanDemoLabel(request.subject) ||
           CONFIG.utils.requestTypeLabel(request.request_type);
 
         els.requestModalSubtitle.textContent =
@@ -3252,7 +3397,7 @@ body.dayservice-operation-demo-page .footer>div:nth-child(n+2){
             <div class="item-sub">
               ${requests.slice(0, 5).map((request) =>
                 `${escapeHtml(
-                  request.subject ||
+                  cleanDemoLabel(request.subject) ||
                   CONFIG.utils.requestTypeLabel(request.request_type)
                 )}：${escapeHtml(
                   CONFIG.utils.requestStatusLabel(request.request_status)
