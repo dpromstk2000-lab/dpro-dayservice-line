@@ -1,0 +1,113 @@
+name: DPRO DAYCARE Family Contact Visibility Fix R1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SCRIPT_NAME: dpro-dayservice-line-api
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Patch worker
+        shell: bash
+        env:
+          PATCH_B64: "CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aApwPVBhdGgoIndvcmtlci5qcyIpCnM9cC5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKCm9sZD0nJycgIGNvbnN0IHNjaGVkdWxlSWRzID0gc2NoZWR1bGVzLm1hcCgocm93KSA9PiByb3cuaWQpOycnJwpuZXc9JycnICBjb25zdCBsaW5lVGFyZ2V0cyA9IGZhbWlseUlkcy5sZW5ndGgKICAgID8gYXdhaXQgc3VwYWJhc2VSZXF1ZXN0KGVudiwgVEFCTEVTLmxpbmVEZWxpdmVyeVRhcmdldHMsIHsKICAgICAgICBxdWVyeTogewogICAgICAgICAgc2VsZWN0OiAiaWQsZmFtaWx5X21lbWJlcl9pZCx1c2VyX2lkLGxpbmVfdXNlcl9pZF9oYXNoLGNvbnNlbnRfc3RhdHVzLGlzX2FjdGl2ZSx2ZXJpZmllZF9hdCxyZXZva2VkX2F0IiwKICAgICAgICAgIGZhY2lsaXR5X2lkOiBgZXEuJHtmYWNpbGl0eS5pZH1gLAogICAgICAgICAgZmFtaWx5X21lbWJlcl9pZDogYGluLigke2ZhbWlseUlkcy5qb2luKCIsIil9KWAsCiAgICAgICAgICBpc19hY3RpdmU6ICJlcS50cnVlIiwKICAgICAgICAgIG9yZGVyOiAidmVyaWZpZWRfYXQuZGVzYyIsCiAgICAgICAgICBsaW1pdDogIjIwMCIsCiAgICAgICAgfSwKICAgICAgfSkKICAgIDogW107CgogIGNvbnN0IGFjdGl2ZUxpbmVUYXJnZXRCeUZhbWlseSA9IG5ldyBNYXAoKTsKICBmb3IgKGNvbnN0IHRhcmdldCBvZiBsaW5lVGFyZ2V0cykgewogICAgaWYgKAogICAgICB0YXJnZXQuY29uc2VudF9zdGF0dXMgPT09ICJhY3RpdmUiCiAgICAgICYmICFhY3RpdmVMaW5lVGFyZ2V0QnlGYW1pbHkuaGFzKHRhcmdldC5mYW1pbHlfbWVtYmVyX2lkKQogICAgKSB7CiAgICAgIGFjdGl2ZUxpbmVUYXJnZXRCeUZhbWlseS5zZXQodGFyZ2V0LmZhbWlseV9tZW1iZXJfaWQsIHRhcmdldCk7CiAgICB9CiAgfQoKICBjb25zdCBzY2hlZHVsZUlkcyA9IHNjaGVkdWxlcy5tYXAoKHJvdykgPT4gcm93LmlkKTsnJycKCmlmICJjb25zdCBhY3RpdmVMaW5lVGFyZ2V0QnlGYW1pbHkgPSBuZXcgTWFwKCk7IiBub3QgaW4gczoKICAgIGlmIG9sZCBub3QgaW4gczoKICAgICAgICByYWlzZSBTeXN0ZW1FeGl0KCJFUlJPUjogc2NoZWR1bGVJZHMgYW5jaG9yIG5vdCBmb3VuZCIpCiAgICBzPXMucmVwbGFjZShvbGQsbmV3LDEpCgpzPXMucmVwbGFjZSgKJ2NvbnN0IFZFUlNJT04gPSAiREFZQ0FSRS0zLVI5LUZBTUlMWS1DT05UQUNULVZJU0lCSUxJVFktMjAyNjA5MzAiOycsCidjb25zdCBWRVJTSU9OID0gIkRBWUNBUkUtMy1SMTAtRkFNSUxZLUNPTlRBQ1QtVklTSUJJTElUWS1GSVgtMjAyNjA5MzAiOycsCjEKKQoKcmVxdWlyZWQ9WwoiREFZQ0FSRS0zLVIxMC1GQU1JTFktQ09OVEFDVC1WSVNJQklMSVRZLUZJWC0yMDI2MDkzMCIsCiJjb25zdCBhY3RpdmVMaW5lVGFyZ2V0QnlGYW1pbHkgPSBuZXcgTWFwKCk7IiwKImxpbmVfbGlua2VkOiBCb29sZWFuKGxpbmVUYXJnZXQpIiwKXQptaXNzaW5nPVt4IGZvciB4IGluIHJlcXVpcmVkIGlmIHggbm90IGluIHNdCmlmIG1pc3Npbmc6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJFUlJPUiBtaXNzaW5nOiAiKyIsICIuam9pbihtaXNzaW5nKSkKCnAud3JpdGVfdGV4dChzLGVuY29kaW5nPSJ1dGYtOCIpCnByaW50KCJXT1JLRVJfRklYPVBBU1MiKQo="
+        run: |
+          set -euo pipefail
+          python -c 'import os,base64; exec(base64.b64decode(os.environ["PATCH_B64"]).decode("utf-8"))'
+          node --check worker.js
+          grep -q 'DAYCARE-3-R10-FAMILY-CONTACT-VISIBILITY-FIX-20260930' worker.js
+          grep -q 'const activeLineTargetByFamily = new Map();' worker.js
+          echo "STATIC_QA=PASS"
+
+      - name: Update worker.js
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          curl -fsSL             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/$REPO/contents/worker.js?ref=main" > /tmp/current.json
+
+          python - <<'PY' > /tmp/payload.json
+          import json,base64
+          from pathlib import Path
+          current=json.load(open("/tmp/current.json",encoding="utf-8"))
+          print(json.dumps({
+            "message":"DAYCARE family contact visibility fix R1",
+            "content":base64.b64encode(Path("worker.js").read_bytes()).decode("ascii"),
+            "sha":current["sha"],
+            "branch":"main"
+          },ensure_ascii=False))
+          PY
+
+          curl -fsSL -X PUT             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             -H "Content-Type: application/json"             "https://api.github.com/repos/$REPO/contents/worker.js"             --data-binary @/tmp/payload.json > /tmp/update.json
+
+          python - <<'PY'
+          import json
+          d=json.load(open("/tmp/update.json",encoding="utf-8"))
+          if not (d.get("commit") or {}).get("sha"):
+              raise SystemExit("GitHub update failed")
+          print("GITHUB_UPDATE=PASS")
+          PY
+
+      - name: Find Cloudflare account
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CF_TOKEN:-}" || { echo 'CLOUDFLARE_API_TOKEN is missing'; exit 2; }
+          curl -fsS -H "Authorization: Bearer $CF_TOKEN"             https://api.cloudflare.com/client/v4/accounts > /tmp/accounts.json
+          python3 - <<'PY' > /tmp/account-ids
+          import json
+          d=json.load(open('/tmp/accounts.json'))
+          for row in d.get('result') or []:
+              if row.get('id'): print(row['id'])
+          PY
+          found=''
+          while IFS= read -r aid; do
+            [ -n "$aid" ] || continue
+            echo "::add-mask::$aid"
+            code=$(curl -sS -o /tmp/current-worker -w '%{http_code}'               -H "Authorization: Bearer $CF_TOKEN"               "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/content/v2")
+            if [ "$code" = "200" ]; then found="$aid"; break; fi
+          done < /tmp/account-ids
+          [ -n "$found" ] || { echo 'Target Worker not found'; exit 3; }
+          printf '%s' "$found" > /tmp/dpro-account-id
+
+      - name: Deploy R10 Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/dpro-account-id)
+          code=$(curl -sS -o /tmp/deploy.json -w '%{http_code}'             -X PUT             -H "Authorization: Bearer $CF_TOKEN"             -F 'metadata={"main_module":"worker.js"};type=application/json'             -F 'worker.js=@worker.js;type=application/javascript+module'             "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/content")
+          echo "HTTP $code"
+          [ "$code" = "200" ] || { cat /tmp/deploy.json; exit 4; }
+
+      - name: Live health check
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS             -H 'Accept: application/json'             -H 'User-Agent: DPRO-DAYCARE-R10-DEPLOY'             'https://dpro-dayservice-line-api.dpromstk2000.workers.dev/api/health'             > /tmp/health.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/health.json'))
+          expected='DAYCARE-3-R10-FAMILY-CONTACT-VISIBILITY-FIX-20260930'
+          if d.get('workerVersion') != expected:
+              raise SystemExit(f"worker version mismatch: {d.get('workerVersion')!r}")
+          if d.get('versionsAligned') is not True:
+              raise SystemExit("versionsAligned is not true")
+          print("LIVE_QA=PASS")
+          PY
