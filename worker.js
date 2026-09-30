@@ -34,7 +34,7 @@
  */
 
 const SERVICE_NAME = "DPRO Dayservice LINE API";
-const VERSION = "DAYCARE-3-R10-FAMILY-CONTACT-VISIBILITY-FIX-20260930";
+const VERSION = "DAYCARE-3-R11-FAMILY-CONTACT-VISIBILITY-FIX2-20260930";
 const FRONTEND_VERSION = "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8-R5-BROADCAST-DEMO-SAFE / IPAD-9 / SYSTEM-CHECK-10";
 const DATABASE_VERSION_EXPECTED = "DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01";
 const ADAPTER_VERSION = "DPRO-CONTROL-ADAPTER-1.0";
@@ -1145,29 +1145,6 @@ async function handleMemberProfile(env, url) {
     getActiveAnnouncements(env, member.facility.id, "family", member.user.id),
   ]);
 
-  const lineTargets = familyIds.length
-    ? await supabaseRequest(env, TABLES.lineDeliveryTargets, {
-        query: {
-          select: "id,family_member_id,user_id,line_user_id_hash,consent_status,is_active,verified_at,revoked_at",
-          facility_id: `eq.${facility.id}`,
-          family_member_id: `in.(${familyIds.join(",")})`,
-          is_active: "eq.true",
-          order: "verified_at.desc",
-          limit: "200",
-        },
-      })
-    : [];
-
-  const activeLineTargetByFamily = new Map();
-  for (const target of lineTargets) {
-    if (
-      target.consent_status === "active"
-      && !activeLineTargetByFamily.has(target.family_member_id)
-    ) {
-      activeLineTargetByFamily.set(target.family_member_id, target);
-    }
-  }
-
   const scheduleIds = schedules.map((row) => row.id);
   const transports = scheduleIds.length
     ? await supabaseRequest(env, TABLES.transports, {
@@ -1696,6 +1673,29 @@ async function handleAdminUserDetail(env, facility, url) {
       },
     }),
   ]);
+
+  const lineTargets = familyIds.length
+    ? await supabaseRequest(env, TABLES.lineDeliveryTargets, {
+        query: {
+          select: "id,family_member_id,user_id,line_user_id_hash,consent_status,is_active,verified_at,revoked_at",
+          facility_id: `eq.${facility.id}`,
+          family_member_id: `in.(${familyIds.join(",")})`,
+          is_active: "eq.true",
+          order: "verified_at.desc",
+          limit: "200",
+        },
+      })
+    : [];
+
+  const activeLineTargetByFamily = new Map();
+  for (const target of lineTargets) {
+    if (
+      target.consent_status === "active"
+      && !activeLineTargetByFamily.has(target.family_member_id)
+    ) {
+      activeLineTargetByFamily.set(target.family_member_id, target);
+    }
+  }
 
   const scheduleIds = schedules.map((row) => row.id);
   const [transports, checks] = await Promise.all([
