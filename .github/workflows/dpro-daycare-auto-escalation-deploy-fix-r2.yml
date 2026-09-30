@@ -1,0 +1,195 @@
+name: DPRO DAYCARE Auto Escalation Deploy Fix R2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SCRIPT_NAME: dpro-dayservice-line-api
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Verify R15 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check worker.js
+          node --check config.js
+          grep -q 'DAYCARE-3-R15-AUTO-ESCALATION-20260930' worker.js
+          grep -q 'async function processAutoEscalations' worker.js
+          grep -q 'handleAdminAutoEscalationSettingsUpdate' worker.js
+          grep -q 'adminBroadcastAutoEscalationSettings' config.js
+          grep -q 'autoEscalationEnabled' owner.html
+          echo "R15_SOURCE_QA=PASS"
+
+      - name: Find Cloudflare account
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CF_TOKEN:-}" || { echo 'CLOUDFLARE_API_TOKEN is missing'; exit 2; }
+          curl -fsS -H "Authorization: Bearer $CF_TOKEN" \
+            https://api.cloudflare.com/client/v4/accounts > /tmp/accounts.json
+          python3 - <<'PY' > /tmp/account-ids
+          import json
+          d=json.load(open('/tmp/accounts.json'))
+          for row in d.get('result') or []:
+              if isinstance(row,dict) and row.get('id'):
+                  print(row['id'])
+          PY
+
+          found=''
+          while IFS= read -r aid; do
+            [ -n "$aid" ] || continue
+            echo "::add-mask::$aid"
+            code=$(curl -sS -o /tmp/current-worker -w '%{http_code}' \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/content/v2")
+            if [ "$code" = "200" ]; then
+              found="$aid"
+              break
+            fi
+          done < /tmp/account-ids
+
+          [ -n "$found" ] || { echo 'Target Worker not found'; exit 3; }
+          printf '%s' "$found" > /tmp/dpro-account-id
+
+      - name: Inspect Cron triggers safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/dpro-account-id)
+
+          curl -fsS \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/schedules" \
+            > /tmp/schedules.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/schedules.json'))
+          rows=d.get('result') or []
+          print("CRON_TRIGGER_COUNT=",len(rows))
+
+          normalized=[]
+          for row in rows:
+              if isinstance(row,dict):
+                  cron=row.get('cron')
+              elif isinstance(row,str):
+                  cron=row
+              else:
+                  cron=None
+              if cron:
+                  normalized.append(cron)
+                  print("CRON=",cron)
+
+          if not normalized:
+              raise SystemExit("ERROR: Cron trigger was not confirmed")
+
+          print("CRON_TRIGGER_QA=PASS")
+          PY
+
+      - name: Deploy R15 Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/dpro-account-id)
+
+          code=$(curl -sS -o /tmp/deploy.json -w '%{http_code}' \
+            -X PUT \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            -F 'metadata={"main_module":"worker.js"};type=application/json' \
+            -F 'worker.js=@worker.js;type=application/javascript+module' \
+            "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SCRIPT_NAME/content")
+
+          echo "HTTP $code"
+          [ "$code" = "200" ] || { cat /tmp/deploy.json; exit 4; }
+          echo "R15_DEPLOY=PASS"
+
+      - name: Poll live health
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,time,urllib.request
+          url='https://dpro-dayservice-line-api.dpromstk2000.workers.dev/api/health'
+          expected='DAYCARE-3-R15-AUTO-ESCALATION-20260930'
+          last={}
+
+          for _ in range(20):
+              req=urllib.request.Request(
+                  url,
+                  headers={
+                      'Accept':'application/json',
+                      'User-Agent':'DPRO-DAYCARE-R15-VERIFY'
+                  }
+              )
+              try:
+                  with urllib.request.urlopen(req,timeout=25) as r:
+                      last=json.loads(r.read().decode())
+                  f=last.get('features') or {}
+                  if (
+                      last.get('workerVersion')==expected
+                      and f.get('auto_family_escalation') is True
+                      and f.get('auto_family_escalation_settings') is True
+                  ):
+                      print("LIVE_HEALTH=PASS")
+                      break
+              except Exception as e:
+                  print("retry",repr(e))
+              time.sleep(2)
+          else:
+              raise SystemExit(
+                  "R15 did not become live: "
+                  +repr(last.get('workerVersion'))
+              )
+          PY
+
+      - name: Verify auto escalation settings API
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS \
+            -H 'Accept: application/json' \
+            -H 'User-Agent: DPRO-DAYCARE-R15-VERIFY' \
+            -H 'X-Admin-Code: 1234' \
+            'https://dpro-dayservice-line-api.dpromstk2000.workers.dev/api/admin/broadcasts/auto-escalation/settings?facility_code=dpro_dayservice_demo' \
+            > /tmp/settings.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/settings.json'))
+          s=d.get('settings') or {}
+
+          if d.get('ok') is not True:
+              raise SystemExit('settings api not ok')
+          if not all(
+              k in s
+              for k in (
+                  'enabled',
+                  'delay_minutes',
+                  'max_priority',
+                  'priority_scope'
+              )
+          ):
+              raise SystemExit('settings fields missing')
+
+          if s.get('enabled') is not False:
+              raise SystemExit(
+                  'safety check failed: initial auto escalation must be OFF'
+              )
+
+          print('AUTO_ESCALATION_SETTINGS_QA=PASS')
+          print(json.dumps(s,ensure_ascii=False))
+          PY
