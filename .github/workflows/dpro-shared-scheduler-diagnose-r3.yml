@@ -1,0 +1,147 @@
+name: DPRO Shared Scheduler Diagnose R3
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      SHOP_WORKER: dpro-shop-site-monitor-api
+
+    steps:
+      - name: Diagnose and write visible summary
+        shell: bash
+        continue-on-error: true
+        run: |
+          set +e
+          echo "## DPRO Shared Scheduler Diagnose R3" >> "$GITHUB_STEP_SUMMARY"
+
+          curl -fsS -H "Authorization: Bearer $CF_TOKEN" \
+            https://api.cloudflare.com/client/v4/accounts > /tmp/accounts.json
+
+          python3 - <<'PY' > /tmp/account-ids
+          import json
+          try:
+              d=json.load(open('/tmp/accounts.json'))
+          except Exception:
+              d={}
+          for row in d.get('result') or []:
+              if isinstance(row,dict) and row.get('id'):
+                  print(row['id'])
+          PY
+
+          found=''
+          while IFS= read -r aid; do
+            [ -n "$aid" ] || continue
+            code=$(curl -sS -o /tmp/shop-content.bin -D /tmp/shop-headers.txt -w '%{http_code}' \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SHOP_WORKER/content/v2")
+            if [ "$code" = "200" ]; then
+              found="$aid"
+              break
+            fi
+          done < /tmp/account-ids
+
+          if [ -z "$found" ]; then
+            echo "- Result: **SHOP Worker not found**" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "::add-mask::$found"
+
+          settings_code=$(curl -sS -o /tmp/shop-settings.json -w '%{http_code}' \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$found/workers/scripts/$SHOP_WORKER/settings")
+
+          schedules_code=$(curl -sS -o /tmp/shop-schedules.json -w '%{http_code}' \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$found/workers/scripts/$SHOP_WORKER/schedules")
+
+          python3 - <<'PY' > /tmp/diag.txt
+          import json,re
+          from pathlib import Path
+          from email.parser import BytesParser
+          from email.policy import default
+
+          def load(path):
+              try:
+                  return json.load(open(path))
+              except Exception:
+                  return {}
+
+          settings=load('/tmp/shop-settings.json')
+          result=settings.get('result') or {}
+          main=result.get('main_module')
+          bindings=result.get('bindings') or []
+
+          headers=Path('/tmp/shop-headers.txt').read_text(errors='ignore')
+          body=Path('/tmp/shop-content.bin').read_bytes()
+          m=re.search(r'content-type:\s*([^\r\n]+)',headers,re.I)
+          ctype=m.group(1).strip() if m else '(missing)'
+
+          schedules=load('/tmp/shop-schedules.json')
+          sr=schedules.get('result')
+          if isinstance(sr,dict):
+              rows=sr.get('schedules') or []
+          elif isinstance(sr,list):
+              rows=sr
+          else:
+              rows=[]
+          crons=[]
+          for row in rows:
+              if isinstance(row,dict):
+                  c=row.get('cron')
+              elif isinstance(row,str):
+                  c=row
+              else:
+                  c=None
+              if c:
+                  crons.append(c)
+
+          modules=[]
+          parse_error=None
+          if 'multipart/' in ctype.lower():
+              try:
+                  raw=(f'Content-Type: {ctype}\r\nMIME-Version: 1.0\r\n\r\n').encode()+body
+                  msg=BytesParser(policy=default).parsebytes(raw)
+                  for part in msg.iter_parts():
+                      name=part.get_filename() or part.get_param('name',header='content-disposition')
+                      if name:
+                          modules.append(name)
+              except Exception as e:
+                  parse_error=repr(e)
+
+          print(f"MAIN_MODULE={main}")
+          print(f"CONTENT_TYPE={ctype}")
+          print(f"CONTENT_BYTES={len(body)}")
+          print(f"BINDING_COUNT={len(bindings)}")
+          print(f"CRONS={crons}")
+          print(f"MODULES={modules[:20]}")
+          print(f"MULTIPART_PARSE_ERROR={parse_error}")
+
+          if not main:
+              diagnosis="SETTINGS_MAIN_MODULE_MISSING"
+          elif 'multipart/' not in ctype.lower():
+              diagnosis="CONTENT_NOT_MULTIPART"
+          elif not modules:
+              diagnosis="MULTIPART_MODULE_LIST_EMPTY"
+          elif main not in modules and Path(main).name not in [Path(x).name for x in modules]:
+              diagnosis="MAIN_MODULE_NAME_MISMATCH"
+          else:
+              diagnosis="SHOP_CONTENT_SHAPE_OK"
+
+          print(f"DIAG_RESULT={diagnosis}")
+          PY
+
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/diag.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+          cat /tmp/diag.txt
+          exit 0
