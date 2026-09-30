@@ -1,0 +1,299 @@
+name: DPRO DAYCARE Readability Brushup R1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  brushup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch owner.html for DPRO readability standard
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("owner.html")
+          s = path.read_text(encoding="utf-8")
+
+          replacements = {
+              '<small>PUBLIC OPERATION DEMO</small>':
+                  '<small>公開操作デモ</small>',
+              '<p class="section-kicker">DASHBOARD</p>':
+                  '<p class="section-kicker">本日の管理</p>',
+              '<p class="section-kicker">TODAY USERS</p>':
+                  '<p class="section-kicker">利用状況</p>',
+              '<p class="section-kicker">FAMILY REQUESTS</p>':
+                  '<p class="section-kicker">家族連絡</p>',
+              '<p class="section-kicker">SEARCH</p>':
+                  '<p class="section-kicker">登録情報</p>',
+              '<p class="section-kicker">SCHEDULE</p>':
+                  '<p class="section-kicker">予定管理</p>',
+              '<p class="section-kicker">MESSAGE COPY</p>':
+                  '<p class="section-kicker">連絡文面</p>',
+              '<p class="section-kicker">EMERGENCY / BROADCAST</p>':
+                  '<p class="section-kicker">重要連絡</p>',
+          }
+
+          for old, new in replacements.items():
+              s = s.replace(old, new)
+
+          normalize_anchor = '''      function normalizeText(value) {
+                return CONFIG?.utils?.normalizeNewlines
+                  ? CONFIG.utils.normalizeNewlines(value)
+                  : String(value || "").trim();
+              }
+          '''
+
+          clean_helper = normalize_anchor + r'''
+              function cleanDemoLabel(value) {
+                return String(value || "")
+                  .replace(/^\[DEMO(?::[^\]]+)?\]\s*/i, "【デモ】")
+                  .trim();
+              }
+          '''
+
+          if "function cleanDemoLabel" not in s:
+              if normalize_anchor not in s:
+                  raise SystemExit("ERROR: normalizeText anchor not found")
+              s = s.replace(normalize_anchor, clean_helper, 1)
+
+          s = s.replace(
+              '${escapeHtml(task.title)}',
+              '${escapeHtml(cleanDemoLabel(task.title))}'
+          )
+
+          s = s.replace(
+              '''request.subject ||
+                        CONFIG.utils.requestTypeLabel(request.request_type)''',
+              '''cleanDemoLabel(request.subject) ||
+                        CONFIG.utils.requestTypeLabel(request.request_type)'''
+          )
+
+          s = s.replace(
+              '''request.subject ||
+                      CONFIG.utils.requestTypeLabel(request.request_type)''',
+              '''cleanDemoLabel(request.subject) ||
+                      CONFIG.utils.requestTypeLabel(request.request_type)'''
+          )
+
+          marker = "DPRO DAYCARE READABILITY BRUSHUP R1"
+          css = r'''
+          /* ============================================================
+             DPRO DAYCARE READABILITY BRUSHUP R1
+             2026-09-30
+             - DPRO standard readable sizing
+             - Japanese-first operator UI
+             - Existing API / behavior is unchanged
+             ============================================================ */
+          body{font-size:16px}
+          :root{--sidebar-width:260px}
+
+          .side-brand h2{font-size:16px}
+          .side-brand p{font-size:12px}
+          .side-nav button,.side-nav a{
+            min-height:50px;
+            padding:11px 13px;
+            font-size:15px;
+            line-height:1.45
+          }
+          .side-nav .nav-icon{width:24px;font-size:18px}
+          .side-footer .small{font-size:12px}
+          .side-footer strong{font-size:14px}
+
+          .topbar{min-height:78px;padding:15px 24px}
+          .topbar h1{font-size:24px}
+          .topbar-sub{margin-top:4px;font-size:14px}
+
+          .content{
+            width:min(1480px,calc(100% - 42px));
+            padding:26px 0 56px
+          }
+
+          .section-kicker{
+            margin-bottom:4px;
+            font-size:13px;
+            letter-spacing:.02em
+          }
+          .section-head h2{font-size:28px}
+          .section-description{
+            margin-top:7px;
+            font-size:14px;
+            line-height:1.65
+          }
+
+          .date-display{min-height:44px;font-size:14px}
+          .date-picker-button{min-height:44px;font-size:14px}
+
+          .metric{padding:18px}
+          .metric-label{font-size:13px;font-weight:800}
+          .metric strong{margin-top:5px;font-size:31px}
+          .metric small{
+            margin-top:6px;
+            font-size:12px;
+            line-height:1.5
+          }
+
+          .card{padding:20px}
+          .card-head h3{font-size:19px}
+          .card-head p{
+            margin-top:5px;
+            font-size:13px;
+            line-height:1.55
+          }
+
+          .task-item,.request-item,.note-item{
+            padding:15px 16px;
+            gap:14px
+          }
+          .item-title{font-size:15px;line-height:1.55}
+          .item-sub{
+            margin-top:5px;
+            font-size:13px;
+            line-height:1.65
+          }
+
+          .btn{min-height:44px;padding:9px 15px;font-size:14px}
+          .btn-small{min-height:38px;padding:7px 11px;font-size:13px}
+          .status-pill{
+            min-height:30px;
+            padding:5px 9px;
+            font-size:12px
+          }
+
+          .input,.select,.textarea{
+            min-height:46px;
+            padding:11px 13px;
+            font-size:15px
+          }
+          .field label{font-size:14px}
+          .login-sub{font-size:13px}
+          .login-copy{font-size:14px}
+          .login-help{font-size:12px}
+
+          th,td{padding:13px 12px;font-size:13px}
+          td strong{font-size:14px}
+          .status-action{
+            min-height:34px;
+            padding:6px 9px;
+            font-size:12px
+          }
+
+          .search-name{font-size:15px}
+          .search-meta{font-size:12px}
+          .detail-label{font-size:12px}
+          .detail-value{font-size:14px}
+
+          .broadcast-target-panel-head strong{font-size:14px}
+          .broadcast-target-panel-head span{font-size:12px}
+          .broadcast-target-count{font-size:12px}
+          .broadcast-target-result strong{font-size:14px}
+          .broadcast-target-result span{font-size:12px}
+          .broadcast-target-selected-title{font-size:12px}
+          .broadcast-target-chip strong{font-size:14px}
+          .broadcast-target-chip button{font-size:12px}
+
+          .dayservice-operation-demo-copy small{font-size:12px}
+          .dayservice-operation-demo-copy strong{font-size:16px}
+          .dayservice-operation-demo-copy span{
+            font-size:13px;
+            line-height:1.55
+          }
+          .dayservice-operation-demo-actions a{font-size:13px}
+
+          @media(max-width:1100px){
+            :root{--sidebar-width:230px}
+            .side-nav button,.side-nav a{font-size:14px}
+            .metric-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+          }
+
+          @media(max-width:760px){
+            body{font-size:15px}
+            .topbar h1{font-size:21px}
+            .section-head h2{font-size:24px}
+            .section-description{font-size:13px}
+            .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+            .item-title{font-size:14px}
+            .item-sub{font-size:12px}
+          }
+          '''
+
+          if marker not in s:
+              close = "</style>\n</head>"
+              if close not in s:
+                  raise SystemExit("ERROR: style anchor not found")
+              s = s.replace(close, css + "\n</style>\n</head>", 1)
+
+          forbidden_visible = [
+              "DASHBOARD</p>",
+              "TODAY USERS</p>",
+              "FAMILY REQUESTS</p>",
+              "EMERGENCY / BROADCAST</p>",
+              "PUBLIC OPERATION DEMO</small>",
+          ]
+          remaining = [x for x in forbidden_visible if x in s]
+          if remaining:
+              raise SystemExit("ERROR: visible English labels remain: " + ", ".join(remaining))
+
+          required = [
+              "DPRO DAYCARE READABILITY BRUSHUP R1",
+              "function cleanDemoLabel",
+              "cleanDemoLabel(task.title)",
+              "緊急・一斉連絡",
+              "公開操作デモ",
+          ]
+          missing = [x for x in required if x not in s]
+          if missing:
+              raise SystemExit("ERROR: required patch missing: " + ", ".join(missing))
+
+          path.write_text(s, encoding="utf-8")
+          print("PATCH=PASS")
+          PY
+
+      - name: Verify diff
+        shell: bash
+        run: |
+          git diff --check
+          git diff -- owner.html
+          echo
+          echo "Visible section labels after patch:"
+          grep -o '<p class="section-kicker">[^<]*</p>' owner.html || true
+
+      - name: Commit and push
+        shell: bash
+        run: |
+          if git diff --quiet -- owner.html; then
+            echo "No change required. owner.html is already brushed up."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add owner.html
+          git commit -m "DAYCARE readability brushup R1"
+          git push origin HEAD:main
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo "## DPRO DAYCARE Readability Brushup R1"
+            echo ""
+            echo "- owner.html: updated"
+            echo "- English section labels: Japanese-first"
+            echo "- Internal DEMO markers: hidden from operator-facing titles"
+            echo "- Main text/buttons/table/status text: enlarged"
+            echo "- Existing APIs and broadcast behavior: unchanged"
+            echo "- Git diff check: PASS"
+          } >> "$GITHUB_STEP_SUMMARY"
