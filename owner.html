@@ -1532,6 +1532,54 @@ td strong{font-size:14px}
   .side-nav button,.side-nav a{min-height:43px;font-size:13px}
 }
 
+
+/* DPRO DAYCARE FAMILY CONTACT VISIBILITY R1 */
+.ledger-family-card{
+  align-items:flex-start;
+  gap:12px;
+}
+.ledger-family-routing{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:8px;
+}
+.ledger-route-chip{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  padding:3px 8px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:#f7faf8;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:850;
+}
+.ledger-route-chip.is-on{
+  border-color:#bedfca;
+  background:#eaf7ef;
+  color:#17643a;
+}
+.ledger-route-chip.is-off{
+  background:#f3f5f4;
+  color:#78847d;
+}
+.ledger-line-stack{
+  display:grid;
+  justify-items:end;
+  gap:6px;
+  flex:0 0 auto;
+}
+.ledger-line-date{
+  color:var(--muted);
+  font-size:9px;
+}
+@media(max-width:560px){
+  .ledger-family-card{display:grid}
+  .ledger-line-stack{justify-items:start}
+}
+
 </style>
 </head>
 
@@ -3463,11 +3511,17 @@ td strong{font-size:14px}
               const lineLabel = linked === true
                 ? "LINE連携済み"
                 : linked === false
-                  ? "LINE未連携"
-                  : demoMode
-                    ? "LINE未連携（公開デモ）"
-                    : "LINE連携状況は本番接続時に表示";
+                  ? (demoMode ? "LINE未連携（公開デモ）" : "LINE未連携")
+                  : "LINE連携状況を確認中";
               const lineMode = linked === true ? "ok" : linked === false ? "warning" : "neutral";
+              const relation = family.relation || {};
+              const normalOn = relation.receive_normal === true;
+              const emergencyOn = relation.receive_emergency === true;
+              const escalationOn = relation.allow_escalation === true;
+              const priority = Number(relation.contact_priority || (primary ? 1 : 0));
+              const verifiedAt = family.line_verified_at
+                ? formatDateTime(family.line_verified_at)
+                : "";
 
               return `
                 <div class="ledger-family-card">
@@ -3480,8 +3534,23 @@ td strong{font-size:14px}
                       <span>${escapeHtml(relationship)}</span>
                       <span>${escapeHtml(CONFIG.utils.formatPhone(family.phone) || "電話未登録")}</span>
                     </div>
+                    <div class="ledger-family-routing" aria-label="連絡設定">
+                      <span class="ledger-route-chip ${normalOn ? "is-on" : "is-off"}">
+                        通常連絡 ${normalOn ? "対象" : "対象外"}
+                      </span>
+                      <span class="ledger-route-chip ${emergencyOn ? "is-on" : "is-off"}">
+                        緊急連絡 ${emergencyOn ? "対象" : "対象外"}
+                      </span>
+                      ${priority ? `<span class="ledger-route-chip is-on">優先 第${priority}</span>` : ""}
+                      <span class="ledger-route-chip ${escalationOn ? "is-on" : "is-off"}">
+                        段階配信 ${escalationOn ? "候補" : "対象外"}
+                      </span>
+                    </div>
                   </div>
-                  <span class="status-pill status-${lineMode}">${escapeHtml(lineLabel)}</span>
+                  <div class="ledger-line-stack">
+                    <span class="status-pill status-${lineMode}">${escapeHtml(lineLabel)}</span>
+                    ${verifiedAt ? `<span class="ledger-line-date">確認 ${escapeHtml(verifiedAt)}</span>` : ""}
+                  </div>
                 </div>
               `;
             }).join("")
@@ -3518,7 +3587,7 @@ td strong{font-size:14px}
             </div>
             <div class="ledger-family-list">${familyCards}</div>
             <p class="ledger-note">
-              LINE連携状況は、緊急・一斉連絡の送信対象判定にも使用します。
+              通常連絡・緊急連絡の対象、連絡優先順位、LINE連携状況をまとめて確認できます。
             </p>
           </div>
 
