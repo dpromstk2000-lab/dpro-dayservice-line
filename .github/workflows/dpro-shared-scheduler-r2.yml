@@ -1,0 +1,354 @@
+name: DPRO Shared Scheduler R2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DAYCARE_WORKER: dpro-dayservice-line-api
+      SHOP_WORKER: dpro-shop-site-monitor-api
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Find Cloudflare account
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CF_TOKEN:-}" || { echo 'CLOUDFLARE_API_TOKEN is missing'; exit 2; }
+
+          curl -fsS -H "Authorization: Bearer $CF_TOKEN"             https://api.cloudflare.com/client/v4/accounts > /tmp/accounts.json
+
+          python3 - <<'PY' > /tmp/account-ids
+          import json
+          d=json.load(open('/tmp/accounts.json'))
+          for row in d.get('result') or []:
+              if isinstance(row,dict) and row.get('id'):
+                  print(row['id'])
+          PY
+
+          found=''
+          while IFS= read -r aid; do
+            [ -n "$aid" ] || continue
+            code1=$(curl -sS -o /dev/null -w '%{http_code}'               -H "Authorization: Bearer $CF_TOKEN"               "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$DAYCARE_WORKER/content/v2")
+            code2=$(curl -sS -o /dev/null -w '%{http_code}'               -H "Authorization: Bearer $CF_TOKEN"               "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SHOP_WORKER/content/v2")
+            if [ "$code1" = "200" ] && [ "$code2" = "200" ]; then
+              found="$aid"; break
+            fi
+          done < /tmp/account-ids
+
+          [ -n "$found" ] || { echo 'Target Workers account not found'; exit 3; }
+          echo "::add-mask::$found"
+          printf '%s' "$found" > /tmp/dpro-account-id
+
+      - name: Backup current Workers
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/dpro-account-id)
+          mkdir -p /tmp/dpro-backup
+
+          cp worker.js /tmp/dpro-backup/daycare-worker-repo-before-r16.js
+
+          curl -fsS -D /tmp/shop-headers-before.txt             -H "Authorization: Bearer $CF_TOKEN"             "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SHOP_WORKER/content/v2"             -o /tmp/dpro-backup/shop-content-before.bin
+
+          curl -fsS             -H "Authorization: Bearer $CF_TOKEN"             "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SHOP_WORKER/settings"             > /tmp/dpro-backup/shop-settings-before.json
+
+          curl -fsS             -H "Authorization: Bearer $CF_TOKEN"             "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SHOP_WORKER/schedules"             > /tmp/dpro-backup/shop-schedules-before.json
+
+      - name: Materialize SHOP worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/dpro-account-id)
+
+          curl -fsS -D /tmp/shop-headers.txt             -H "Authorization: Bearer $CF_TOKEN"             "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SHOP_WORKER/content/v2"             -o /tmp/shop-content.bin
+
+          curl -fsS             -H "Authorization: Bearer $CF_TOKEN"             "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SHOP_WORKER/settings"             > /tmp/shop-settings.json
+
+          rm -rf /tmp/shop-modules
+          mkdir -p /tmp/shop-modules
+
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+          from email.parser import BytesParser
+          from email.policy import default
+
+          settings=json.load(open('/tmp/shop-settings.json'))
+          result=settings.get('result') or {}
+
+          headers=Path('/tmp/shop-headers.txt').read_text(errors='ignore')
+          body=Path('/tmp/shop-content.bin').read_bytes()
+          m=re.search(r'content-type:\s*([^\r\n]+)',headers,re.I)
+          ctype=m.group(1).strip() if m else ''
+          if 'multipart/' not in ctype.lower():
+              raise SystemExit('Expected multipart SHOP worker content')
+
+          raw=(f'Content-Type: {ctype}\r\nMIME-Version: 1.0\r\n\r\n').encode()+body
+          msg=BytesParser(policy=default).parsebytes(raw)
+
+          manifest=[]
+          for part in msg.iter_parts():
+              payload=part.get_payload(decode=True) or b''
+              name=(part.get_filename() or part.get_param('name',header='content-disposition'))
+              if not name or name=='metadata':
+                  continue
+              safe=Path(name).name
+              (Path('/tmp/shop-modules')/safe).write_bytes(payload)
+              manifest.append({
+                  'name':safe,
+                  'content_type':part.get_content_type(),
+              })
+
+          if not manifest:
+              raise SystemExit('No SHOP modules found')
+
+          module_names=[x['name'] for x in manifest]
+          configured=result.get('main_module')
+          if configured:
+              candidate=Path(configured).name
+          elif 'worker.js' in module_names:
+              candidate='worker.js'
+          elif len(module_names)==1:
+              candidate=module_names[0]
+          else:
+              raise SystemExit('Unable to determine SHOP main module safely')
+
+          if candidate not in module_names:
+              raise SystemExit('Resolved SHOP main module is missing')
+
+          Path('/tmp/shop-main-module').write_text(candidate)
+          Path('/tmp/shop-module-manifest.json').write_text(
+              json.dumps(manifest,ensure_ascii=False)
+          )
+          print('SHOP_MAIN_MODULE_RESOLVED='+candidate)
+          print('SHOP_MODULES='+str(module_names))
+          PY
+
+      - name: Patch DAYCARE and SHOP
+        shell: bash
+        env:
+          DAYCARE_PATCH_B64: "CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aApwPVBhdGgoIndvcmtlci5qcyIpCnM9cC5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKCm9sZD0nY29uc3QgVkVSU0lPTiA9ICJEQVlDQVJFLTMtUjE1LUFVVE8tRVNDQUxBVElPTi0yMDI2MDkzMCI7JwpuZXc9J2NvbnN0IFZFUlNJT04gPSAiREFZQ0FSRS0zLVIxNi1TSEFSRUQtU0NIRURVTEVSLTIwMjYwOTMwIjsnCmlmIG9sZCBub3QgaW4gczoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkVSUk9SOiBSMTUgdmVyc2lvbiBhbmNob3Igbm90IGZvdW5kIikKcz1zLnJlcGxhY2Uob2xkLG5ldywxKQoKcm91dGVfYW5jaG9yPScgIGlmIChwYXRoID09PSAiL2FwaS9wdWJsaWMvY29uZmlnIiAmJiBtZXRob2QgPT09ICJHRVQiKSB7Jwpyb3V0ZV9ibG9jaz0nJycgIGlmIChwYXRoID09PSAiL2FwaS9pbnRlcm5hbC9zY2hlZHVsZXIvYXV0by1lc2NhbGF0aW9uIiAmJiBtZXRob2QgPT09ICJQT1NUIikgewogICAgY29uc3Qgc3VwcGxpZWRTZWNyZXQgPSByZXF1ZXN0LmhlYWRlcnMuZ2V0KCJ4LWRwcm8tc2NoZWR1bGVyLXNlY3JldCIpIHx8ICIiOwogICAgY29uc3QgZXhwZWN0ZWRTZWNyZXQgPSBjbGVhblRleHQoZW52LkRQUk9fU0NIRURVTEVSX1NFQ1JFVCB8fCAiIiwgNTAwKTsKCiAgICBpZiAoCiAgICAgICFleHBlY3RlZFNlY3JldAogICAgICB8fCAhc3VwcGxpZWRTZWNyZXQKICAgICAgfHwgIXNlY3VyZVN0cmluZ0VxdWFsKHN1cHBsaWVkU2VjcmV0LCBleHBlY3RlZFNlY3JldCkKICAgICkgewogICAgICB0aHJvdyBuZXcgQXBpRXJyb3IoNDAxLCAi44K544Kx44K444Ol44O844Op44O86KqN6Ki844Gr5aSx5pWX44GX44G+44GX44Gf44CCIik7CiAgICB9CgogICAgYXdhaXQgcHJvY2Vzc0F1dG9Fc2NhbGF0aW9ucyhlbnYpOwoKICAgIHJldHVybiB7CiAgICAgIGJvZHk6IHsKICAgICAgICBvazogdHJ1ZSwKICAgICAgICBzZXJ2aWNlOiBTRVJWSUNFX05BTUUsCiAgICAgICAgdmVyc2lvbjogVkVSU0lPTiwKICAgICAgICBzY2hlZHVsZXI6ICJzaGFyZWQiLAogICAgICAgIGF1dG9fZXNjYWxhdGlvbl9wcm9jZXNzZWQ6IHRydWUsCiAgICAgIH0sCiAgICB9OwogIH0KCiAgaWYgKHBhdGggPT09ICIvYXBpL3B1YmxpYy9jb25maWciICYmIG1ldGhvZCA9PT0gIkdFVCIpIHsnJycKCmlmICIvYXBpL2ludGVybmFsL3NjaGVkdWxlci9hdXRvLWVzY2FsYXRpb24iIG5vdCBpbiBzOgogICAgaWYgcm91dGVfYW5jaG9yIG5vdCBpbiBzOgogICAgICAgIHJhaXNlIFN5c3RlbUV4aXQoIkVSUk9SOiBpbnRlcm5hbCByb3V0ZSBhbmNob3Igbm90IGZvdW5kIikKICAgIHM9cy5yZXBsYWNlKHJvdXRlX2FuY2hvcixyb3V0ZV9ibG9jaywxKQoKZW5kcG9pbnRfYW5jaG9yPScgICAgICAgICAgcHVibGljX2NvbmZpZzogIi9hcGkvcHVibGljL2NvbmZpZyIsJwplbmRwb2ludF9uZXc9JycnICAgICAgICAgIHB1YmxpY19jb25maWc6ICIvYXBpL3B1YmxpYy9jb25maWciLAogICAgICAgICAgaW50ZXJuYWxfc2NoZWR1bGVyX2F1dG9fZXNjYWxhdGlvbjogIi9hcGkvaW50ZXJuYWwvc2NoZWR1bGVyL2F1dG8tZXNjYWxhdGlvbiIsJycnCmlmICJpbnRlcm5hbF9zY2hlZHVsZXJfYXV0b19lc2NhbGF0aW9uIiBub3QgaW4gczoKICAgIGlmIGVuZHBvaW50X2FuY2hvciBub3QgaW4gczoKICAgICAgICByYWlzZSBTeXN0ZW1FeGl0KCJFUlJPUjogZW5kcG9pbnQgbGlzdGluZyBhbmNob3Igbm90IGZvdW5kIikKICAgIHM9cy5yZXBsYWNlKGVuZHBvaW50X2FuY2hvcixlbmRwb2ludF9uZXcsMSkKCmZlYXR1cmVfYW5jaG9yPScgICAgICBhdXRvX2ZhbWlseV9lc2NhbGF0aW9uX3NldHRpbmdzOiB0cnVlLCcKZmVhdHVyZV9uZXc9JycnICAgICAgYXV0b19mYW1pbHlfZXNjYWxhdGlvbl9zZXR0aW5nczogdHJ1ZSwKICAgICAgc2hhcmVkX3NjaGVkdWxlcl9icmlkZ2U6IHRydWUsJycnCmlmICJzaGFyZWRfc2NoZWR1bGVyX2JyaWRnZTogdHJ1ZSIgbm90IGluIHM6CiAgICBpZiBmZWF0dXJlX2FuY2hvciBub3QgaW4gczoKICAgICAgICByYWlzZSBTeXN0ZW1FeGl0KCJFUlJPUjogZmVhdHVyZSBhbmNob3Igbm90IGZvdW5kIikKICAgIHM9cy5yZXBsYWNlKGZlYXR1cmVfYW5jaG9yLGZlYXR1cmVfbmV3LDEpCgpyZXF1aXJlZD1bCiAgICAnREFZQ0FSRS0zLVIxNi1TSEFSRUQtU0NIRURVTEVSLTIwMjYwOTMwJywKICAgICcvYXBpL2ludGVybmFsL3NjaGVkdWxlci9hdXRvLWVzY2FsYXRpb24nLAogICAgJ3gtZHByby1zY2hlZHVsZXItc2VjcmV0JywKICAgICdzaGFyZWRfc2NoZWR1bGVyX2JyaWRnZTogdHJ1ZScsCl0KbWlzc2luZz1beCBmb3IgeCBpbiByZXF1aXJlZCBpZiB4IG5vdCBpbiBzXQppZiBtaXNzaW5nOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiRVJST1IgbWlzc2luZzogIisiLCAiLmpvaW4obWlzc2luZykpCgpwLndyaXRlX3RleHQocyxlbmNvZGluZz0idXRmLTgiKQpwcmludCgiREFZQ0FSRV9QQVRDSD1QQVNTIikK"
+          SHOP_PATCH_B64: "CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAppbXBvcnQgb3MscmUKCnA9UGF0aChvcy5lbnZpcm9uWyJTSE9QX01BSU5fTU9EVUxFIl0pCnM9cC5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKCnN0YXJ0X21hdGNoPXJlLnNlYXJjaChyJ1xiYXN5bmNccytzY2hlZHVsZWRccypcKFteKV0qXClccypceycscykKaWYgbm90IHN0YXJ0X21hdGNoOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiRVJST1I6IHNob3Agc2NoZWR1bGVkIGhhbmRsZXIgbm90IGZvdW5kIikKCmJyYWNlX3N0YXJ0PXMuZmluZCgieyIsc3RhcnRfbWF0Y2guc3RhcnQoKSkKZGVwdGg9MAplbmQ9Tm9uZQppbl9zPWluX2Q9aW5fdD1GYWxzZQplc2M9RmFsc2UKbGluZV9jb21tZW50PUZhbHNlCmJsb2NrX2NvbW1lbnQ9RmFsc2UKaT1icmFjZV9zdGFydAoKd2hpbGUgaSA8IGxlbihzKToKICAgIGM9c1tpXQogICAgbj1zW2krMV0gaWYgaSsxIDwgbGVuKHMpIGVsc2UgIiIKCiAgICBpZiBsaW5lX2NvbW1lbnQ6CiAgICAgICAgaWYgYz09IlxuIjogbGluZV9jb21tZW50PUZhbHNlCiAgICAgICAgaSs9MTsgY29udGludWUKICAgIGlmIGJsb2NrX2NvbW1lbnQ6CiAgICAgICAgaWYgYz09IioiIGFuZCBuPT0iLyI6CiAgICAgICAgICAgIGJsb2NrX2NvbW1lbnQ9RmFsc2U7IGkrPTI7IGNvbnRpbnVlCiAgICAgICAgaSs9MTsgY29udGludWUKICAgIGlmIGluX3M6CiAgICAgICAgaWYgZXNjOiBlc2M9RmFsc2UKICAgICAgICBlbGlmIGM9PSJcXCI6IGVzYz1UcnVlCiAgICAgICAgZWxpZiBjPT0iJyI6IGluX3M9RmFsc2UKICAgICAgICBpKz0xOyBjb250aW51ZQogICAgaWYgaW5fZDoKICAgICAgICBpZiBlc2M6IGVzYz1GYWxzZQogICAgICAgIGVsaWYgYz09IlxcIjogZXNjPVRydWUKICAgICAgICBlbGlmIGM9PSciJzogaW5fZD1GYWxzZQogICAgICAgIGkrPTE7IGNvbnRpbnVlCiAgICBpZiBpbl90OgogICAgICAgIGlmIGVzYzogZXNjPUZhbHNlCiAgICAgICAgZWxpZiBjPT0iXFwiOiBlc2M9VHJ1ZQogICAgICAgIGVsaWYgYz09ImAiOiBpbl90PUZhbHNlCiAgICAgICAgaSs9MTsgY29udGludWUKCiAgICBpZiBjPT0iLyIgYW5kIG49PSIvIjoKICAgICAgICBsaW5lX2NvbW1lbnQ9VHJ1ZTsgaSs9MjsgY29udGludWUKICAgIGlmIGM9PSIvIiBhbmQgbj09IioiOgogICAgICAgIGJsb2NrX2NvbW1lbnQ9VHJ1ZTsgaSs9MjsgY29udGludWUKICAgIGlmIGM9PSInIjogaW5fcz1UcnVlOyBpKz0xOyBjb250aW51ZQogICAgaWYgYz09JyInOiBpbl9kPVRydWU7IGkrPTE7IGNvbnRpbnVlCiAgICBpZiBjPT0iYCI6IGluX3Q9VHJ1ZTsgaSs9MTsgY29udGludWUKCiAgICBpZiBjPT0ieyI6IGRlcHRoKz0xCiAgICBlbGlmIGM9PSJ9IjoKICAgICAgICBkZXB0aC09MQogICAgICAgIGlmIGRlcHRoPT0wOgogICAgICAgICAgICBlbmQ9aSsxCiAgICAgICAgICAgIGJyZWFrCiAgICBpKz0xCgppZiBlbmQgaXMgTm9uZToKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkVSUk9SOiBzY2hlZHVsZWQgaGFuZGxlciBjbG9zaW5nIGJyYWNlIG5vdCBmb3VuZCIpCgpvbGQ9c1tzdGFydF9tYXRjaC5zdGFydCgpOmVuZF0KaWYgInJ1bk1vbml0b3JpbmciIG5vdCBpbiBvbGQ6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJFUlJPUjogc2NoZWR1bGVkIGhhbmRsZXIgZG9lcyBub3QgY29udGFpbiBydW5Nb25pdG9yaW5nIikKCm5ldz1yJycnYXN5bmMgc2NoZWR1bGVkKGV2ZW50LCBlbnYsIGN0eCkgewogICAgY29uc3Qgc2NoZWR1bGVkQXQgPSBuZXcgRGF0ZShldmVudD8uc2NoZWR1bGVkVGltZSB8fCBEYXRlLm5vdygpKTsKICAgIGNvbnN0IHV0Y01pbnV0ZSA9IHNjaGVkdWxlZEF0LmdldFVUQ01pbnV0ZXMoKTsKICAgIGNvbnN0IHV0Y0hvdXIgPSBzY2hlZHVsZWRBdC5nZXRVVENIb3VycygpOwoKICAgIC8vIFByZXNlcnZlIHRoZSBleGlzdGluZyBTSE9QIG1vbml0b3IgY2FkZW5jZSBleGFjdGx5OgogICAgLy8gb3JpZ2luYWwgY3JvbiA9ICIwICovNiAqICogKiIgKGV2ZXJ5IDYgaG91cnMsIFVUQykuCiAgICBpZiAodXRjTWludXRlID09PSAwICYmIHV0Y0hvdXIgJSA2ID09PSAwKSB7CiAgICAgIGN0eC53YWl0VW50aWwoCiAgICAgICAgcnVuTW9uaXRvcmluZyhlbnYsIHsKICAgICAgICAgIHNvdXJjZTogInNjaGVkdWxlZCIsCiAgICAgICAgICBhY3RvcjogbnVsbCwKICAgICAgICAgIHdlYnNpdGVJZDogbnVsbCwKICAgICAgICAgIHJlcXVlc3RJZDogY3J5cHRvLnJhbmRvbVVVSUQoKSwKICAgICAgICB9KS5jYXRjaCgoZXJyb3IpID0+IHsKICAgICAgICAgIGNvbnNvbGUuZXJyb3IoIltDT05UUk9MLUNFTlRFUiBzY2hlZHVsZWRdIiwgZXJyb3IpOwogICAgICAgIH0pLAogICAgICApOwogICAgfQoKICAgIC8vIFNoYXJlZCBzY2hlZHVsZXI6IERBWUNBUkUgYXV0byBlc2NhbGF0aW9uIGlzIGNoZWNrZWQgZXZlcnkgbWludXRlLgogICAgY3R4LndhaXRVbnRpbCgKICAgICAgKGFzeW5jICgpID0+IHsKICAgICAgICBjb25zdCBzZWNyZXQgPSBTdHJpbmcoZW52LkRQUk9fU0NIRURVTEVSX1NFQ1JFVCB8fCAiIik7CiAgICAgICAgaWYgKCFzZWNyZXQpIHsKICAgICAgICAgIHRocm93IG5ldyBFcnJvcigiRFBST19TQ0hFRFVMRVJfU0VDUkVUIGlzIG1pc3NpbmciKTsKICAgICAgICB9CgogICAgICAgIGNvbnN0IHJlc3BvbnNlID0gYXdhaXQgZmV0Y2goCiAgICAgICAgICAiaHR0cHM6Ly9kcHJvLWRheXNlcnZpY2UtbGluZS1hcGkuZHByb21zdGsyMDAwLndvcmtlcnMuZGV2L2FwaS9pbnRlcm5hbC9zY2hlZHVsZXIvYXV0by1lc2NhbGF0aW9uIiwKICAgICAgICAgIHsKICAgICAgICAgICAgbWV0aG9kOiAiUE9TVCIsCiAgICAgICAgICAgIGhlYWRlcnM6IHsKICAgICAgICAgICAgICAiQ29udGVudC1UeXBlIjogImFwcGxpY2F0aW9uL2pzb24iLAogICAgICAgICAgICAgICJYLURQUk8tU2NoZWR1bGVyLVNlY3JldCI6IHNlY3JldCwKICAgICAgICAgICAgfSwKICAgICAgICAgICAgYm9keTogInt9IiwKICAgICAgICAgIH0sCiAgICAgICAgKTsKCiAgICAgICAgaWYgKCFyZXNwb25zZS5vaykgewogICAgICAgICAgY29uc3QgdGV4dCA9IGF3YWl0IHJlc3BvbnNlLnRleHQoKTsKICAgICAgICAgIHRocm93IG5ldyBFcnJvcigKICAgICAgICAgICAgYERBWUNBUkUgc2NoZWR1bGVyIGJyaWRnZSBmYWlsZWQ6ICR7cmVzcG9uc2Uuc3RhdHVzfSAke3RleHQuc2xpY2UoMCwgMzAwKX1gCiAgICAgICAgICApOwogICAgICAgIH0KICAgICAgfSkoKS5jYXRjaCgoZXJyb3IpID0+IHsKICAgICAgICBjb25zb2xlLmVycm9yKCJbRFBSTyBzaGFyZWQgc2NoZWR1bGVyIERBWUNBUkVdIiwgZXJyb3IpOwogICAgICB9KSwKICAgICk7CiAgfScnJwoKcz1zWzpzdGFydF9tYXRjaC5zdGFydCgpXStuZXcrc1tlbmQ6XQoKcmVxdWlyZWQ9WwogICAgInV0Y01pbnV0ZSA9PT0gMCAmJiB1dGNIb3VyICUgNiA9PT0gMCIsCiAgICAiRFBST19TQ0hFRFVMRVJfU0VDUkVUIiwKICAgICIvYXBpL2ludGVybmFsL3NjaGVkdWxlci9hdXRvLWVzY2FsYXRpb24iLAogICAgIltEUFJPIHNoYXJlZCBzY2hlZHVsZXIgREFZQ0FSRV0iLApdCm1pc3Npbmc9W3ggZm9yIHggaW4gcmVxdWlyZWQgaWYgeCBub3QgaW4gc10KaWYgbWlzc2luZzoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkVSUk9SIHNob3AgcGF0Y2ggbWlzc2luZzogIisiLCAiLmpvaW4obWlzc2luZykpCgpwLndyaXRlX3RleHQocyxlbmNvZGluZz0idXRmLTgiKQpwcmludCgiU0hPUF9QQVRDSD1QQVNTIikK"
+        run: |
+          set -euo pipefail
+
+          python -c 'import os,base64; exec(base64.b64decode(os.environ["DAYCARE_PATCH_B64"]).decode("utf-8"))'
+
+          export SHOP_MAIN_MODULE="/tmp/shop-modules/$(cat /tmp/shop-main-module)"
+          python -c 'import os,base64; exec(base64.b64decode(os.environ["SHOP_PATCH_B64"]).decode("utf-8"))'
+
+          node --check worker.js
+          node --check "$SHOP_MAIN_MODULE"
+
+          grep -q 'DAYCARE-3-R16-SHARED-SCHEDULER-20260930' worker.js
+          grep -q '/api/internal/scheduler/auto-escalation' worker.js
+          grep -q 'utcMinute === 0 && utcHour % 6 === 0' "$SHOP_MAIN_MODULE"
+          grep -q 'DPRO shared scheduler DAYCARE' "$SHOP_MAIN_MODULE"
+
+          echo "STATIC_QA=PASS"
+
+      - name: Update DAYCARE repository source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          curl -fsSL             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/$REPO/contents/worker.js?ref=main"             > /tmp/current-worker.json
+
+          python3 - <<'PY' > /tmp/payload-worker.json
+          import json,base64
+          from pathlib import Path
+          current=json.load(open('/tmp/current-worker.json'))
+          print(json.dumps({
+            "message":"DAYCARE R16 shared scheduler bridge",
+            "content":base64.b64encode(Path("worker.js").read_bytes()).decode("ascii"),
+            "sha":current["sha"],
+            "branch":"main"
+          }))
+          PY
+
+          curl -fsSL -X PUT             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             -H "Content-Type: application/json"             "https://api.github.com/repos/$REPO/contents/worker.js"             --data-binary @/tmp/payload-worker.json > /tmp/update-worker.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/update-worker.json'))
+          if not (d.get('commit') or {}).get('sha'):
+              raise SystemExit('DAYCARE repository update failed')
+          print('DAYCARE_REPO_UPDATE=PASS')
+          PY
+
+      - name: Deploy DAYCARE R16
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/dpro-account-id)
+
+          code=$(curl -sS -o /tmp/daycare-deploy.json -w '%{http_code}'             -X PUT             -H "Authorization: Bearer $CF_TOKEN"             -F 'metadata={"main_module":"worker.js","keep_bindings":["plain_text","secret_text"]};type=application/json'             -F 'worker.js=@worker.js;type=application/javascript+module'             "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$DAYCARE_WORKER/content")
+
+          echo "DAYCARE_DEPLOY_HTTP=$code"
+          [ "$code" = "200" ] || { cat /tmp/daycare-deploy.json; exit 4; }
+
+      - name: Deploy patched SHOP monitor
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/dpro-account-id)
+
+          python3 - <<'PY' > /tmp/shop-upload-metadata.json
+          import json
+          main=open('/tmp/shop-main-module').read().strip()
+          print(json.dumps({
+              "main_module":main,
+              "keep_bindings":["plain_text","secret_text"]
+          }))
+          PY
+
+          args=(
+            -sS -o /tmp/shop-deploy.json -w '%{http_code}'
+            -X PUT
+            -H "Authorization: Bearer $CF_TOKEN"
+            -F "metadata=</tmp/shop-upload-metadata.json;type=application/json"
+          )
+
+          while IFS=$'\t' read -r part ctype; do
+            args+=(-F "$part=@/tmp/shop-modules/$part;type=$ctype")
+          done < <(python3 - <<'PY'
+          import json
+          for x in json.load(open('/tmp/shop-module-manifest.json')):
+              print(x['name']+"\t"+(x.get('content_type') or 'application/javascript+module'))
+          PY
+          )
+
+          code=$(curl "${args[@]}"             "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SHOP_WORKER/content")
+
+          echo
+          echo "SHOP_DEPLOY_HTTP=$code"
+          [ "$code" = "200" ] || { cat /tmp/shop-deploy.json; exit 5; }
+
+      - name: Install shared scheduler secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/dpro-account-id)
+
+          secret=$(python3 - <<'PY'
+          import secrets
+          print(secrets.token_urlsafe(48))
+          PY
+          )
+          echo "::add-mask::$secret"
+          printf '%s' "$secret" > /tmp/dpro-scheduler-secret
+
+          for worker in "$DAYCARE_WORKER" "$SHOP_WORKER"; do
+            SECRET="$secret" python3 - <<'PY' > /tmp/secret-payload.json
+          import os,json
+          print(json.dumps({
+            "name":"DPRO_SCHEDULER_SECRET",
+            "text":os.environ["SECRET"],
+            "type":"secret_text"
+          }))
+          PY
+
+            code=$(curl -sS -o /tmp/secret-result.json -w '%{http_code}'               -X PUT               -H "Authorization: Bearer $CF_TOKEN"               -H "Content-Type: application/json"               --data-binary @/tmp/secret-payload.json               "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$worker/secrets")
+            echo "$worker SECRET_HTTP=$code"
+            [ "$code" = "200" ] || { cat /tmp/secret-result.json; exit 6; }
+          done
+
+      - name: Reuse SHOP cron as shared scheduler
+        shell: bash
+        run: |
+          set -euo pipefail
+          aid=$(cat /tmp/dpro-account-id)
+
+          printf '%s' '[{"cron":"* * * * *"}]' > /tmp/schedules-payload.json
+
+          code=$(curl -sS -o /tmp/schedules-update.json -w '%{http_code}'             -X PUT             -H "Authorization: Bearer $CF_TOKEN"             -H "Content-Type: application/json"             --data-binary @/tmp/schedules-payload.json             "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SHOP_WORKER/schedules")
+
+          echo "SCHEDULE_UPDATE_HTTP=$code"
+          [ "$code" = "200" ] || { cat /tmp/schedules-update.json; exit 7; }
+
+          curl -fsS             -H "Authorization: Bearer $CF_TOKEN"             "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$SHOP_WORKER/schedules"             > /tmp/schedules-after.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/schedules-after.json'))
+          result=d.get('result')
+          if isinstance(result,dict):
+              rows=result.get('schedules') or []
+          elif isinstance(result,list):
+              rows=result
+          else:
+              rows=[]
+          crons=[]
+          for row in rows:
+              if isinstance(row,dict): c=row.get('cron')
+              elif isinstance(row,str): c=row
+              else: c=None
+              if c: crons.append(c)
+          print("SHOP_CRONS=",crons)
+          if "* * * * *" not in crons:
+              raise SystemExit("Shared scheduler cron not confirmed")
+          print("SHARED_CRON_QA=PASS")
+          PY
+
+      - name: Verify R16 health
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,time,urllib.request
+          url='https://dpro-dayservice-line-api.dpromstk2000.workers.dev/api/health'
+          expected='DAYCARE-3-R16-SHARED-SCHEDULER-20260930'
+          last={}
+          for _ in range(20):
+              req=urllib.request.Request(url,headers={
+                'Accept':'application/json',
+                'User-Agent':'DPRO-SHARED-SCHEDULER-R2'
+              })
+              try:
+                  with urllib.request.urlopen(req,timeout=25) as r:
+                      last=json.loads(r.read().decode())
+                  f=last.get('features') or {}
+                  if last.get('workerVersion')==expected and f.get('shared_scheduler_bridge') is True:
+                      print("R16_HEALTH_QA=PASS")
+                      break
+              except Exception as e:
+                  print("retry",repr(e))
+              time.sleep(2)
+          else:
+              raise SystemExit("R16 did not become live")
+          PY
+
+      - name: Invoke shared scheduler safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          secret=$(cat /tmp/dpro-scheduler-secret)
+
+          code=$(curl -sS -o /tmp/scheduler-call.json -w '%{http_code}'             -X POST             -H 'Content-Type: application/json'             -H "X-DPRO-Scheduler-Secret: $secret"             --data '{}'             'https://dpro-dayservice-line-api.dpromstk2000.workers.dev/api/internal/scheduler/auto-escalation')
+
+          echo "SCHEDULER_CALL_HTTP=$code"
+          cat /tmp/scheduler-call.json
+          [ "$code" = "200" ] || exit 8
+
+      - name: Build backup artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dpro-shared-scheduler-r2-backup
+          path: /tmp/dpro-backup/
+          if-no-files-found: warn
