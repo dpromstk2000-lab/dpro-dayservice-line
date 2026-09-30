@@ -34,7 +34,7 @@
  */
 
 const SERVICE_NAME = "DPRO Dayservice LINE API";
-const VERSION = "DAYCARE-3-R11-FAMILY-CONTACT-VISIBILITY-FIX2-20260930";
+const VERSION = "DAYCARE-3-R12-FAMILY-CONTACT-EDIT-20260930";
 const FRONTEND_VERSION = "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8-R5-BROADCAST-DEMO-SAFE / IPAD-9 / SYSTEM-CHECK-10";
 const DATABASE_VERSION_EXPECTED = "DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01";
 const ADAPTER_VERSION = "DPRO-CONTROL-ADAPTER-1.0";
@@ -209,6 +209,7 @@ async function routeRequest(context) {
           admin_day: "/api/admin/day",
           admin_search: "/api/admin/search",
           admin_user_detail: "/api/admin/user-detail",
+          admin_family_contact_routing_update: "/api/admin/family-contact-routing/update",
           admin_schedule_create: "/api/admin/schedules/create",
           admin_attendance_status: "/api/admin/attendance/status",
           admin_daily_check_status: "/api/admin/daily-checks/status",
@@ -323,6 +324,12 @@ async function routeRequest(context) {
     if (path === "/api/admin/user-detail" && method === "GET") {
       return {
         body: await handleAdminUserDetail(env, facility, url),
+      };
+    }
+
+    if (path === "/api/admin/family-contact-routing/update" && method === "POST") {
+      return {
+        body: await handleAdminFamilyContactRoutingUpdate(env, facility, body),
       };
     }
 
@@ -1743,6 +1750,113 @@ async function handleAdminUserDetail(env, facility, url) {
     family_requests: requests,
     notes,
     message_logs: messageLogs,
+  };
+}
+
+async function handleAdminFamilyContactRoutingUpdate(env, facility, body) {
+  const relationId = requireUuid(body.relation_id, "家族連携ID");
+
+  const rows = await supabaseRequest(env, TABLES.userFamilies, {
+    query: {
+      select: "*",
+      id: `eq.${relationId}`,
+      facility_id: `eq.${facility.id}`,
+      is_active: "eq.true",
+      limit: "1",
+    },
+  });
+
+  const relation = rows[0];
+  if (!relation) {
+    throw new ApiError(404, "対象の家族連携情報が見つかりません。");
+  }
+
+  const receiveNormal = body.receive_normal;
+  const receiveEmergency = body.receive_emergency;
+  const allowEscalation = body.allow_escalation;
+  const contactPriority = Number(body.contact_priority);
+
+  if (typeof receiveNormal !== "boolean") {
+    throw new ApiError(400, "通常連絡の対象設定が正しくありません。");
+  }
+  if (typeof receiveEmergency !== "boolean") {
+    throw new ApiError(400, "緊急連絡の対象設定が正しくありません。");
+  }
+  if (typeof allowEscalation !== "boolean") {
+    throw new ApiError(400, "段階配信の設定が正しくありません。");
+  }
+  if (!Number.isInteger(contactPriority) || contactPriority < 1 || contactPriority > 20) {
+    throw new ApiError(400, "連絡優先順位は1〜20で指定してください。");
+  }
+
+  const siblings = await supabaseRequest(env, TABLES.userFamilies, {
+    query: {
+      select: "id,contact_priority,is_active",
+      facility_id: `eq.${facility.id}`,
+      user_id: `eq.${relation.user_id}`,
+      is_active: "eq.true",
+      limit: "100",
+    },
+  });
+
+  const duplicatePriority = siblings.find(
+    (row) =>
+      row.id !== relation.id
+      && Number(row.contact_priority) === contactPriority
+  );
+
+  if (duplicatePriority) {
+    throw new ApiError(
+      409,
+      `優先順位「第${contactPriority}」は、同じ利用者の別のご家族ですでに使用されています。`,
+    );
+  }
+
+  const operatorName = cleanText(body.operator_name, 100) || "管理画面";
+  const now = new Date().toISOString();
+
+  const updated = await supabaseRequest(env, TABLES.userFamilies, {
+    method: "PATCH",
+    query: {
+      id: `eq.${relation.id}`,
+      facility_id: `eq.${facility.id}`,
+    },
+    body: {
+      receive_normal: receiveNormal,
+      receive_emergency: receiveEmergency,
+      contact_priority: contactPriority,
+      allow_escalation: allowEscalation,
+      routing_updated_at: now,
+      updated_by: operatorName,
+    },
+    prefer: "return=representation",
+  });
+
+  await logOperation(env, {
+    facilityId: facility.id,
+    actorType: "admin",
+    actorName: operatorName,
+    action: "family_contact_routing_updated",
+    targetTable: TABLES.userFamilies,
+    targetId: relation.id,
+    deviceType: cleanDeviceType(body.device_type),
+    isDemo: Boolean(relation.is_demo),
+    details: {
+      user_id: relation.user_id,
+      family_member_id: relation.family_member_id,
+      receive_normal: receiveNormal,
+      receive_emergency: receiveEmergency,
+      contact_priority: contactPriority,
+      allow_escalation: allowEscalation,
+    },
+  });
+
+  return {
+    ok: true,
+    service: SERVICE_NAME,
+    version: VERSION,
+    message: "ご家族の連絡設定を保存しました。",
+    relation: updated[0] || null,
   };
 }
 
