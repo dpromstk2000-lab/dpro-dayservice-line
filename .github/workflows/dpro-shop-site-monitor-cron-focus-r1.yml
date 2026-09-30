@@ -1,0 +1,156 @@
+name: DPRO Shop Site Monitor Cron Focus R1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      TARGET_WORKER: dpro-shop-site-monitor-api
+
+    steps:
+      - name: Inspect target worker only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CF_TOKEN:-}" || { echo 'CLOUDFLARE_API_TOKEN is missing'; exit 2; }
+
+          curl -fsS -H "Authorization: Bearer $CF_TOKEN" \
+            https://api.cloudflare.com/client/v4/accounts > /tmp/accounts.json
+
+          python3 - <<'PY' > /tmp/account-ids
+          import json
+          d=json.load(open('/tmp/accounts.json'))
+          for row in d.get('result') or []:
+              if isinstance(row,dict) and row.get('id'):
+                  print(row['id'])
+          PY
+
+          found=''
+          while IFS= read -r aid; do
+            [ -n "$aid" ] || continue
+            code=$(curl -sS -o /tmp/content.bin -D /tmp/headers -w '%{http_code}' \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$aid/workers/scripts/$TARGET_WORKER/content/v2")
+            if [ "$code" = "200" ]; then
+              found="$aid"
+              break
+            fi
+          done < /tmp/account-ids
+
+          [ -n "$found" ] || { echo 'Target Worker not found'; exit 3; }
+          echo "::add-mask::$found"
+
+          curl -fsS \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$found/workers/scripts/$TARGET_WORKER/schedules" \
+            > /tmp/schedules.json
+
+          curl -fsS \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$found/workers/scripts/$TARGET_WORKER/settings" \
+            > /tmp/settings.json
+
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+          from email.parser import BytesParser
+          from email.policy import default
+
+          print("=== TARGET WORKER SUMMARY ===")
+          print("WORKER=dpro-shop-site-monitor-api")
+
+          sd=json.load(open('/tmp/schedules.json'))
+          result=sd.get('result')
+          if isinstance(result,dict):
+              rows=result.get('schedules') or []
+          elif isinstance(result,list):
+              rows=result
+          else:
+              rows=[]
+          crons=[]
+          for row in rows:
+              if isinstance(row,dict): c=row.get('cron')
+              elif isinstance(row,str): c=row
+              else: c=None
+              if c: crons.append(c)
+          print("CRON="+(",".join(crons) if crons else "(none)"))
+
+          st=json.load(open('/tmp/settings.json'))
+          sr=st.get('result') or {}
+          bindings=sr.get('bindings') or []
+          safe=[]
+          for b in bindings:
+              if not isinstance(b,dict): continue
+              item={'name':b.get('name'),'type':b.get('type')}
+              if b.get('service'): item['service']=b.get('service')
+              safe.append(item)
+          print("BINDINGS="+json.dumps(safe,ensure_ascii=False))
+
+          headers=Path('/tmp/headers').read_text(errors='ignore')
+          body=Path('/tmp/content.bin').read_bytes()
+          m=re.search(r'content-type:\s*([^\r\n]+)',headers,re.I)
+          ctype=m.group(1).strip() if m else ''
+          chunks=[]
+
+          if 'multipart/' in ctype.lower():
+              raw=(f'Content-Type: {ctype}\r\nMIME-Version: 1.0\r\n\r\n').encode()+body
+              msg=BytesParser(policy=default).parsebytes(raw)
+              for part in msg.iter_parts():
+                  payload=part.get_payload(decode=True) or b''
+                  filename=part.get_filename() or part.get_param('name',header='content-disposition') or 'module'
+                  chunks.append((filename,payload.decode('utf-8','ignore')))
+          else:
+              chunks.append(('worker',body.decode('utf-8','ignore')))
+
+          source="\n".join(text for _,text in chunks)
+          print("HAS_SCHEDULED="+str(bool(re.search(r'\bscheduled\s*\(',source,re.I))).lower())
+
+          urls=sorted(set(re.findall(r'https://[A-Za-z0-9._~:/?#\[\]@!$&\'()*+,;=%-]+',source)))
+          public_urls=[u[:220] for u in urls if 'cloudflare' not in u.lower()]
+          print("OUTBOUND_URL_COUNT="+str(len(public_urls)))
+          for u in public_urls[:20]:
+              print("OUTBOUND_URL="+u)
+
+          patterns=[
+              r'async\s+scheduled\s*\([^)]*\)\s*\{',
+              r'scheduled\s*\([^)]*\)\s*\{',
+              r'addEventListener\s*\(\s*[\'"]scheduled[\'"]',
+          ]
+          pos=None
+          for pat in patterns:
+              m=re.search(pat,source,re.I)
+              if m:
+                  pos=m.start()
+                  break
+
+          if pos is None:
+              print("SCHEDULED_SNIPPET=(not found)")
+          else:
+              start=max(0,pos-300)
+              end=min(len(source),pos+3500)
+              snippet=source[start:end]
+              snippet=re.sub(
+                  r'(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*[\'"][^\'"]+[\'"]',
+                  r'\1="[REDACTED]"',
+                  snippet
+              )
+              print("=== SCHEDULED SNIPPET START ===")
+              print(snippet)
+              print("=== SCHEDULED SNIPPET END ===")
+
+          if re.search(r'\bfetch\s*\(',source) and re.search(r'\bscheduled\s*\(',source,re.I):
+              print("DIAG_HINT=scheduled_handler_and_fetch_found")
+          elif re.search(r'\bscheduled\s*\(',source,re.I):
+              print("DIAG_HINT=scheduled_handler_found")
+          else:
+              print("DIAG_HINT=no_scheduled_handler_found")
+
+          print("DIAG_RESULT=TARGET_WORKER_INSPECTED")
+          PY
