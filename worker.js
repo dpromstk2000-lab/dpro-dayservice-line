@@ -34,7 +34,7 @@
  */
 
 const SERVICE_NAME = "DPRO Dayservice LINE API";
-const VERSION = "DAYCARE-3-R12-FAMILY-CONTACT-EDIT-20260930";
+const VERSION = "DAYCARE-3-R13-STAGED-FAMILY-ESCALATION-20260930";
 const FRONTEND_VERSION = "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8-R5-BROADCAST-DEMO-SAFE / IPAD-9 / SYSTEM-CHECK-10";
 const DATABASE_VERSION_EXPECTED = "DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01";
 const ADAPTER_VERSION = "DPRO-CONTROL-ADAPTER-1.0";
@@ -224,6 +224,8 @@ async function routeRequest(context) {
           admin_broadcast_send: "/api/admin/broadcasts/send",
           admin_broadcast_history: "/api/admin/broadcasts/history",
           admin_broadcast_resend: "/api/admin/broadcasts/resend",
+          admin_broadcast_escalation_preview: "/api/admin/broadcasts/escalation-preview",
+          admin_broadcast_escalate: "/api/admin/broadcasts/escalate",
           admin_broadcast_schedule: "/api/admin/broadcasts/schedule",
           admin_broadcast_cancel: "/api/admin/broadcasts/cancel",
           admin_phone_normalize_check: "/api/admin/phone-normalize-check",
@@ -421,6 +423,19 @@ async function routeRequest(context) {
       };
     }
 
+    if (path === "/api/admin/broadcasts/escalation-preview" && method === "POST") {
+      return {
+        body: await handleAdminBroadcastEscalationPreview(env, facility, body),
+      };
+    }
+
+    if (path === "/api/admin/broadcasts/escalate" && method === "POST") {
+      return {
+        status: 201,
+        body: await handleAdminBroadcastEscalate(env, facility, body),
+      };
+    }
+
     if (path === "/api/admin/broadcasts/schedule" && method === "POST") {
       return {
         status: 201,
@@ -514,6 +529,7 @@ async function handleHealth(env, url) {
       emergency_broadcast_preview: true,
       emergency_broadcast_acknowledgement: true,
       emergency_broadcast_schedule: true,
+      staged_family_escalation: true,
     },
     timezone: JST_TIME_ZONE,
     time: new Date().toISOString(),
@@ -4165,6 +4181,27 @@ function relationAllowsBroadcast(relation, priority) {
   return relation.is_primary_contact === true;
 }
 
+function selectFirstRoutingRelationPerUser(relations) {
+  const sorted = [...relations].sort((a, b) => {
+    const pa = Number(a.contact_priority || 99);
+    const pb = Number(b.contact_priority || 99);
+    if (pa !== pb) return pa - pb;
+    if (Boolean(a.is_primary_contact) !== Boolean(b.is_primary_contact)) {
+      return a.is_primary_contact ? -1 : 1;
+    }
+    return String(a.family_member_id || "").localeCompare(
+      String(b.family_member_id || ""),
+    );
+  });
+
+  const seenUsers = new Set();
+  return sorted.filter((row) => {
+    if (!row.user_id || seenUsers.has(row.user_id)) return false;
+    seenUsers.add(row.user_id);
+    return true;
+  });
+}
+
 async function resolveBroadcastRecipients(
   env,
   facility,
@@ -4224,10 +4261,7 @@ async function resolveBroadcastRecipients(
     relations = relations.filter((row) =>
       relationAllowsBroadcast(row, routingPriority)
     );
-    relations.sort(
-      (a, b) =>
-        Number(a.contact_priority || 99) - Number(b.contact_priority || 99)
-    );
+    relations = selectFirstRoutingRelationPerUser(relations);
     explicitFamilyIds = unique(
       relations.map((row) => row.family_member_id).filter(Boolean),
     );
@@ -4273,6 +4307,7 @@ async function resolveBroadcastRecipients(
       relations = relations.filter((row) =>
         relationAllowsBroadcast(row, routingPriority)
       );
+      relations = selectFirstRoutingRelationPerUser(relations);
       const allowedFamilyIds = new Set(
         relations.map((row) => row.family_member_id).filter(Boolean)
       );
@@ -4876,7 +4911,9 @@ async function handleAdminBroadcastSend(env, facility, body) {
       ...body,
       broadcast_type: body.broadcast_type === "resend_unacknowledged"
         ? "demo_resend"
-        : "demo_simulated",
+        : body.broadcast_type === "escalation"
+          ? "demo_escalation"
+          : "demo_simulated",
     };
 
     const created = await createBroadcastRow(
@@ -5050,6 +5087,190 @@ async function handleAdminBroadcastResend(env, facility, body) {
   };
 
   return handleAdminBroadcastSend(env, facility, nextBody);
+}
+
+async function resolveBroadcastEscalation(env, facility, sourceId, includeSecrets) {
+  const sourceRows = await supabaseRequest(env, TABLES.broadcasts, {
+    query: {
+      select: "*",
+      id: `eq.${sourceId}`,
+      facility_id: `eq.${facility.id}`,
+      limit: "1",
+    },
+  });
+  const source = sourceRows[0];
+  if (!source) {
+    throw new ApiError(404, "元の一斉連絡が見つかりません。");
+  }
+
+  const rootSourceId = source.source_broadcast_id || source.id;
+  const chainBroadcasts = await supabaseRequest(env, TABLES.broadcasts, {
+    query: {
+      select: "id,source_broadcast_id",
+      facility_id: `eq.${facility.id}`,
+      or: `(id.eq.${rootSourceId},source_broadcast_id.eq.${rootSourceId})`,
+      limit: "100",
+    },
+  });
+  const chainIds = unique(
+    chainBroadcasts.map((row) => row.id).filter(Boolean),
+  );
+  if (!chainIds.includes(source.id)) chainIds.push(source.id);
+
+  const sourceRecipients = await supabaseRequest(env, TABLES.broadcastRecipients, {
+    query: {
+      select: "user_id,family_member_id,send_status,acknowledged_at",
+      broadcast_id: `eq.${source.id}`,
+      send_status: "eq.sent",
+      acknowledged_at: "is.null",
+      limit: "4000",
+    },
+  });
+  const unacknowledgedUserIds = unique(
+    sourceRecipients.map((row) => row.user_id).filter(Boolean),
+  );
+  if (!unacknowledgedUserIds.length) {
+    return {
+      source,
+      root_source_id: rootSourceId,
+      users: [],
+      family_ids: [],
+      targets: null,
+      counts: { users: 0, families: 0, line_deliverable: 0, line_unlinked: 0 },
+    };
+  }
+
+  const allChainRecipients = chainIds.length
+    ? await supabaseRequest(env, TABLES.broadcastRecipients, {
+        query: {
+          select: "broadcast_id,user_id,family_member_id,send_status",
+          broadcast_id: `in.(${chainIds.join(",")})`,
+          limit: "8000",
+        },
+      })
+    : [];
+
+  const alreadySentByUser = new Map();
+  for (const row of allChainRecipients) {
+    if (!row.user_id || !row.family_member_id) continue;
+    if (!["sent","pending"].includes(row.send_status)) continue;
+    if (!alreadySentByUser.has(row.user_id)) {
+      alreadySentByUser.set(row.user_id, new Set());
+    }
+    alreadySentByUser.get(row.user_id).add(row.family_member_id);
+  }
+
+  const relations = await supabaseRequest(env, TABLES.userFamilies, {
+    query: {
+      select: "id,user_id,family_member_id,is_primary_contact,is_active,contact_priority,receive_normal,receive_emergency,allow_escalation",
+      facility_id: `eq.${facility.id}`,
+      user_id: `in.(${unacknowledgedUserIds.join(",")})`,
+      is_active: "eq.true",
+      limit: "8000",
+    },
+  });
+
+  const eligible = relations
+    .filter((row) => relationAllowsBroadcast(row, source.priority))
+    .filter((row) => row.allow_escalation === true)
+    .sort(
+      (a, b) =>
+        Number(a.contact_priority || 99) - Number(b.contact_priority || 99)
+    );
+
+  const nextByUser = new Map();
+  for (const row of eligible) {
+    if (nextByUser.has(row.user_id)) continue;
+    const sent = alreadySentByUser.get(row.user_id) || new Set();
+    if (sent.has(row.family_member_id)) continue;
+    nextByUser.set(row.user_id, row);
+  }
+
+  const familyIds = unique(
+    [...nextByUser.values()].map((row) => row.family_member_id).filter(Boolean),
+  );
+
+  const targets = familyIds.length
+    ? await resolveBroadcastRecipients(
+        env,
+        facility,
+        {
+          priority: source.priority,
+          target_type: "selected_families",
+          target_filter: { family_ids: familyIds },
+        },
+        { includeSecrets },
+      )
+    : null;
+
+  return {
+    source,
+    root_source_id: rootSourceId,
+    users: [...nextByUser.keys()],
+    family_ids: familyIds,
+    targets,
+    counts: targets
+      ? {
+          users: targets.user_count,
+          families: targets.family_count,
+          line_deliverable: targets.deliverable_count,
+          line_unlinked: targets.unlinked_count,
+        }
+      : { users: 0, families: 0, line_deliverable: 0, line_unlinked: 0 },
+  };
+}
+
+async function handleAdminBroadcastEscalationPreview(env, facility, body) {
+  const sourceId = requireUuid(body.source_broadcast_id, "元の一斉連絡ID");
+  const result = await resolveBroadcastEscalation(
+    env,
+    facility,
+    sourceId,
+    false,
+  );
+
+  return {
+    ok: true,
+    service: SERVICE_NAME,
+    version: VERSION,
+    source_broadcast_id: sourceId,
+    root_source_id: result.root_source_id,
+    counts: result.counts,
+    next_family_ids: result.family_ids,
+    message: result.family_ids.length
+      ? `未確認の利用者について、次順位のご家族${result.family_ids.length}名が候補です。`
+      : "次順位へ追加送信できるご家族はいません。",
+  };
+}
+
+async function handleAdminBroadcastEscalate(env, facility, body) {
+  if (!isDemoBroadcastFacility(facility)) {
+    ensureProductionBroadcastAllowed(facility);
+  }
+
+  const sourceId = requireUuid(body.source_broadcast_id, "元の一斉連絡ID");
+  const result = await resolveBroadcastEscalation(
+    env,
+    facility,
+    sourceId,
+    !isDemoBroadcastFacility(facility),
+  );
+
+  if (!result.family_ids.length) {
+    throw new ApiError(400, "次順位へ追加送信できるご家族はいません。");
+  }
+
+  const source = result.source;
+  return handleAdminBroadcastSend(env, facility, {
+    ...body,
+    priority: source.priority,
+    broadcast_type: "escalation",
+    subject: source.subject,
+    message_body: source.message_body,
+    target_type: "selected_families",
+    target_filter: { family_ids: result.family_ids },
+    source_broadcast_id: result.root_source_id,
+  });
 }
 
 async function handleAdminBroadcastSchedule(env, facility, body) {
