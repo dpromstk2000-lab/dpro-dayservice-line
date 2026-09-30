@@ -1580,6 +1580,19 @@ td strong{font-size:14px}
   .ledger-line-stack{justify-items:start}
 }
 
+
+/* DPRO DAYCARE FAMILY CONTACT ROUTING EDIT R1 */
+.ledger-routing-tools{display:flex;justify-content:flex-end;margin-top:8px}
+.ledger-routing-editor{margin-top:10px;padding:12px;border:1px solid #cfe2d5;border-radius:12px;background:#f8fcf9}
+.ledger-routing-editor[hidden]{display:none!important}
+.ledger-routing-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ledger-routing-check{display:flex;align-items:center;gap:7px;min-height:38px;font-size:12px;font-weight:800}
+.ledger-routing-check input{width:18px;height:18px}
+.ledger-routing-priority{display:grid;gap:5px;font-size:11px;font-weight:800}
+.ledger-routing-priority select{min-height:38px;border:1px solid #cad8cf;border-radius:9px;background:#fff;padding:0 9px;font:inherit}
+.ledger-routing-editor-actions{display:flex;gap:8px;margin-top:10px}
+@media(max-width:560px){.ledger-routing-editor-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 
@@ -3546,6 +3559,62 @@ td strong{font-size:14px}
                         段階配信 ${escalationOn ? "候補" : "対象外"}
                       </span>
                     </div>
+                    ${relation.id ? `
+                      <div class="ledger-routing-tools">
+                        <button
+                          class="btn btn-secondary btn-small"
+                          type="button"
+                          data-toggle-family-routing="${escapeHtml(relation.id)}"
+                        >
+                          連絡設定を変更
+                        </button>
+                      </div>
+                      <div
+                        class="ledger-routing-editor"
+                        id="family-routing-${escapeHtml(relation.id)}"
+                        data-family-routing-editor="${escapeHtml(relation.id)}"
+                        hidden
+                      >
+                        <div class="ledger-routing-editor-grid">
+                          <label class="ledger-routing-check">
+                            <input type="checkbox" data-routing-normal ${normalOn ? "checked" : ""}>
+                            通常連絡の対象
+                          </label>
+                          <label class="ledger-routing-check">
+                            <input type="checkbox" data-routing-emergency ${emergencyOn ? "checked" : ""}>
+                            緊急連絡の対象
+                          </label>
+                          <label class="ledger-routing-check">
+                            <input type="checkbox" data-routing-escalation ${escalationOn ? "checked" : ""}>
+                            未確認時の段階配信候補
+                          </label>
+                          <label class="ledger-routing-priority">
+                            連絡優先順位
+                            <select data-routing-priority>
+                              ${Array.from({ length: 10 }, (_, index) => index + 1).map((value) =>
+                                `<option value="${value}" ${priority === value ? "selected" : ""}>第${value}</option>`
+                              ).join("")}
+                            </select>
+                          </label>
+                        </div>
+                        <div class="ledger-routing-editor-actions">
+                          <button
+                            class="btn btn-primary btn-small"
+                            type="button"
+                            data-save-family-routing="${escapeHtml(relation.id)}"
+                          >
+                            保存
+                          </button>
+                          <button
+                            class="btn btn-secondary btn-small"
+                            type="button"
+                            data-cancel-family-routing="${escapeHtml(relation.id)}"
+                          >
+                            キャンセル
+                          </button>
+                        </div>
+                      </div>
+                    ` : ""}
                   </div>
                   <div class="ledger-line-stack">
                     <span class="status-pill status-${lineMode}">${escapeHtml(lineLabel)}</span>
@@ -3639,6 +3708,54 @@ td strong{font-size:14px}
             </button>
           </div>
         `;
+      }
+
+      function setFamilyRoutingEditorVisible(relationId, visible) {
+        const editor = document.querySelector(
+          `[data-family-routing-editor="${CSS.escape(relationId)}"]`
+        );
+        if (!editor) return;
+        editor.hidden = !visible;
+      }
+
+      async function saveFamilyRouting(relationId, button) {
+        const editor = document.querySelector(
+          `[data-family-routing-editor="${CSS.escape(relationId)}"]`
+        );
+        if (!editor) throw new Error("連絡設定画面が見つかりません。");
+
+        const priority = Number(
+          editor.querySelector("[data-routing-priority]")?.value || 0
+        );
+        if (!Number.isInteger(priority) || priority < 1 || priority > 20) {
+          throw new Error("連絡優先順位を正しく選択してください。");
+        }
+
+        await withButton(button, "保存中…", async () => {
+          const data = await CONFIG.API.adminPost(
+            "adminFamilyContactRoutingUpdate",
+            {
+              relation_id: relationId,
+              receive_normal: Boolean(
+                editor.querySelector("[data-routing-normal]")?.checked
+              ),
+              receive_emergency: Boolean(
+                editor.querySelector("[data-routing-emergency]")?.checked
+              ),
+              allow_escalation: Boolean(
+                editor.querySelector("[data-routing-escalation]")?.checked
+              ),
+              contact_priority: priority,
+            }
+          );
+
+          showSuccess(data.message || "ご家族の連絡設定を保存しました。");
+
+          const selectedUserId = state.selectedUserDetail?.user?.id;
+          if (selectedUserId) {
+            await loadUserDetail(selectedUserId);
+          }
+        });
       }
 
       function selectUserForSchedule(userId, userName) {
@@ -4322,6 +4439,33 @@ td strong{font-size:14px}
             } else {
               loadUserDetail(ids[0]).catch(showError);
             }
+            return;
+          }
+
+          const routingToggle = event.target.closest("[data-toggle-family-routing]");
+          if (routingToggle) {
+            setFamilyRoutingEditorVisible(
+              routingToggle.dataset.toggleFamilyRouting,
+              true
+            );
+            return;
+          }
+
+          const routingCancel = event.target.closest("[data-cancel-family-routing]");
+          if (routingCancel) {
+            setFamilyRoutingEditorVisible(
+              routingCancel.dataset.cancelFamilyRouting,
+              false
+            );
+            return;
+          }
+
+          const routingSave = event.target.closest("[data-save-family-routing]");
+          if (routingSave) {
+            saveFamilyRouting(
+              routingSave.dataset.saveFamilyRouting,
+              routingSave
+            ).catch(showError);
             return;
           }
 
