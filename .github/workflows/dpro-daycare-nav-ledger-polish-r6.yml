@@ -1,0 +1,62 @@
+name: DPRO DAYCARE Nav Ledger Polish R6
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  brushup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply nav and ledger polish
+        shell: bash
+        env:
+          PATCH_B64: "ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCmltcG9ydCBiYXNlNjQKcD1QYXRoKCJvd25lci5odG1sIikKcz1wLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQpzPXMucmVwbGFjZSgnPHNwYW4gY2xhc3M9InN0YXR1cy1waWxsIHN0YXR1cy1uZXV0cmFsIiBpZD0ic2VhcmNoQ291bnQiPjDku7Y8L3NwYW4+JywnPHNwYW4gY2xhc3M9InN0YXR1cy1waWxsIHN0YXR1cy1uZXV0cmFsIiBpZD0ic2VhcmNoQ291bnQiPuacquaknOe0ojwvc3Bhbj4nKQpzPXMucmVwbGFjZSgnPHAgY2xhc3M9InNlY3Rpb24ta2lja2VyIj7nmbvpjLLmg4XloLE8L3A+XG4gICAgICAgICAgICAgIDxoMj7liKnnlKjogIXjg7vlrrbml4/lj7DluLM8L2gyPicsJzxwIGNsYXNzPSJzZWN0aW9uLWtpY2tlciI+55m76Yyy5oOF5aCxPC9wPlxuICAgICAgICAgICAgICA8aDI+5Yip55So6ICF44O744GU5a625peP44KS5o6i44GZPC9oMj4nKQptYXJrZXI9IkRQUk8gREFZQ0FSRSBOQVYgLyBMRURHRVIgUE9MSVNIIFI2IgppZiBtYXJrZXIgbm90IGluIHM6CiAgICBjc3M9YmFzZTY0LmI2NGRlY29kZSgiQ2k4cUlEMDlQVDA5UFQwOVBUMDlQVDA5UFQwOVBUMDlQVDA5UFQwOVBUMDlQVDA5UFQwOVBUMDlQVDA5UFQwOVBUMDlQVDA5UFQwOVBUMDlQVDA5UFFvZ0lDQkVVRkpQSUVSQldVTkJVa1VnVGtGV0lDOGdURVZFUjBWU0lGQlBURWxUU0NCU05nb2dJQ0F5TURJMkxUQTVMVE13Q2lBZ0lEMDlQVDA5UFQwOVBUMDlQVDA5UFQwOVBUMDlQVDA5UFQwOVBUMDlQVDA5UFQwOVBUMDlQVDA5UFQwOVBUMDlQVDA5UFQwOVBUMDlQVDA5UFNBcUx3cEFiV1ZrYVdFb2JXbHVMWGRwWkhSb09qZ3lNWEI0S1hzS0lDQXVjMmxrWldKaGNuc0tJQ0FnSUhSdmNEb3dJV2x0Y0c5eWRHRnVkRHNLSUNBZ0lHSnZkSFJ2YlRvd0lXbHRjRzl5ZEdGdWREc0tJQ0FnSUdobGFXZG9kRG94TURCMmFDRnBiWEJ2Y25SaGJuUTdDaUFnSUNCdGFXNHRhR1ZwWjJoME9qRXdNSFpvSVdsdGNHOXlkR0Z1ZERzS0lDQWdJR1JwYzNCc1lYazZabXhsZUNGcGJYQnZjblJoYm5RN0NpQWdJQ0JtYkdWNExXUnBjbVZqZEdsdmJqcGpiMngxYlc0aGFXMXdiM0owWVc1ME93b2dJQ0FnYjNabGNtWnNiM2N0ZVRwaGRYUnZJV2x0Y0c5eWRHRnVkRHNLSUNBZ0lHOTJaWEp6WTNKdmJHd3RZbVZvWVhacGIzSTZZMjl1ZEdGcGJqc0tJQ0I5Q2lBZ0xuTnBaR1V0WW5KaGJtUjdabXhsZURvd0lEQWdZWFYwYjMwS0lDQXVjMmxrWlMxdVlYWjdDaUFnSUNCbWJHVjRPakFnTUNCaGRYUnZPd29nSUNBZ2JXRnlaMmx1TFhSdmNEb3hOSEI0T3dvZ0lDQWdaMkZ3T2pSd2VEc0tJQ0I5Q2lBZ0xuTnBaR1V0Ym1GMklHSjFkSFJ2Yml3dWMybGtaUzF1WVhZZ1lYc0tJQ0FnSUcxcGJpMW9aV2xuYUhRNk5EWndlRHNLSUNBZ0lIQmhaR1JwYm1jNk9YQjRJREV5Y0hnN0NpQWdJQ0JtYjI1MExYTnBlbVU2TVRSd2VEc0tJQ0I5Q2lBZ0xuTnBaR1V0Wm05dmRHVnlld29nSUNBZ1pteGxlRG93SURBZ1lYVjBienNLSUNBZ0lHMWhjbWRwYmkxMGIzQTZZWFYwYnpzS0lDQWdJSEJoWkdScGJtY3RkRzl3T2pFMGNIZzdDaUFnSUNCd1lXUmthVzVuTFdKdmRIUnZiVG8wY0hnN0NpQWdmUXA5Q2lOelpXTjBhVzl1TFhObFlYSmphQ0F1YzJWamRHbHZiaTFvWldGa2V3b2dJRzFoY21kcGJpMWliM1IwYjIwNk1USndlRHNLZlFvamMyVmpkR2x2YmkxelpXRnlZMmdnTG5ObFkzUnBiMjR0YUdWaFpDQm9NbnNLSUNCbWIyNTBMWE5wZW1VNk1qZHdlRHNLZlFvamMyVmpkR2x2YmkxelpXRnlZMmdnTG5ObFkzUnBiMjR0WkdWelkzSnBjSFJwYjI1N0NpQWdabTl1ZEMxemFYcGxPakUwY0hnN0NpQWdiR2x1WlMxb1pXbG5hSFE2TVM0Mk93cDlDaU56WldOMGFXOXVMWE5sWVhKamFDQXVkRzl2YkdKaGNuc0tJQ0JuWVhBNk1UQndlRHNLSUNCaGJHbG5iaTFwZEdWdGN6cHpkSEpsZEdOb093cDlDaU56WldOMGFXOXVMWE5sWVhKamFDQXVjMlZoY21Ob0xXbHVjSFYwZXdvZ0lHMXBiaTFvWldsbmFIUTZOVEJ3ZURzS0lDQm1iMjUwTFhOcGVtVTZNVFp3ZURzS2ZRb2pjMlZqZEdsdmJpMXpaV0Z5WTJnZ0kzTmxZWEpqYUVKMWRIUnZibnNLSUNCdGFXNHRkMmxrZEdnNk9EaHdlRHNLSUNCdGFXNHRhR1ZwWjJoME9qVXdjSGc3Q2lBZ1ptOXVkQzF6YVhwbE9qRTFjSGc3Q24wS0kzTmxZM1JwYjI0dGMyVmhjbU5vSUM1emNHeHBkQzFuY21sa2V3b2dJR0ZzYVdkdUxXbDBaVzF6T25OMGNtVjBZMmc3Q24wS0kzTmxZM1JwYjI0dGMyVmhjbU5vSUM1allYSmtMQW9qYzJWamRHbHZiaTF6WldGeVkyZ2dMbVJsZEdGcGJDMXdZVzVsYkhzS0lDQnRhVzR0YUdWcFoyaDBPak16TUhCNE93cDlDaU56WldOMGFXOXVMWE5sWVhKamFDQXVZMkZ5WkMxb1pXRmtJR2d6ZXdvZ0lHWnZiblF0YzJsNlpUb3lNSEI0T3dwOUNpTnpaV04wYVc5dUxYTmxZWEpqYUNBdVkyRnlaQzFvWldGa0lIQjdDaUFnWm05dWRDMXphWHBsT2pFemNIZzdDbjBLSTNObFkzUnBiMjR0YzJWaGNtTm9JQzV6WldGeVkyZ3RZMkZ5WkhzS0lDQnRhVzR0YUdWcFoyaDBPalkyY0hnN0NpQWdjR0ZrWkdsdVp6b3hNM0I0SURFMGNIZzdDbjBLSTNObFkzUnBiMjR0YzJWaGNtTm9JQzV6WldGeVkyZ3RibUZ0WlhzS0lDQm1iMjUwTFhOcGVtVTZNVFp3ZURzS2ZRb2pjMlZqZEdsdmJpMXpaV0Z5WTJnZ0xuTmxZWEpqYUMxdFpYUmhld29nSUcxaGNtZHBiaTEwYjNBNk5IQjRPd29nSUdadmJuUXRjMmw2WlRveE0zQjRPd3A5Q2lOelpXTjBhVzl1TFhObFlYSmphQ0F1WkdWMFlXbHNMWEJoYm1Wc1BpNWxiWEIwZVhzS0lDQnRhVzR0YUdWcFoyaDBPakV4TUhCNE93b2dJR1JwYzNCc1lYazZaM0pwWkRzS0lDQndiR0ZqWlMxcGRHVnRjenBqWlc1MFpYSTdDaUFnZEdWNGRDMWhiR2xuYmpwalpXNTBaWEk3Q2lBZ2JHbHVaUzFvWldsbmFIUTZNUzQzT3dwOUNrQnRaV1JwWVNodFlYZ3RkMmxrZEdnNk1URXdNSEI0S1NCaGJtUWdLRzFwYmkxM2FXUjBhRG80TWpGd2VDbDdDaUFnTG5OcFpHVXRibUYySUdKMWRIUnZiaXd1YzJsa1pTMXVZWFlnWVhzS0lDQWdJRzFwYmkxb1pXbG5hSFE2TkROd2VEc0tJQ0FnSUdadmJuUXRjMmw2WlRveE0zQjRPd29nSUgwS2ZRbz0iKS5kZWNvZGUoInV0Zi04IikKICAgIGNsb3NlPSI8L3N0eWxlPlxuPC9oZWFkPiIKICAgIGlmIGNsb3NlIG5vdCBpbiBzOiByYWlzZSBTeXN0ZW1FeGl0KCJFUlJPUjogc3R5bGUgY2xvc2UgYW5jaG9yIG5vdCBmb3VuZCIpCiAgICBzPXMucmVwbGFjZShjbG9zZSxjc3MrIlxuPC9zdHlsZT5cbjwvaGVhZD4iLDEpCnJlcXVpcmVkPVsiRFBSTyBEQVlDQVJFIE5BViAvIExFREdFUiBQT0xJU0ggUjYiLCLliKnnlKjogIXjg7vlrrbml4/lj7DluLMiLCLliKnnlKjogIXjg7vjgZTlrrbml4/jgpLmjqLjgZkiLCLmnKrmpJzntKIiXQptaXNzaW5nPVt4IGZvciB4IGluIHJlcXVpcmVkIGlmIHggbm90IGluIHNdCmlmIG1pc3Npbmc6IHJhaXNlIFN5c3RlbUV4aXQoIkVSUk9SOiByZXF1aXJlZCBjb250ZW50IG1pc3Npbmc6ICIrIiwgIi5qb2luKG1pc3NpbmcpKQpwLndyaXRlX3RleHQocyxlbmNvZGluZz0idXRmLTgiKQpwcmludCgiT1dORVJfUEFUQ0g9UEFTUyIp"
+        run: |
+          python -c 'import os,base64; exec(base64.b64decode(os.environ["PATCH_B64"]).decode("utf-8"))'
+
+      - name: Validate owner source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          grep -q 'DPRO DAYCARE LEDGER USABILITY BRUSHUP R5' owner.html
+          grep -q 'DPRO DAYCARE NAV / LEDGER POLISH R6' owner.html
+          grep -q '利用者・ご家族を探す' owner.html
+          grep -q '>未検索<' owner.html
+          echo "STATIC_QA=PASS"
+
+      - name: Commit and push
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- owner.html; then
+            echo "No changes needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add owner.html
+          git commit -m "DAYCARE nav and ledger polish R6"
+          git push origin HEAD:main
+
+      - name: Summary
+        shell: bash
+        run: |
+          echo "## DPRO DAYCARE Nav Ledger Polish R6" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Sidebar full-height navigation: reinforced" >> "$GITHUB_STEP_SUMMARY"
+          echo "- All desktop menu items remain visible/scrollable" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Ledger initial count: 0件 -> 未検索" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Search UI readability: improved" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Duplicate page-heading feeling: reduced" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Existing APIs / LINE / broadcast behavior: unchanged" >> "$GITHUB_STEP_SUMMARY"
