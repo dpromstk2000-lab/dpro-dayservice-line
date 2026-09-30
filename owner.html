@@ -4121,6 +4121,9 @@ td strong{font-size:14px}
                 ${["sent","partial"].includes(row.status) ? `
                   <button class="btn btn-secondary btn-small" type="button" data-resend-broadcast="${escapeHtml(row.id)}">
                     未確認へ再送
+                  </button>
+                  <button class="btn btn-secondary btn-small" type="button" data-escalate-broadcast="${escapeHtml(row.id)}">
+                    次の連絡先へ
                   </button>` : ""}
                 ${row.status === "scheduled" ? `
                   <button class="btn btn-secondary btn-small" type="button" data-cancel-broadcast="${escapeHtml(row.id)}">
@@ -4158,6 +4161,42 @@ td strong{font-size:14px}
           }
         );
         showSuccess(data.message || "未確認のご家族へ再送しました。");
+        await loadBroadcastHistory();
+      }
+
+      async function escalateBroadcast(sourceBroadcastId) {
+        const preview = await CONFIG.API.adminPost(
+          "adminBroadcastEscalationPreview",
+          { source_broadcast_id: sourceBroadcastId }
+        );
+        const counts = preview.counts || {};
+        const familyCount = counts.families || 0;
+
+        if (!familyCount) {
+          showInfo(
+            preview.message || "次順位へ追加送信できるご家族はいません。"
+          );
+          return;
+        }
+
+        const demoMode = isPublicDemoBroadcast();
+        const message = demoMode
+          ? `未確認の利用者について、次順位のご家族${familyCount}名へデモ疑似送信します。\n実際のLINEには送信されません。\n\n実行しますか？`
+          : `未確認の利用者について、次順位のご家族${familyCount}名へLINEを追加送信します。\n\n実行しますか？`;
+
+        if (!window.confirm(message)) return;
+
+        const data = await CONFIG.API.adminPost(
+          "adminBroadcastEscalate",
+          {
+            source_broadcast_id: sourceBroadcastId,
+            idempotency_key: newIdempotencyKey("escalate"),
+          }
+        );
+
+        showSuccess(
+          data.message || "次順位のご家族へ追加送信しました。"
+        );
         await loadBroadcastHistory();
       }
 
@@ -4491,6 +4530,14 @@ td strong{font-size:14px}
           if (resendBroadcastButton) {
             resendBroadcast(resendBroadcastButton.dataset.resendBroadcast)
               .catch(showError);
+            return;
+          }
+
+          const escalateBroadcastButton = event.target.closest("[data-escalate-broadcast]");
+          if (escalateBroadcastButton) {
+            escalateBroadcast(
+              escalateBroadcastButton.dataset.escalateBroadcast
+            ).catch(showError);
             return;
           }
 
