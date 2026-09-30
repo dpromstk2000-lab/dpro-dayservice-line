@@ -64,6 +64,7 @@
     adminDay: "/api/admin/day",
     adminSearch: "/api/admin/search",
     adminUserDetail: "/api/admin/user-detail",
+    adminFamilyContactRoutingUpdate: "/api/admin/family-contact-routing/update",
     adminScheduleCreate: "/api/admin/schedules/create",
     adminAttendanceStatus: "/api/admin/attendance/status",
     adminDailyCheckStatus: "/api/admin/daily-checks/status",
