@@ -34,7 +34,7 @@
  */
 
 const SERVICE_NAME = "DPRO Dayservice LINE API";
-const VERSION = "DAYCARE-3-R15-AUTO-ESCALATION-20260930";
+const VERSION = "DAYCARE-3-R16-SHARED-SCHEDULER-20260930";
 const FRONTEND_VERSION = "DAYCARE screen set: FAMILY-6 / MEMBER-7 / OWNER-8-R5-BROADCAST-DEMO-SAFE / IPAD-9 / SYSTEM-CHECK-10";
 const DATABASE_VERSION_EXPECTED = "DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01";
 const ADAPTER_VERSION = "DPRO-CONTROL-ADAPTER-1.0";
@@ -202,6 +202,7 @@ async function routeRequest(context) {
         endpoints: {
           health: "/api/health",
           public_config: "/api/public/config",
+          internal_scheduler_auto_escalation: "/api/internal/scheduler/auto-escalation",
           public_calendar: "/api/public/calendar",
           line_identity_verify: "/api/line/verify",
           public_broadcast_acknowledge: "/api/public/broadcast/acknowledge",
@@ -243,6 +244,31 @@ async function routeRequest(context) {
   if (path === "/api/health" && method === "GET") {
     return {
       body: await handleHealth(env, url),
+    };
+  }
+
+  if (path === "/api/internal/scheduler/auto-escalation" && method === "POST") {
+    const suppliedSecret = request.headers.get("x-dpro-scheduler-secret") || "";
+    const expectedSecret = cleanText(env.DPRO_SCHEDULER_SECRET || "", 500);
+
+    if (
+      !expectedSecret
+      || !suppliedSecret
+      || !secureStringEqual(suppliedSecret, expectedSecret)
+    ) {
+      throw new ApiError(401, "スケジューラー認証に失敗しました。");
+    }
+
+    await processAutoEscalations(env);
+
+    return {
+      body: {
+        ok: true,
+        service: SERVICE_NAME,
+        version: VERSION,
+        scheduler: "shared",
+        auto_escalation_processed: true,
+      },
     };
   }
 
@@ -552,6 +578,7 @@ async function handleHealth(env, url) {
       escalation_ack_guard: true,
       auto_family_escalation: true,
       auto_family_escalation_settings: true,
+      shared_scheduler_bridge: true,
     },
     timezone: JST_TIME_ZONE,
     time: new Date().toISOString(),
