@@ -1593,6 +1593,45 @@ td strong{font-size:14px}
 .ledger-routing-editor-actions{display:flex;gap:8px;margin-top:10px}
 @media(max-width:560px){.ledger-routing-editor-grid{grid-template-columns:1fr}}
 
+
+/* DPRO DAYCARE AUTO ESCALATION SETTINGS R1 */
+.auto-escalation-card{
+  margin-bottom:14px;
+  padding:14px 16px;
+  border:1px solid #cfe2d5;
+  border-radius:16px;
+  background:#f8fcf9;
+}
+.auto-escalation-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:12px;
+}
+.auto-escalation-head h3{margin:0 0 4px;font-size:16px}
+.auto-escalation-head p{margin:0;color:var(--muted);font-size:12px}
+.auto-escalation-grid{
+  display:grid;
+  grid-template-columns:minmax(180px,1fr) minmax(160px,1fr) minmax(160px,1fr) auto;
+  gap:10px;
+  align-items:end;
+}
+.auto-escalation-toggle{
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:850;
+}
+.auto-escalation-toggle input{width:20px;height:20px}
+@media(max-width:900px){
+  .auto-escalation-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:560px){
+  .auto-escalation-grid{grid-template-columns:1fr}
+}
+
 </style>
 </head>
 
@@ -2162,6 +2201,49 @@ td strong{font-size:14px}
             <button class="btn btn-secondary" id="broadcastReloadButton" type="button">履歴を更新</button>
           </div>
 
+          <div class="auto-escalation-card">
+            <div class="auto-escalation-head">
+              <div>
+                <h3>自動段階配信</h3>
+                <p>
+                  緊急・重要連絡で未確認が続いた場合、設定時間後に次順位のご家族へ自動で追加送信します。
+                  公開デモでは実際のLINE送信は行いません。
+                </p>
+              </div>
+              <span class="status-pill status-neutral" id="autoEscalationStatus">読込中</span>
+            </div>
+            <div class="auto-escalation-grid">
+              <label class="auto-escalation-toggle">
+                <input id="autoEscalationEnabled" type="checkbox">
+                自動段階配信を使用する
+              </label>
+              <div class="field">
+                <label for="autoEscalationDelay">未確認から次順位まで</label>
+                <select class="select" id="autoEscalationDelay">
+                  <option value="5">5分後</option>
+                  <option value="10">10分後</option>
+                  <option value="15">15分後</option>
+                  <option value="30">30分後</option>
+                  <option value="60">60分後</option>
+                  <option value="120">120分後</option>
+                  <option value="180">180分後</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="autoEscalationMaxPriority">自動送信する最大順位</label>
+                <select class="select" id="autoEscalationMaxPriority">
+                  <option value="2">第2連絡先まで</option>
+                  <option value="3">第3連絡先まで</option>
+                  <option value="4">第4連絡先まで</option>
+                  <option value="5">第5連絡先まで</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" id="autoEscalationSaveButton" type="button">
+                設定を保存
+              </button>
+            </div>
+          </div>
+
           <div class="broadcast-layout">
             <div class="card">
               <div class="form-grid">
@@ -2392,6 +2474,7 @@ td strong{font-size:14px}
         broadcastTemplates: [],
         broadcastPreview: null,
         broadcastHistory: [],
+        autoEscalationSettings: null,
         broadcastTargetSearch: null,
         broadcastSelectedUsers: new Map(),
         broadcastSelectedFamilies: new Map(),
@@ -2490,6 +2573,11 @@ td strong{font-size:14px}
         broadcastReloadButton: $("#broadcastReloadButton"),
         broadcastPreviewPanel: $("#broadcastPreviewPanel"),
         broadcastHistory: $("#broadcastHistory"),
+        autoEscalationEnabled: $("#autoEscalationEnabled"),
+        autoEscalationDelay: $("#autoEscalationDelay"),
+        autoEscalationMaxPriority: $("#autoEscalationMaxPriority"),
+        autoEscalationSaveButton: $("#autoEscalationSaveButton"),
+        autoEscalationStatus: $("#autoEscalationStatus"),
 
         requestModalBackdrop: $("#requestModalBackdrop"),
         requestModalTitle: $("#requestModalTitle"),
@@ -4162,11 +4250,64 @@ td strong{font-size:14px}
         renderBroadcastHistory();
       }
 
+      function renderAutoEscalationSettings() {
+        const settings = state.autoEscalationSettings || {
+          enabled: false,
+          delay_minutes: 30,
+          max_priority: 2,
+        };
+        els.autoEscalationEnabled.checked = settings.enabled === true;
+        els.autoEscalationDelay.value = String(
+          settings.delay_minutes || 30
+        );
+        els.autoEscalationMaxPriority.value = String(
+          settings.max_priority || 2
+        );
+        els.autoEscalationStatus.textContent = settings.enabled
+          ? "自動配信 ON"
+          : "自動配信 OFF";
+        els.autoEscalationStatus.className =
+          `status-pill status-${settings.enabled ? "ok" : "neutral"}`;
+      }
+
+      async function loadAutoEscalationSettings() {
+        const data = await CONFIG.API.adminGet(
+          "adminBroadcastAutoEscalationSettings"
+        );
+        state.autoEscalationSettings = data.settings || null;
+        renderAutoEscalationSettings();
+      }
+
+      async function saveAutoEscalationSettings() {
+        await withButton(
+          els.autoEscalationSaveButton,
+          "保存中…",
+          async () => {
+            const data = await CONFIG.API.adminPost(
+              "adminBroadcastAutoEscalationSettings",
+              {
+                enabled: els.autoEscalationEnabled.checked,
+                delay_minutes: Number(els.autoEscalationDelay.value),
+                max_priority: Number(
+                  els.autoEscalationMaxPriority.value
+                ),
+              }
+            );
+            state.autoEscalationSettings = data.settings || null;
+            renderAutoEscalationSettings();
+            showSuccess(data.message || "自動段階配信設定を保存しました。");
+          }
+        );
+      }
+
       async function loadBroadcastSection() {
         if (!state.broadcastTemplates.length) {
           await loadBroadcastTemplates();
         }
-        await loadBroadcastHistory();
+        await Promise.all([
+          loadBroadcastHistory(),
+          loadAutoEscalationSettings(),
+        ]);
       }
 
       async function resendBroadcast(sourceBroadcastId) {
@@ -4339,6 +4480,11 @@ td strong{font-size:14px}
         els.copyAndLogButton.addEventListener(
           "click",
           () => copyAndLogMessage().catch(showError)
+        );
+
+        els.autoEscalationSaveButton.addEventListener(
+          "click",
+          () => saveAutoEscalationSettings().catch(showError)
         );
 
         els.broadcastTemplate.addEventListener("change", applyBroadcastTemplate);
