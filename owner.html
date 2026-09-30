@@ -1435,6 +1435,49 @@ td strong{font-size:14px}
   .item-sub{font-size:12px}
 }
 
+
+/* ============================================================
+   DPRO DAYCARE LEDGER USABILITY BRUSHUP R5
+   2026-09-30
+   ============================================================ */
+@media(min-width:761px){
+  body.dayservice-operation-demo-page:has(.app.is-visible) .dayservice-operation-demo-banner{
+    width:calc(100% - var(--sidebar-width) - 36px);
+    margin:14px 18px 0 calc(var(--sidebar-width) + 18px);
+  }
+}
+.ledger-guide{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;padding:16px 18px;border:1px solid #bdd7c6;border-radius:15px;background:#f4fbf6}
+.ledger-guide-icon{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:12px;background:#e4f4e9;font-size:21px}
+.ledger-guide strong{display:block;font-size:15px;line-height:1.5}
+.ledger-guide p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.65}
+.ledger-empty-guide{display:grid;gap:6px;place-items:center;min-height:180px;padding:24px;border:1px dashed var(--line-strong);border-radius:13px;background:var(--surface-soft);text-align:center}
+.ledger-empty-guide strong{font-size:16px}
+.ledger-empty-guide span{color:var(--muted);font-size:13px}
+.ledger-detail-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:14px}
+.ledger-detail-label{display:inline-block;margin-bottom:4px;color:var(--brand);font-size:12px;font-weight:900}
+.ledger-detail-head h3{margin:0;font-size:23px;line-height:1.35}
+.ledger-section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
+.ledger-section-title h4{margin:0;font-size:16px}
+.ledger-section-title>span{color:var(--muted);font-size:12px}
+.ledger-family-list{display:grid;gap:8px}
+.ledger-family-card{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.ledger-family-main{min-width:0}
+.ledger-family-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ledger-family-title strong{font-size:14px}
+.ledger-primary{padding:3px 7px;border-radius:999px;background:var(--brand-soft);color:var(--brand-dark);font-size:11px;font-weight:900}
+.ledger-family-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;color:var(--muted);font-size:12px}
+.ledger-note{margin:9px 0 0;color:var(--muted);font-size:12px;line-height:1.6}
+.ledger-timeline{display:grid;gap:7px}
+.ledger-timeline-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.ledger-timeline-row strong{font-size:13px}
+.ledger-timeline-row span{color:var(--muted);font-size:12px}
+.ledger-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}
+.ledger-actions .btn{flex:1 1 180px;min-height:46px}
+@media(max-width:760px){
+  .ledger-family-card,.ledger-timeline-row{align-items:flex-start;flex-direction:column}
+  .ledger-family-card .status-pill{align-self:flex-start}
+}
+
 </style>
 </head>
 
@@ -1527,7 +1570,7 @@ td strong{font-size:14px}
         </button>
         <button type="button" data-nav="search">
           <span class="nav-icon">🔍</span>
-          利用者・家族検索
+          利用者・家族台帳
         </button>
         <button type="button" data-nav="schedule">
           <span class="nav-icon">📅</span>
@@ -1766,10 +1809,18 @@ td strong{font-size:14px}
           <div class="section-head">
             <div>
               <p class="section-kicker">登録情報</p>
-              <h2>利用者・家族検索</h2>
+              <h2>利用者・家族台帳</h2>
               <p class="section-description">
-                利用者名、家族名、電話番号、利用者番号から検索できます。
+                利用者・ご家族の登録情報をまとめて確認できます。氏名・電話番号・利用者番号で絞り込めます。
               </p>
+            </div>
+          </div>
+
+          <div class="ledger-guide" aria-label="利用者・家族台帳の使い方">
+            <div class="ledger-guide-icon" aria-hidden="true">👤</div>
+            <div>
+              <strong>利用者・ご家族の情報をここでまとめて確認できます</strong>
+              <p>利用者を選ぶと、ご家族の続柄・電話番号・LINE連携状況、利用予定、家族からの連絡履歴まで確認できます。</p>
             </div>
           </div>
 
@@ -1789,8 +1840,8 @@ td strong{font-size:14px}
             <div class="card">
               <div class="card-head">
                 <div>
-                  <h3>検索結果</h3>
-                  <p>利用者と家族をまとめて表示します。</p>
+                  <h3>台帳一覧</h3>
+                  <p>検索すると、利用者とご家族をまとめて表示します。</p>
                 </div>
                 <span class="status-pill status-neutral" id="searchCount">0件</span>
               </div>
@@ -1799,7 +1850,7 @@ td strong{font-size:14px}
 
             <aside class="detail-panel" id="userDetailPanel">
               <div class="empty">
-                左の検索結果から利用者を選択してください。
+                左の台帳一覧から利用者を選択すると、登録情報・ご家族・利用予定・連絡履歴を確認できます。
               </div>
             </aside>
           </div>
@@ -2348,8 +2399,8 @@ td strong{font-size:14px}
           subtitle: "お休み・変更希望・質問への対応状況を管理します。",
         },
         search: {
-          title: "利用者・家族検索",
-          subtitle: "氏名・電話番号・利用者番号から検索します。",
+          title: "利用者・家族台帳",
+          subtitle: "利用者・ご家族の登録情報、連絡先、利用状況を確認します。",
         },
         schedule: {
           title: "利用予定を登録",
@@ -3344,18 +3395,58 @@ td strong{font-size:14px}
         const families = data.families || [];
         const schedules = data.schedules || [];
         const requests = data.family_requests || [];
+        const demoMode = new URLSearchParams(window.location.search).get("demo") === "1";
+
+        const familyCards = families.length
+          ? families.map((family) => {
+              const relationship =
+                family.relation?.relationship_to_user ||
+                family.relationship ||
+                "続柄未登録";
+              const primary =
+                family.relation?.is_primary_contact || family.is_primary;
+              const linked = family.line_linked;
+              const lineLabel = linked === true
+                ? "LINE連携済み"
+                : linked === false
+                  ? "LINE未連携"
+                  : demoMode
+                    ? "LINE未連携（公開デモ）"
+                    : "LINE連携状況は本番接続時に表示";
+              const lineMode = linked === true ? "ok" : linked === false ? "warning" : "neutral";
+
+              return `
+                <div class="ledger-family-card">
+                  <div class="ledger-family-main">
+                    <div class="ledger-family-title">
+                      <strong>${escapeHtml(family.full_name || "家族")}</strong>
+                      ${primary ? '<span class="ledger-primary">主連絡先</span>' : ""}
+                    </div>
+                    <div class="ledger-family-meta">
+                      <span>${escapeHtml(relationship)}</span>
+                      <span>${escapeHtml(CONFIG.utils.formatPhone(family.phone) || "電話未登録")}</span>
+                    </div>
+                  </div>
+                  <span class="status-pill status-${lineMode}">${escapeHtml(lineLabel)}</span>
+                </div>
+              `;
+            }).join("")
+          : '<div class="empty">ご家族情報はまだ登録されていません。</div>';
 
         els.userDetailPanel.innerHTML = `
-          <h3>${escapeHtml(user.full_name)}</h3>
-          <div class="item-sub">${escapeHtml(user.user_number)}</div>
+          <div class="ledger-detail-head">
+            <div>
+              <span class="ledger-detail-label">利用者</span>
+              <h3>${escapeHtml(user.full_name)}</h3>
+              <div class="item-sub">利用者番号：${escapeHtml(user.user_number)}</div>
+            </div>
+          </div>
 
           <div class="detail-grid">
             <div class="detail-item">
               <span class="detail-label">通常送迎</span>
               <strong class="detail-value">${escapeHtml(
-                CONFIG.utils.transportModeLabel(
-                  user.standard_transport_mode
-                )
+                CONFIG.utils.transportModeLabel(user.standard_transport_mode)
               )}</strong>
             </div>
             <div class="detail-item">
@@ -3364,64 +3455,64 @@ td strong{font-size:14px}
                 normalizeText(user.item_note) || "未登録"
               )}</strong>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">家族</span>
-              <strong class="detail-value">${escapeHtml(
-                families.map((family) => family.full_name).join("、") ||
-                "未登録"
-              )}</strong>
+          </div>
+
+          <div class="detail-section">
+            <div class="ledger-section-title">
+              <h4>ご家族・LINE連携</h4>
+              <span>${families.length}名</span>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">登録電話</span>
-              <strong class="detail-value">${escapeHtml(
-                families.map((family) =>
-                  CONFIG.utils.formatPhone(family.phone)
-                ).join("、") || "未登録"
-              )}</strong>
+            <div class="ledger-family-list">${familyCards}</div>
+            <p class="ledger-note">
+              LINE連携状況は、緊急・一斉連絡の送信対象判定にも使用します。
+            </p>
+          </div>
+
+          <div class="detail-section">
+            <div class="ledger-section-title">
+              <h4>直近の利用予定</h4>
+              <span>最大5件</span>
+            </div>
+            <div class="ledger-timeline">
+              ${schedules.slice(0, 5).map((schedule) => `
+                <div class="ledger-timeline-row">
+                  <strong>${escapeHtml(formatDate(schedule.service_date))}</strong>
+                  <span>${escapeHtml(CONFIG.utils.statusLabel(schedule.status))}</span>
+                </div>
+              `).join("") || '<div class="empty">利用予定はありません。</div>'}
             </div>
           </div>
 
           <div class="detail-section">
-            <h4>利用予定</h4>
-            <div class="item-sub">
-              ${schedules.slice(0, 5).map((schedule) =>
-                `${formatDate(schedule.service_date)}：${
-                  CONFIG.utils.statusLabel(schedule.status)
-                }`
-              ).join("<br>") || "利用予定はありません。"}
+            <div class="ledger-section-title">
+              <h4>家族からの連絡</h4>
+              <span>最大5件</span>
+            </div>
+            <div class="ledger-timeline">
+              ${requests.slice(0, 5).map((request) => `
+                <div class="ledger-timeline-row">
+                  <strong>${escapeHtml(
+                    cleanDemoLabel(request.subject) ||
+                    CONFIG.utils.requestTypeLabel(request.request_type)
+                  )}</strong>
+                  <span>${escapeHtml(
+                    CONFIG.utils.requestStatusLabel(request.request_status)
+                  )}</span>
+                </div>
+              `).join("") || '<div class="empty">家族からの連絡はありません。</div>'}
             </div>
           </div>
 
-          <div class="detail-section">
-            <h4>家族連絡</h4>
-            <div class="item-sub">
-              ${requests.slice(0, 5).map((request) =>
-                `${escapeHtml(
-                  cleanDemoLabel(request.subject) ||
-                  CONFIG.utils.requestTypeLabel(request.request_type)
-                )}：${escapeHtml(
-                  CONFIG.utils.requestStatusLabel(request.request_status)
-                )}`
-              ).join("<br>") || "家族連絡はありません。"}
-            </div>
-          </div>
-
-          <div class="toolbar">
-            <button
-              class="btn btn-primary btn-small"
-              type="button"
+          <div class="ledger-actions">
+            <button class="btn btn-primary" type="button"
               data-use-user-schedule="${escapeHtml(user.id)}"
-              data-user-name="${escapeHtml(user.full_name)}"
-            >
-              この利用者の予定を登録
+              data-user-name="${escapeHtml(user.full_name)}">
+              利用予定を登録
             </button>
-            <button
-              class="btn btn-blue btn-small"
-              type="button"
+            <button class="btn btn-blue" type="button"
               data-use-user-message="${escapeHtml(user.id)}"
-              data-user-name="${escapeHtml(user.full_name)}"
-            >
-              この利用者へ連絡文面
+              data-user-name="${escapeHtml(user.full_name)}">
+              家族への連絡文面を作る
             </button>
           </div>
         `;
@@ -4176,6 +4267,15 @@ td strong{font-size:14px}
           : CONFIG.storage.getOperatorName("デモ 管理者");
 
         attachEvents();
+
+        if (els.searchResults && !els.searchResults.innerHTML.trim()) {
+          els.searchResults.innerHTML = `
+            <div class="ledger-empty-guide">
+              <strong>利用者・ご家族を検索してください</strong>
+              <span>氏名、電話番号、利用者番号の一部でも検索できます。</span>
+            </div>
+          `;
+        }
 
         if (demoPreview || CONFIG.storage.getAdminCode()) {
           login().catch(() => {
