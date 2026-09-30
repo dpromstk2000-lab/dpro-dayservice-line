@@ -1,0 +1,115 @@
+name: DPRO DAYCARE Family Contact Routing Diagnose R1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Diagnose live R12 routing API
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BASE='https://dpro-dayservice-line-api.dpromstk2000.workers.dev'
+          UA='DPRO-DAYCARE-ROUTING-DIAG-R1'
+
+          echo '=== HEALTH ==='
+          curl -sS \
+            -H 'Accept: application/json' \
+            -H "User-Agent: $UA" \
+            "$BASE/api/health" \
+            -o /tmp/health.json -w 'HTTP=%{http_code}\n'
+          cat /tmp/health.json
+
+          echo
+          echo '=== API ROOT ==='
+          curl -sS \
+            -H 'Accept: application/json' \
+            -H "User-Agent: $UA" \
+            "$BASE/api" \
+            -o /tmp/root.json -w 'HTTP=%{http_code}\n'
+          cat /tmp/root.json
+
+          echo
+          echo '=== USER DETAIL ==='
+          curl -sS \
+            -H 'Accept: application/json' \
+            -H "User-Agent: $UA" \
+            -H 'X-Admin-Code: 1234' \
+            "$BASE/api/admin/user-detail?facility_code=dpro_dayservice_demo&user_number=DAY-DEMO-001" \
+            -o /tmp/detail.json -w 'HTTP=%{http_code}\n'
+          cat /tmp/detail.json
+
+          python3 - <<'PY' > /tmp/payload.json
+          import json
+          d=json.load(open('/tmp/detail.json'))
+          f=(d.get('families') or [None])[0]
+          if not f:
+              raise SystemExit('NO_FAMILY_IN_DETAIL')
+          r=f.get('relation') or {}
+          print(json.dumps({
+            'facility_code':'dpro_dayservice_demo',
+            'relation_id':r.get('id'),
+            'receive_normal':bool(r.get('receive_normal')),
+            'receive_emergency':bool(r.get('receive_emergency')),
+            'allow_escalation':bool(r.get('allow_escalation')),
+            'contact_priority':int(r.get('contact_priority') or 1),
+            'operator_name':'R12診断',
+            'device_type':'pc'
+          },ensure_ascii=False))
+          PY
+
+          echo
+          echo '=== ROUTING UPDATE POST ==='
+          code=$(curl -sS \
+            -X POST \
+            -H 'Accept: application/json' \
+            -H 'Content-Type: application/json' \
+            -H "User-Agent: $UA" \
+            -H 'X-Admin-Code: 1234' \
+            --data-binary @/tmp/payload.json \
+            "$BASE/api/admin/family-contact-routing/update?facility_code=dpro_dayservice_demo" \
+            -o /tmp/update.json -w '%{http_code}')
+          echo "HTTP=$code"
+          cat /tmp/update.json
+
+          echo
+          echo '=== DIAGNOSIS ==='
+          CODE="$code" python3 - <<'PY'
+          import json, os
+          code=os.environ['CODE']
+          body={}
+          try:
+              body=json.load(open('/tmp/update.json'))
+          except Exception:
+              pass
+          root={}
+          try:
+              root=json.load(open('/tmp/root.json'))
+          except Exception:
+              pass
+
+          endpoint=((root.get('endpoints') or {}).get('admin_family_contact_routing_update'))
+          print('root_endpoint=',endpoint)
+          print('post_http=',code)
+          print('post_error=',body.get('error'))
+          print('post_version=',body.get('version'))
+
+          if code == '200' and body.get('ok') is True:
+              print('DIAG_RESULT=API_OK')
+          elif endpoint != '/api/admin/family-contact-routing/update':
+              print('DIAG_RESULT=LIVE_ROUTE_MISSING')
+          elif code == '404' and body.get('error') == '対象の家族連携情報が見つかりません。':
+              print('DIAG_RESULT=RELATION_LOOKUP_404')
+          elif code == '404':
+              print('DIAG_RESULT=OTHER_404')
+          else:
+              print('DIAG_RESULT=OTHER_ERROR')
+          PY
