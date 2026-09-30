@@ -1,0 +1,90 @@
+name: DPRO DAYCARE Final Demo Polish R1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Patch owner demo labels
+        shell: bash
+        env:
+          PATCH_B64: "CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAoKcCA9IFBhdGgoIm93bmVyLmh0bWwiKQpzID0gcC5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKCm9sZF9mdW5jID0gcicnJyAgICBmdW5jdGlvbiBjbGVhbkRlbW9MYWJlbCh2YWx1ZSkgewogICAgICByZXR1cm4gU3RyaW5nKHZhbHVlIHx8ICIiKQogICAgICAgIC5yZXBsYWNlKC9eXFtERU1PKD86OlteXF1dKyk/XF1ccyovaSwgIuOAkOODh+ODouOAkSIpCiAgICAgICAgLnRyaW0oKTsKICAgIH0nJycKCm5ld19mdW5jID0gcicnJyAgICBmdW5jdGlvbiBjbGVhbkRlbW9MYWJlbCh2YWx1ZSkgewogICAgICByZXR1cm4gU3RyaW5nKHZhbHVlIHx8ICIiKQogICAgICAgIC5yZXBsYWNlKC9eXFtERU1PKD86OlteXF1dKyk/XF1ccyovaSwgIuOAkOODh+ODouOAkSIpCiAgICAgICAgLnJlcGxhY2UoL14oPzrjgJDjg4fjg6LjgJFccyopezIsfS8sICLjgJDjg4fjg6LjgJEiKQogICAgICAgIC50cmltKCk7CiAgICB9JycnCgppZiBvbGRfZnVuYyBub3QgaW4gczoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkVSUk9SOiBjbGVhbkRlbW9MYWJlbCBhbmNob3Igbm90IGZvdW5kIikKcyA9IHMucmVwbGFjZShvbGRfZnVuYywgbmV3X2Z1bmMsIDEpCgpvbGRfYmxvY2sgPSByJycnICAgICAgICAgIHJldHVybiBgCiAgICAgICAgICAgIDxhcnRpY2xlIGNsYXNzPSJicm9hZGNhc3QtaGlzdG9yeS1pdGVtIj4KICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJicm9hZGNhc3QtaGlzdG9yeS1oZWFkIj4KICAgICAgICAgICAgICAgIDxoND4ke2RlbW9SZWNvcmQgPyAi44CQ44OH44Oi44CRIiA6ICIifSR7ZXNjYXBlSHRtbChyb3cuc3ViamVjdCB8fCAi5Lu25ZCN44Gq44GXIil9PC9oND4nJycKCm5ld19ibG9jayA9IHInJycgICAgICAgICAgY29uc3Qgc3ViamVjdExhYmVsID0gY2xlYW5EZW1vTGFiZWwocm93LnN1YmplY3QgfHwgIuS7tuWQjeOBquOBlyIpOwogICAgICAgICAgY29uc3QgZGVtb1ByZWZpeCA9CiAgICAgICAgICAgIGRlbW9SZWNvcmQgJiYgIXN1YmplY3RMYWJlbC5zdGFydHNXaXRoKCLjgJDjg4fjg6LjgJEiKQogICAgICAgICAgICAgID8gIuOAkOODh+ODouOAkSIKICAgICAgICAgICAgICA6ICIiOwoKICAgICAgICAgIHJldHVybiBgCiAgICAgICAgICAgIDxhcnRpY2xlIGNsYXNzPSJicm9hZGNhc3QtaGlzdG9yeS1pdGVtIj4KICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJicm9hZGNhc3QtaGlzdG9yeS1oZWFkIj4KICAgICAgICAgICAgICAgIDxoND4ke2RlbW9QcmVmaXh9JHtlc2NhcGVIdG1sKHN1YmplY3RMYWJlbCB8fCAi5Lu25ZCN44Gq44GXIil9PC9oND4nJycKCmlmIG9sZF9ibG9jayBub3QgaW4gczoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkVSUk9SOiBicm9hZGNhc3QgaGlzdG9yeSB0aXRsZSBhbmNob3Igbm90IGZvdW5kIikKcyA9IHMucmVwbGFjZShvbGRfYmxvY2ssIG5ld19ibG9jaywgMSkKCm1hcmtlciA9ICIvKiBEUFJPIERBWUNBUkUgRklOQUwgREVNTyBQT0xJU0ggUjEgMjAyNjA5MzAgKi8iCmlmIG1hcmtlciBub3QgaW4gczoKICAgIHMgPSBzLnJlcGxhY2UoIjwvc3R5bGU+IiwgbWFya2VyICsgIlxuPC9zdHlsZT4iLCAxKQoKcmVxdWlyZWQgPSBbCiAgICAiRFBSTyBEQVlDQVJFIEZJTkFMIERFTU8gUE9MSVNIIFIxIDIwMjYwOTMwIiwKICAgICdjb25zdCBzdWJqZWN0TGFiZWwgPSBjbGVhbkRlbW9MYWJlbChyb3cuc3ViamVjdCB8fCAi5Lu25ZCN44Gq44GXIik7JywKICAgICdkZW1vUmVjb3JkICYmICFzdWJqZWN0TGFiZWwuc3RhcnRzV2l0aCgi44CQ44OH44Oi44CRIiknLAogICAgJy5yZXBsYWNlKC9eKD8644CQ44OH44Oi44CRXFxzKil7Mix9LywgIuOAkOODh+ODouOAkSIpJywKXQptaXNzaW5nID0gW3ggZm9yIHggaW4gcmVxdWlyZWQgaWYgeCBub3QgaW4gc10KaWYgbWlzc2luZzoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkVSUk9SIG1pc3Npbmc6ICIgKyAiLCAiLmpvaW4obWlzc2luZykpCgpwLndyaXRlX3RleHQocywgZW5jb2Rpbmc9InV0Zi04IikKcHJpbnQoIk9XTkVSX1BBVENIPVBBU1MiKQo="
+        run: |
+          set -euo pipefail
+          python -c 'import os,base64; exec(base64.b64decode(os.environ["PATCH_B64"]).decode("utf-8"))'
+
+          grep -q 'DPRO DAYCARE FINAL DEMO POLISH R1 20260930' owner.html
+          grep -q 'const subjectLabel = cleanDemoLabel' owner.html
+          echo "STATIC_QA=PASS"
+
+      - name: Commit owner.html
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add owner.html
+
+          if git diff --cached --quiet; then
+            echo "No source changes to commit."
+          else
+            git commit -m "DAYCARE final demo polish R1"
+            git push origin HEAD:main
+          fi
+
+      - name: Turn demo auto escalation OFF
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          body='{"facility_code":"dpro_dayservice_demo","enabled":false,"delay_minutes":5,"max_priority":2,"operator_name":"公開デモ最終QA","device_type":"github-actions"}'
+
+          code=$(curl -sS -o /tmp/off.json -w '%{http_code}'             -X POST             -H 'Accept: application/json'             -H 'Content-Type: application/json'             -H 'X-Admin-Code: 1234'             --data "$body"             'https://dpro-dayservice-line-api.dpromstk2000.workers.dev/api/admin/broadcasts/auto-escalation/settings')
+
+          echo "AUTO_ESCALATION_OFF_HTTP=$code"
+          cat /tmp/off.json
+          [ "$code" = "200" ] || exit 6
+
+      - name: Verify demo setting OFF
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsS             -H 'Accept: application/json'             -H 'X-Admin-Code: 1234'             'https://dpro-dayservice-line-api.dpromstk2000.workers.dev/api/admin/broadcasts/auto-escalation/settings?facility_code=dpro_dayservice_demo'             > /tmp/settings.json
+
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/settings.json'))
+          settings=d.get('settings') or {}
+          print("AUTO_ESCALATION_ENABLED=", settings.get('enabled'))
+          print("AUTO_ESCALATION_DELAY_MINUTES=", settings.get('delay_minutes'))
+          print("AUTO_ESCALATION_MAX_PRIORITY=", settings.get('max_priority'))
+          if settings.get('enabled') is not False:
+              raise SystemExit("ERROR: demo auto escalation is still enabled")
+          print("AUTO_ESCALATION_OFF_QA=PASS")
+          PY
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo "## DPRO DAYCARE Final Demo Polish R1"
+            echo ""
+            echo "- Duplicate 【デモ】 title rendering: fixed"
+            echo "- Demo auto escalation: OFF"
+            echo "- Existing R16 shared scheduler: unchanged"
+            echo "- Broadcast logic/API: unchanged"
+          } >> "$GITHUB_STEP_SUMMARY"
