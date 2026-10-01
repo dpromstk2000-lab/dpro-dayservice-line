@@ -1,0 +1,451 @@
+name: DPRO DAYCARE System Final Lock R1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  final-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LOCK_SHA: b82d1d1b5ef301d06e015888f6be58ba94cf0b23
+      FRONT_BASE: https://dpromstk2000-lab.github.io/dpro-dayservice-line
+      API_BASE: https://dpro-dayservice-line-api.dpromstk2000.workers.dev
+
+    steps:
+      - name: Checkout FINAL LOCK source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.LOCK_SHA }}
+          fetch-depth: 1
+
+      - name: Verify FINAL LOCK source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$LOCK_SHA"
+
+          cp worker.js /tmp/daycare-worker.mjs
+          node --check /tmp/daycare-worker.mjs
+          node --check config.js
+          node --check tutorial-daycare.js
+
+          grep -q 'DAYCARE-3-R16-SHARED-SCHEDULER-20260930' worker.js
+          grep -q 'shared_scheduler_bridge: true' worker.js
+          grep -q '/api/internal/scheduler/auto-escalation' worker.js
+
+          grep -q 'DPRO DAYCARE FINAL DEMO POLISH R1 20260930' owner.html
+          grep -q 'DPRO DAYCARE BROADCAST HISTORY UX R1 20260930' owner.html
+          grep -q 'broadcastHistoryExpanded: false' owner.html
+          grep -q 'broadcastHistoryFocusedId: null' owner.html
+          grep -q '過去の履歴を表示' owner.html
+          grep -q 'data-broadcast-history-focus' owner.html
+
+          for f in \
+            worker.js config.js index.html member.html owner.html owner-ipad.html \
+            system-check.html broadcast-ack.html line-idtoken-helper.js \
+            demo-guide.html guide-center.html tutorial-daycare.css tutorial-daycare.js \
+            DPRO_DAYCARE_EMERGENCY_BROADCAST_DB_R1.sql \
+            DPRO_TUTORIAL_DAYCARE_DETAILED_MANUAL_V1.0.pdf \
+            DPRO_TUTORIAL_DAYCARE_QUICK_START_V1.0.pdf
+          do
+            test -f "$f"
+          done
+
+          echo "FINAL_LOCK_SOURCE_QA=PASS"
+
+      - name: Verify live runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p return
+
+          python3 <<'PY'
+          import json, os, urllib.request, urllib.error
+          from pathlib import Path
+
+          API=os.environ["API_BASE"].rstrip("/")
+          FRONT=os.environ["FRONT_BASE"].rstrip("/")
+
+          def get(url, accept="*/*"):
+              req=urllib.request.Request(
+                  url,
+                  headers={
+                      "Accept":accept,
+                      "User-Agent":"DPRO-DAYCARE-SYSTEM-FINAL-LOCK-R1",
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      return r.status, dict(r.headers), r.read()
+              except urllib.error.HTTPError as e:
+                  return e.code, dict(e.headers), e.read()
+
+          out={"ok":True,"checks":{}}
+
+          status, headers, body=get(API+"/api/health","application/json")
+          health=json.loads(body.decode("utf-8"))
+          out["health"]=health
+          out["checks"]["health_200"]=status==200 and health.get("ok") is True
+          out["checks"]["worker_r16"]=health.get("workerVersion")=="DAYCARE-3-R16-SHARED-SCHEDULER-20260930"
+          out["checks"]["database_r3"]=health.get("databaseVersion")=="DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01"
+          out["checks"]["versions_aligned"]=health.get("versionsAligned") is True
+          out["checks"]["shared_scheduler_bridge"]=(health.get("features") or {}).get("shared_scheduler_bridge") is True
+
+          for key,path in {
+              "owner_demo":"/owner.html?demo=1",
+              "family":"/index.html?demo=1",
+              "member":"/member.html?demo=1",
+              "ipad":"/owner-ipad.html?demo=1",
+              "system_check":"/system-check.html",
+          }.items():
+              s,h,b=get(FRONT+path,"text/html,*/*")
+              out["checks"][f"{key}_200"]=s==200 and len(b)>500
+
+          out["ok"]=all(out["checks"].values())
+          Path("return/FINAL_RUNTIME_QA.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2)+"\n",
+              encoding="utf-8"
+          )
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          if not out["ok"]:
+              raise SystemExit(1)
+          PY
+
+      - name: Build FINAL LOCK RETURN ZIP root files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 <<'PY'
+          from pathlib import Path
+          import shutil, hashlib, textwrap
+
+          ret=Path("return")
+          ret.mkdir(exist_ok=True)
+
+          source_files=[
+              "worker.js",
+              "config.js",
+              "index.html",
+              "member.html",
+              "owner.html",
+              "owner-ipad.html",
+              "system-check.html",
+              "broadcast-ack.html",
+              "line-idtoken-helper.js",
+              "demo-guide.html",
+              "guide-center.html",
+              "tutorial-daycare.css",
+              "tutorial-daycare.js",
+              "DPRO_DAYCARE_EMERGENCY_BROADCAST_DB_R1.sql",
+              "DPRO_TUTORIAL_DAYCARE_DETAILED_MANUAL_V1.0.pdf",
+              "DPRO_TUTORIAL_DAYCARE_QUICK_START_V1.0.pdf",
+          ]
+          for filename in source_files:
+              shutil.copy2(filename,ret/filename)
+
+          text_copies={
+              "worker.js":"worker_TEXT.txt",
+              "config.js":"config_TEXT.txt",
+              "index.html":"index_TEXT.txt",
+              "member.html":"member_TEXT.txt",
+              "owner.html":"owner_TEXT.txt",
+              "owner-ipad.html":"owner-ipad_TEXT.txt",
+              "system-check.html":"system-check_TEXT.txt",
+              "broadcast-ack.html":"broadcast-ack_TEXT.txt",
+              "line-idtoken-helper.js":"line-idtoken-helper_TEXT.txt",
+              "demo-guide.html":"demo-guide_TEXT.txt",
+              "guide-center.html":"guide-center_TEXT.txt",
+              "tutorial-daycare.css":"tutorial-daycare_CSS_TEXT.txt",
+              "tutorial-daycare.js":"tutorial-daycare_JS_TEXT.txt",
+              "DPRO_DAYCARE_EMERGENCY_BROADCAST_DB_R1.sql":"DPRO_DAYCARE_EMERGENCY_BROADCAST_DB_R1_SQL_TEXT.txt",
+          }
+          for src,dst in text_copies.items():
+              shutil.copy2(src,ret/dst)
+
+          docs={
+          "00_START_HERE.txt": """DPRO DAYCARE / SYSTEM FINAL LOCK RETURN R1
+          2026-10-01 JST
+
+          FINAL LOCK SOURCE SHA:
+          b82d1d1b5ef301d06e015888f6be58ba94cf0b23
+
+          HUMAN ACCEPTANCE:
+          OK
+
+          FINAL RELEASE:
+          4/4 PASS
+
+          SYSTEM FINAL LOCK:
+          PASS
+
+          LOCKED WORKER:
+          DAYCARE-3-R16-SHARED-SCHEDULER-20260930
+
+          DATABASE:
+          DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01
+
+          重要:
+          このZIPをDPRO DAYCAREの唯一のSYSTEM FINAL LOCK基準として扱う。
+          証明された不具合がない限り、LOCK済み範囲を再実装しない。
+          公開デモでは実LINE送信を行わない。
+          本番導入時のみ顧客LINE公式 Messaging API を設定する。
+          """,
+
+          "FINAL_RELEASE_4_4.txt": """DPRO DAYCARE FINAL RELEASE 4/4
+          2026-10-01 JST
+
+          RESULT:
+          PASS 4/4
+
+          GATE 1 / SOURCE & VERSION:
+          PASS
+          - FINAL LOCK SHA固定
+          - Worker R16
+          - Database R3
+          - versionsAligned=true
+
+          GATE 2 / CORE UX:
+          PASS
+          - 今日の状況
+          - 今日の利用者
+          - 家族からの連絡
+          - 利用者・家族台帳
+          - 利用予定
+          - 家族連絡文面
+          - 緊急・一斉連絡
+          - iPad画面
+
+          GATE 3 / EMERGENCY BROADCAST:
+          PASS
+          - 複数家族
+          - 優先順位
+          - 次順位への追加送信
+          - 自動段階配信
+          - 履歴最新3件
+          - 過去履歴折りたたみ
+          - 履歴拡大/一覧復帰
+          - 公開デモ安全送信
+
+          GATE 4 / AUTOMATED FINAL QA:
+          PASS
+          Workflow:
+          DPRO DAYCARE Final Release QA R3
+
+          HUMAN ACCEPTANCE:
+          OK
+          """,
+
+          "SYSTEM_FINAL_LOCK.txt": """DPRO DAYCARE SYSTEM FINAL LOCK
+          2026-10-01 JST
+
+          STATUS:
+          LOCKED
+
+          FINAL LOCK SHA:
+          b82d1d1b5ef301d06e015888f6be58ba94cf0b23
+
+          Worker:
+          DAYCARE-3-R16-SHARED-SCHEDULER-20260930
+
+          Database:
+          DAYCARE-DB-R3-20260925-EMERGENCY-BROADCAST-01
+
+          Shared Scheduler:
+          SHOP既存Cronを共用
+          DAYCARE自動段階配信は毎分判定
+          SHOP監視は元の6時間周期を維持
+          Cron本数は増加なし
+
+          Public Demo:
+          自動段階配信 OFF
+          実LINE送信なし
+
+          LOCK POLICY:
+          証明された不具合、セキュリティ対応、
+          本番導入固有設定がない限り変更しない。
+          """,
+
+          "HUMAN_ACCEPTANCE.txt": """DPRO DAYCARE HUMAN ACCEPTANCE
+
+          RESULT:
+          OK
+
+          ACCEPTED:
+          2026-10-01 JST
+
+          確認済み:
+          - 利用者・家族台帳
+          - 家族複数登録
+          - 連絡優先順位
+          - LINE連携状態表示
+          - 緊急・一斉連絡
+          - 次順位への追加送信
+          - 自動段階配信
+          - 共通Cron
+          - 履歴最新3件
+          - 過去履歴折りたたみ
+          - 履歴拡大
+          - 一覧へ復帰
+          - 公開デモ安全仕様
+          """,
+
+          "STATUS.txt": """DPRO DAYCARE STATUS
+
+          HUMAN ACCEPTANCE = OK
+          FINAL RELEASE = 4/4 PASS
+          SYSTEM FINAL LOCK = PASS
+          RETURN R1 = READY
+
+          FINAL LOCK SHA:
+          b82d1d1b5ef301d06e015888f6be58ba94cf0b23
+
+          Worker:
+          DAYCARE-3-R16-SHARED-SCHEDULER-20260930
+          """,
+
+          "HANDOFF.txt": """DPRO DAYCARE HANDOFF
+
+          次チャット/CENTRALへの指示:
+
+          「このZIPをDPRO DAYCAREの唯一のSYSTEM FINAL LOCK基準として
+          継続してください。
+
+          FINAL LOCK SHA:
+          b82d1d1b5ef301d06e015888f6be58ba94cf0b23
+
+          HUMAN ACCEPTANCE OK
+          FINAL RELEASE 4/4 PASS
+          SYSTEM FINAL LOCK PASS
+
+          証明された不具合がない限り、
+          FINAL LOCK済み範囲を再実装しないでください。
+
+          公開デモでは実LINE送信なしを維持してください。
+
+          本番契約時のみ顧客LINE公式 Messaging API設定、
+          家族LINE本番連携、本番送信テストへ進んでください。」
+          """,
+
+          "RETURN_TO_CENTRAL.txt": """CENTRAL RETURN
+
+          SYSTEM:
+          DPRO DAYCARE
+
+          HUMAN ACCEPTANCE:
+          OK
+
+          FINAL RELEASE:
+          4/4 PASS
+
+          SYSTEM FINAL LOCK:
+          PASS
+
+          RETURN:
+          R1 READY
+
+          FINAL LOCK SHA:
+          b82d1d1b5ef301d06e015888f6be58ba94cf0b23
+
+          完成済み:
+          - DAYCARE基本画面
+          - 利用者・家族台帳
+          - 家族連絡設定
+          - LINE連携状態表示
+          - 緊急・一斉連絡
+          - 家族優先順位
+          - 手動次順位送信
+          - 自動段階配信
+          - 共通Cron
+          - 履歴最新3件
+          - 過去履歴折りたたみ
+          - 履歴拡大
+          - 公開デモ安全送信
+          """,
+
+          "NEXT_ACTION.txt": """次のアクション
+
+          SYSTEM FINAL LOCK完了後:
+          原則なし。
+
+          本番導入が決まった場合のみ:
+          1. 顧客LINE公式アカウント確認
+          2. Messaging API設定
+          3. Cloudflare Secrets登録
+          4. 家族LINE本番連携
+          5. 本番テスト送信
+          6. 本番HUMAN ACCEPTANCE
+          7. CUSTOMER FINAL LOCK
+
+          それまではSYSTEM FINAL LOCKを保護する。
+          """,
+
+          "URLS.txt": """GitHub Repository:
+          https://github.com/dpromstk2000-lab/dpro-dayservice-line
+
+          GitHub Pages / Owner Demo:
+          https://dpromstk2000-lab.github.io/dpro-dayservice-line/owner.html?demo=1
+
+          Family:
+          https://dpromstk2000-lab.github.io/dpro-dayservice-line/index.html
+
+          Member:
+          https://dpromstk2000-lab.github.io/dpro-dayservice-line/member.html
+
+          iPad:
+          https://dpromstk2000-lab.github.io/dpro-dayservice-line/owner-ipad.html?demo=1
+
+          System Check:
+          https://dpromstk2000-lab.github.io/dpro-dayservice-line/system-check.html
+
+          Worker:
+          https://dpro-dayservice-line-api.dpromstk2000.workers.dev
+
+          Worker Health:
+          https://dpro-dayservice-line-api.dpromstk2000.workers.dev/api/health
+          """,
+          }
+
+          for filename,content in docs.items():
+              (ret/filename).write_text(textwrap.dedent(content).strip()+"\n",encoding="utf-8")
+
+          manifest=[]
+          for p in sorted(ret.iterdir()):
+              if p.is_file() and p.name!="MANIFEST_SHA256.txt":
+                  manifest.append(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}")
+          (ret/"MANIFEST_SHA256.txt").write_text("\n".join(manifest)+"\n",encoding="utf-8")
+
+          nested=[p for p in ret.rglob("*") if p.is_file() and p.parent!=ret]
+          if nested:
+              raise SystemExit(f"Nested files found: {nested}")
+
+          print("RETURN_ROOT_ONLY=PASS")
+          print("RETURN_FILE_COUNT=",len([p for p in ret.iterdir() if p.is_file()]))
+          PY
+
+      - name: FINAL LOCK summary
+        shell: bash
+        run: |
+          {
+            echo "## DPRO DAYCARE SYSTEM FINAL LOCK R1"
+            echo ""
+            echo "- HUMAN ACCEPTANCE: OK"
+            echo "- FINAL RELEASE: 4/4 PASS"
+            echo "- SYSTEM FINAL LOCK: PASS"
+            echo "- FINAL LOCK SHA: $LOCK_SHA"
+            echo "- Worker: DAYCARE-3-R16-SHARED-SCHEDULER-20260930"
+            echo "- RETURN R1: READY"
+            echo "- ZIP structure: root-only"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload SYSTEM FINAL LOCK RETURN R1
+        uses: actions/upload-artifact@v4
+        with:
+          name: DPRO_DAYCARE_SYSTEM_FINAL_LOCK_RETURN_R1_20261001
+          path: return/*
+          if-no-files-found: error
+          retention-days: 30
